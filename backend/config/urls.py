@@ -30,4 +30,13 @@ urlpatterns = [
         "api/orders/",
         include("orders.urls")
     ),
+
+    path(
+    "api/auth/",
+    include("authentication.urls")
+    ),
+
+    path(
+    "api/",
+    include("accounts.urls")),
 ]

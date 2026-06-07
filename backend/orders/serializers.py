@@ -38,7 +38,10 @@ class UpdateStatusSerializer(serializers.Serializer):
     status = serializers.CharField()
 
 
-
+class AssignDeliverySerializer(serializers.Serializer):
+    delivery_user_id = (
+        serializers.IntegerField()
+    )
 
 
 
@@ -59,3 +62,6 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = "__all__"
+
+
+

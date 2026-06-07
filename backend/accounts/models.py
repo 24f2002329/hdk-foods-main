@@ -71,6 +71,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False
     )
 
+    is_phone_verified = models.BooleanField(
+        default=False
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )

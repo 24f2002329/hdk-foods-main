@@ -1,9 +1,15 @@
 from django.urls import path
 
 from .views import (
+    AdminDashboardView,
+    AssignDeliveryView,
     ConfirmOrderView,
     CreateOrderView,
+    DeliveryOrdersView,
+    MyOrdersView,
+    OrderDetailView,
     OrderListView,
+    PendingOrdersView,
     RejectOrderView,
     UpdateOrderStatusView
 )
@@ -20,6 +26,16 @@ urlpatterns = [
     ),
 
     path(
+        "my-orders/",
+        MyOrdersView.as_view()
+    ),
+
+    path(
+        "<int:pk>/",
+        OrderDetailView.as_view()
+    ),
+
+    path(
         "<int:pk>/confirm/",
         ConfirmOrderView.as_view()
     ),
@@ -32,5 +48,25 @@ urlpatterns = [
     path(
         "<int:pk>/status/",
         UpdateOrderStatusView.as_view()
+    ),
+
+    path(
+        "<int:pk>/assign-delivery/",
+        AssignDeliveryView.as_view()
+    ),
+
+    path(
+        "delivery/",
+        DeliveryOrdersView.as_view()
+    ),
+
+    path(
+        "pending/",
+        PendingOrdersView.as_view()
+    ),
+
+    path(
+        "admin/dashboard/",
+        AdminDashboardView.as_view()
     ),
 ]
