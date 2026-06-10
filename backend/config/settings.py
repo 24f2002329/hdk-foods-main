@@ -32,11 +32,7 @@ SECRET_KEY = "django-insecure-&)it&i=k95m4jz0n^_drp_8)6so2(&c0ly^ssky+5es72x8k3v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.azurewebsites.net',
-]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -144,9 +140,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-CORS_ALLOWED_ORIGINS = [
-    "https://hdkfoods.in",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "https://hdkfoods.in",
+# ]
 
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -163,3 +159,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
 }
+
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+
