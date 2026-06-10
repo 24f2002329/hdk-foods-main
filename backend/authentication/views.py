@@ -21,6 +21,7 @@ from rest_framework.permissions import (
 
 from accounts.models import User
 
+import authentication.firebase
 from firebase_admin import auth
 
 
