@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -5,6 +7,25 @@ plugins {
     // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+fun googleMapsApiKey(): String {
+    val fromDartDefines = providers.gradleProperty("dart-defines").orNull
+        ?.split(",")
+        ?.mapNotNull { encoded: String ->
+            runCatching {
+                String(Base64.getDecoder().decode(encoded))
+            }.getOrNull()
+        }
+        ?.firstOrNull { decoded: String ->
+            decoded.startsWith("GOOGLE_MAPS_API_KEY=")
+        }
+        ?.substringAfter("=")
+
+    return fromDartDefines
+        ?: providers.gradleProperty("GOOGLE_MAPS_API_KEY").orNull
+        ?: providers.environmentVariable("GOOGLE_MAPS_API_KEY").orNull
+        ?: ""
 }
 
 android {
@@ -26,6 +47,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey()
     }
 
     buildTypes {
@@ -43,6 +65,16 @@ kotlin {
     }
 }
 
+// razorpay_flutter declares `com.razorpay:checkout:1.6.+`, which floats to
+// 1.6.40/1.6.41. Those pull in `standard-core` + `core` — two AARs that both
+// declare the `com.razorpay` namespace, which AGP 8 rejects with
+// "Namespace 'com.razorpay' is used in multiple modules". 1.6.38 ships as a
+// single self-contained AAR, so pin to it.
+configurations.all {
+    resolutionStrategy {
+        force("com.razorpay:checkout:1.6.38")
+    }
+}
 flutter {
     source = "../.."
 }
