@@ -58,7 +58,22 @@ class Order(models.Model):
         blank=True
     )
 
+    # Legacy Razorpay order id. Kept for historical orders; new orders use
+    # Cashfree, where the order_number doubles as the gateway order id.
     razorpay_order_id = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    # The id sent to Cashfree for the current/last payment attempt. Unique per
+    # attempt so a retry after a failed payment doesn't collide with an
+    # existing Cashfree order ("order_already_exists").
+    cashfree_order_id = models.CharField(
+        max_length=64,
+        blank=True
+    )
+
+    payment_session_id = models.CharField(
         max_length=255,
         blank=True
     )

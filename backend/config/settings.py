@@ -30,9 +30,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-&)it&i=k95m4jz0n^_drp_8)6so2(&c0ly^ssky+5es72x8k3v"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1"
+).split(",")
 
 
 # Application definition
@@ -95,6 +98,12 @@ try:
 except dj_database_url.ParseError:
     _parsed_database = dj_database_url.parse(_default_db_url)
 
+# Supabase / PgBouncer transaction pooling (port 6543) rotates the backend
+# connection per statement, so Django's server-side (named) cursors break with
+# "InvalidCursorName: cursor ... does not exist". Disable them for Postgres.
+if _parsed_database.get("ENGINE") == "django.db.backends.postgresql":
+    _parsed_database["DISABLE_SERVER_SIDE_CURSORS"] = True
+
 DATABASES = {
     "default": _parsed_database
 }
@@ -140,9 +149,18 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-# CORS_ALLOWED_ORIGINS = [
-#     "https://hdkfoods.in",
-# ]
+CORS_ALLOW_ALL_ORIGINS = os.getenv(
+    "CORS_ALLOW_ALL_ORIGINS",
+    "False"
+) == "True"
+
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    ""
+).split(",") if os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    ""
+) else []
 
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -161,6 +179,54 @@ SIMPLE_JWT = {
 }
 
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Cashfree Payments (PG) configuration.
+# CASHFREE_ENV controls which Cashfree base URL is used; flip it to
+# "production" once live API keys are in place — no code change needed.
+CASHFREE_APP_ID = os.getenv("CASHFREE_APP_ID", "")
+CASHFREE_SECRET_KEY = os.getenv("CASHFREE_SECRET_KEY", "")
+CASHFREE_ENV = os.getenv("CASHFREE_ENV", "sandbox")
+CASHFREE_API_VERSION = os.getenv("CASHFREE_API_VERSION", "2023-08-01")
 
+CASHFREE_BASE_URL = (
+    "https://api.cashfree.com/pg"
+    if CASHFREE_ENV == "production"
+    else "https://sandbox.cashfree.com/pg"
+)
+
+CASHFREE_WEBHOOK_SECRET = os.getenv(
+    "CASHFREE_WEBHOOK_SECRET",
+    ""
+)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO" if not DEBUG else "DEBUG",
+    },
+    "loggers": {
+        "orders.views": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
 

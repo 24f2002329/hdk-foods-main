@@ -90,15 +90,29 @@ class User(AbstractBaseUser, PermissionsMixin):
     
 
 class Address(models.Model):
+    LABEL_CHOICES = [
+        ("Home", "Home"),
+        ("Work", "Work"),
+        ("Other", "Other"),
+    ]
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='addresses'
     )
 
-    label = models.CharField(max_length=50)
+    label = models.CharField(
+        max_length=50,
+        choices=LABEL_CHOICES
+    )
 
     house = models.CharField(max_length=255)
+
+    street = models.CharField(
+        max_length=255,
+        blank=True
+    )
 
     landmark = models.CharField(
         max_length=255,

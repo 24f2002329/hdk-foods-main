@@ -53,7 +53,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Future<void> _load() async {
     try {
-      final order = await _orderService.getOrder(widget.orderId);
+      var order = await _orderService.getOrder(widget.orderId);
+
+      // Reconcile online payments against Cashfree. The in-app success
+      // callback can be missed (web redirect, app backgrounded/killed), so
+      // while the payment is still pending we ask the backend to re-check the
+      // gateway. The verify endpoint is safe to call repeatedly.
+      if (order.paymentMethod == 'online' &&
+          order.paymentStatus == 'pending') {
+        try {
+          order = await _orderService.verifyPayment(orderId: widget.orderId);
+        } catch (_) {
+          // Keep the polled order if reconciliation fails this cycle.
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _order = order;

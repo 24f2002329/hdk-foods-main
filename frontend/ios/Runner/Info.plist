@@ -16,6 +16,20 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>frontend</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>HDK Foods uses your location to save accurate delivery addresses.</string>
+	<!-- UPI apps the Cashfree checkout can hand off to. Required so iOS lets
+	     the app detect/launch them via UPI deep links. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>upi</string>
+		<string>tez</string>
+		<string>phonepe</string>
+		<string>paytmmp</string>
+		<string>gpay</string>
+		<string>bhim</string>
+		<string>credpay</string>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

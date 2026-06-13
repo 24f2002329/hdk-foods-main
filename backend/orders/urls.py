@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     AdminDashboardView,
     AssignDeliveryView,
+    CashfreeWebhookView,
     ConfirmOrderView,
     CreateOrderView,
     DeliveryOrdersView,
@@ -11,7 +12,9 @@ from .views import (
     OrderListView,
     PendingOrdersView,
     RejectOrderView,
-    UpdateOrderStatusView
+    SelectPaymentView,
+    UpdateOrderStatusView,
+    VerifyPaymentView
 )
 
 urlpatterns = [
@@ -51,6 +54,16 @@ urlpatterns = [
     ),
 
     path(
+        "<int:pk>/select-payment/",
+        SelectPaymentView.as_view()
+    ),
+
+    path(
+        "<int:pk>/verify-payment/",
+        VerifyPaymentView.as_view()
+    ),
+
+    path(
         "<int:pk>/assign-delivery/",
         AssignDeliveryView.as_view()
     ),
@@ -68,5 +81,10 @@ urlpatterns = [
     path(
         "admin/dashboard/",
         AdminDashboardView.as_view()
+    ),
+
+    path(
+        "webhook/cashfree/",
+        CashfreeWebhookView.as_view()
     ),
 ]

@@ -22,6 +22,7 @@ from .serializers import (
     OrderCreateSerializer,
     OrderSerializer,
     RejectOrderSerializer,
+    SelectPaymentSerializer,
     UpdateStatusSerializer
 )
 
@@ -30,7 +31,19 @@ from datetime import timedelta
 
 from django.db.models import Sum
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+import uuid
+import requests
+import logging
+import hmac
+import hashlib
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -62,7 +75,9 @@ class CreateOrderView(APIView):
         order = Order.objects.create(
             user=address.user,
             address=address,
-            payment_method=data["payment_method"],
+            payment_method=data.get(
+                "payment_method"
+            ) or "cod",
             delivery_notes=data.get(
                 "delivery_notes",
                 ""
@@ -98,7 +113,317 @@ class CreateOrderView(APIView):
             OrderSerializer(order).data,
             status=status.HTTP_201_CREATED
         )
-    
+
+
+
+class SelectPaymentView(APIView):
+    """Customer selects payment method after the order is confirmed.
+
+    cod    -> mark method, order proceeds straight to tracking.
+    online -> create a Cashfree order and return the checkout params.
+    """
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def post(self, request, pk):
+
+        try:
+            order = Order.objects.get(
+                pk=pk,
+                user=request.user
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if order.status != "confirmed":
+            return Response(
+                {
+                    "detail":
+                        "Order must be confirmed "
+                        "before payment."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if order.payment_status == "paid":
+            return Response(
+                {"detail": "Order already paid."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = SelectPaymentSerializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        method = serializer.validated_data[
+            "payment_method"
+        ]
+
+        if method == "cod":
+            order.payment_method = "cod"
+            order.payment_status = "pending"
+            order.save(
+                update_fields=[
+                    "payment_method",
+                    "payment_status",
+                    "updated_at"
+                ]
+            )
+
+            return Response(
+                {
+                    "payment_method": "cod",
+                    "order":
+                        OrderSerializer(order).data
+                }
+            )
+
+        # online -> Cashfree
+        if not settings.CASHFREE_APP_ID or \
+                not settings.CASHFREE_SECRET_KEY:
+            return Response(
+                {
+                    "detail":
+                        "Online payment is not "
+                        "configured."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        # Cashfree expects the amount in rupees (not paise) and a globally
+        # unique order id. A failed attempt leaves its order behind on
+        # Cashfree, so each attempt gets a fresh id derived from our
+        # order_number to avoid an "order_already_exists" collision on retry.
+        cf_order_id = (
+            f"{order.order_number}_"
+            f"{uuid.uuid4().hex[:10]}"
+        )
+
+        logger.info(
+            f"Creating Cashfree order: cf_order_id={cf_order_id}, "
+            f"amount={order.total_amount}, user_id={request.user.id}"
+        )
+
+        try:
+            cf_response = requests.post(
+                f"{settings.CASHFREE_BASE_URL}/orders",
+                headers={
+                    "x-client-id":
+                        settings.CASHFREE_APP_ID,
+                    "x-client-secret":
+                        settings.CASHFREE_SECRET_KEY,
+                    "x-api-version":
+                        settings.CASHFREE_API_VERSION,
+                    "Content-Type":
+                        "application/json",
+                },
+                json={
+                    "order_id": cf_order_id,
+                    "order_amount": float(
+                        order.total_amount
+                    ),
+                    "order_currency": "INR",
+                    "customer_details": {
+                        "customer_id":
+                            str(request.user.id),
+                        "customer_phone":
+                            request.user.phone_number,
+                        "customer_name":
+                            request.user.name or "Customer",
+                    },
+                },
+                timeout=15
+            )
+        except requests.RequestException:
+            return Response(
+                {
+                    "detail":
+                        "Could not reach payment "
+                        "gateway."
+                },
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        if cf_response.status_code not in (200, 201):
+            return Response(
+                {
+                    "detail":
+                        "Payment gateway error.",
+                    "gateway":
+                        cf_response.text
+                },
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        cf_order = cf_response.json()
+
+        order.payment_method = "online"
+        order.cashfree_order_id = cf_order_id
+        order.payment_session_id = cf_order[
+            "payment_session_id"
+        ]
+        # A new attempt supersedes any prior failed one.
+        if order.payment_status == "failed":
+            order.payment_status = "pending"
+        order.save(
+            update_fields=[
+                "payment_method",
+                "cashfree_order_id",
+                "payment_session_id",
+                "payment_status",
+                "updated_at"
+            ]
+        )
+
+        return Response(
+            {
+                "payment_method": "online",
+                "payment_session_id":
+                    cf_order["payment_session_id"],
+                "cf_order_id":
+                    cf_order_id,
+                "environment":
+                    settings.CASHFREE_ENV,
+                "order":
+                    OrderSerializer(order).data
+            }
+        )
+
+
+class VerifyPaymentView(APIView):
+    """Confirm payment with Cashfree and mark the order paid.
+
+    Cashfree does not hand the client a signature to verify. Instead we
+    fetch the order's status from Cashfree (server-to-server) and trust
+    only ``order_status == "PAID"``.
+    """
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def post(self, request, pk):
+
+        try:
+            order = Order.objects.get(
+                pk=pk,
+                user=request.user
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # No online attempt has been started for this order yet.
+        if not order.cashfree_order_id:
+            return Response(
+                {
+                    "payment_status":
+                        order.payment_status,
+                    "order":
+                        OrderSerializer(order).data
+                }
+            )
+
+        try:
+            cf_response = requests.get(
+                f"{settings.CASHFREE_BASE_URL}"
+                f"/orders/{order.cashfree_order_id}",
+                headers={
+                    "x-client-id":
+                        settings.CASHFREE_APP_ID,
+                    "x-client-secret":
+                        settings.CASHFREE_SECRET_KEY,
+                    "x-api-version":
+                        settings.CASHFREE_API_VERSION,
+                },
+                timeout=15
+            )
+        except requests.RequestException:
+            return Response(
+                {
+                    "detail":
+                        "Could not reach payment "
+                        "gateway."
+                },
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        if cf_response.status_code != 200:
+            return Response(
+                {
+                    "detail":
+                        "Payment gateway error.",
+                    "gateway":
+                        cf_response.text
+                },
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        cf_order = cf_response.json()
+        order_status = cf_order.get(
+            "order_status"
+        )
+
+        logger.info(
+            f"Verified Cashfree payment: order_id={order.id}, "
+            f"cf_order_id={order.cashfree_order_id}, status={order_status}"
+        )
+
+        # PAID                 -> success
+        # EXPIRED/TERMINATED   -> terminal failure
+        # ACTIVE (and others)  -> still awaiting payment; leave pending so
+        #                         this endpoint is safe to poll repeatedly.
+        if order_status == "PAID":
+            order.payment_status = "paid"
+            order.payment_id = str(
+                cf_order.get("cf_order_id", "")
+            )
+            order.save(
+                update_fields=[
+                    "payment_status",
+                    "payment_id",
+                    "updated_at"
+                ]
+            )
+
+            return Response(
+                {
+                    "payment_status": "paid",
+                    "order":
+                        OrderSerializer(order).data
+                }
+            )
+
+        if order_status in ("EXPIRED", "TERMINATED"):
+            order.payment_status = "failed"
+            order.save(
+                update_fields=[
+                    "payment_status",
+                    "updated_at"
+                ]
+            )
+
+        return Response(
+            {
+                "payment_status":
+                    order.payment_status,
+                "order_status":
+                    order_status,
+                "order":
+                    OrderSerializer(order).data
+            }
+        )
 
 
 
@@ -109,6 +434,7 @@ class OrderListView(generics.ListAPIView):
     )
 
     serializer_class = OrderSerializer
+    permission_classes = [IsAdmin]
 
 
 
@@ -148,9 +474,15 @@ class ConfirmOrderView(APIView):
 
     def patch(self, request, pk):
 
-        order = Order.objects.get(
-            pk=pk
-        )
+        try:
+            order = Order.objects.get(
+                pk=pk
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = (
             ConfirmOrderSerializer(
@@ -183,6 +515,7 @@ class ConfirmOrderView(APIView):
             )
         )
 
+        order.confirmed_by = request.user
         order.save()
 
         return Response(
@@ -200,9 +533,15 @@ class RejectOrderView(APIView):
     
     def patch(self, request, pk):
 
-        order = Order.objects.get(
-            pk=pk
-        )
+        try:
+            order = Order.objects.get(
+                pk=pk
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = (
             RejectOrderSerializer(
@@ -239,9 +578,15 @@ class UpdateOrderStatusView(APIView):
 
     def patch(self, request, pk):
 
-        order = Order.objects.get(
-            pk=pk
-        )
+        try:
+            order = Order.objects.get(
+                pk=pk
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = (
             UpdateStatusSerializer(
@@ -279,9 +624,15 @@ class AssignDeliveryView(APIView):
         pk
     ):
 
-        order = Order.objects.get(
-            pk=pk
-        )
+        try:
+            order = Order.objects.get(
+                pk=pk
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = (
             AssignDeliverySerializer(
@@ -293,12 +644,21 @@ class AssignDeliveryView(APIView):
             raise_exception=True
         )
 
-        delivery_user = User.objects.get(
-            id=serializer.validated_data[
-                "delivery_user_id"
-            ],
-            role="delivery"
-        )
+        try:
+            delivery_user = User.objects.get(
+                id=serializer.validated_data[
+                    "delivery_user_id"
+                ],
+                role="delivery"
+            )
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "detail":
+                        "Delivery user not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         order.assigned_delivery = (
             delivery_user
@@ -425,4 +785,280 @@ class AdminDashboardView(APIView):
         )
 
 
-    
+# @method_decorator(csrf_exempt, name="dispatch")
+# class CashfreeWebhookView(APIView):
+#     """
+#     Receive server-to-server payment notifications from Cashfree.
+
+#     Cashfree sends a POST with x-webhook-signature header (HMAC-SHA256).
+#     On PAYMENT_SUCCESS_WEBHOOK, mark the order as paid.
+#     """
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         # Get the signature from the header
+#         signature = request.META.get(
+#             "HTTP_X_WEBHOOK_SIGNATURE",
+#             ""
+#         )
+
+#         # Verify signature against webhook secret
+#         if not settings.CASHFREE_WEBHOOK_SECRET:
+#             logger.warning(
+#                 "Webhook received but CASHFREE_WEBHOOK_SECRET not configured"
+#             )
+#             return Response(
+#                 {"detail": "Webhook not configured."},
+#                 status=status.HTTP_503_SERVICE_UNAVAILABLE
+#             )
+
+#         # The payload body is what we sign
+#         raw_body = request.body
+
+#         expected_signature = hmac.new(
+#             settings.CASHFREE_WEBHOOK_SECRET.encode(),
+#             raw_body,
+#             hashlib.sha256
+#         ).hexdigest()
+
+#         if not hmac.compare_digest(
+#             signature,
+#             expected_signature
+#         ):
+#             logger.warning(
+#                 f"Webhook signature mismatch. "
+#                 f"Expected: {expected_signature}, Got: {signature}"
+#             )
+#             return Response(
+#                 {"detail": "Signature verification failed."},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         # Parse the payload
+#         try:
+#             data = request.data
+#         except Exception as e:
+#             logger.error(
+#                 f"Failed to parse webhook payload: {e}"
+#             )
+#             return Response(
+#                 {"detail": "Invalid payload."},
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         event_type = data.get("event_type", "")
+#         event_data = data.get("data", {})
+
+#         logger.info(
+#             f"Webhook received: event_type={event_type}, "
+#             f"order_id={event_data.get('order', {}).get('order_id', '')}"
+#         )
+
+#         # Handle payment success
+#         if event_type == "PAYMENT_SUCCESS_WEBHOOK":
+#             order_id_str = event_data.get(
+#                 "order",
+#                 {}
+#             ).get("order_id", "")
+
+#             # order_id_str is the cf_order_id (e.g. "HDK1001_abc123")
+#             if not order_id_str:
+#                 logger.warning(
+#                     "PAYMENT_SUCCESS_WEBHOOK received without order_id"
+#                 )
+#                 return Response({}, status=status.HTTP_200_OK)
+
+#             try:
+#                 # The cf_order_id contains our order_number prefix, extract it
+#                 # Format: {order_number}_{uuid_suffix}
+#                 order_number = "_".join(
+#                     order_id_str.split("_")[:-1]
+#                 )
+
+#                 order = Order.objects.get(
+#                     order_number=order_number
+#                 )
+#             except Order.DoesNotExist:
+#                 logger.warning(
+#                     f"Webhook for non-existent order: {order_id_str}"
+#                 )
+#                 # Still return 200 so Cashfree doesn't retry
+#                 return Response({}, status=status.HTTP_200_OK)
+
+#             # Mark as paid
+#             cf_payment_id = event_data.get(
+#                 "payment",
+#                 {}
+#             ).get("cf_payment_id", "")
+
+#             order.payment_status = "paid"
+#             order.payment_id = cf_payment_id
+#             order.save(
+#                 update_fields=[
+#                     "payment_status",
+#                     "payment_id",
+#                     "updated_at"
+#                 ]
+#             )
+
+#             logger.info(
+#                 f"Order marked as paid via webhook: "
+#                 f"order_id={order.id}, cf_order_id={order_id_str}"
+#             )
+
+#         # Return 200 for all valid signatures (to prevent Cashfree retries)
+#         return Response({}, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CashfreeWebhookView(APIView):
+    """
+    Cashfree webhook handler.
+
+    Sandbox version:
+    - Signature verification disabled
+    - Handles PAYMENT_SUCCESS_WEBHOOK
+    - Handles PAYMENT_FAILED_WEBHOOK
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            import json
+
+            data = request.data
+
+            logger.info(
+                "Webhook payload:\n%s",
+                json.dumps(data, indent=2)
+            )
+
+            event_type = data.get("type", "")
+            event_data = data.get("data", {})
+
+            logger.info(
+                f"Webhook received: type={event_type}"
+            )
+
+            # -------------------------
+            # PAYMENT SUCCESS
+            # -------------------------
+            if event_type == "PAYMENT_SUCCESS_WEBHOOK":
+
+                order_id_str = (
+                    event_data.get("order", {})
+                    .get("order_id", "")
+                )
+
+                cf_payment_id = (
+                    event_data.get("payment", {})
+                    .get("cf_payment_id", "")
+                )
+
+                if not order_id_str:
+                    logger.warning(
+                        "PAYMENT_SUCCESS_WEBHOOK received without order_id"
+                    )
+                    return Response(
+                        {"status": "success"},
+                        status=status.HTTP_200_OK
+                    )
+
+                try:
+                    order_number = "_".join(
+                        order_id_str.split("_")[:-1]
+                    )
+
+                    order = Order.objects.get(
+                        order_number=order_number
+                    )
+
+                    order.payment_status = "paid"
+                    order.payment_id = str(cf_payment_id)
+
+                    order.save(
+                        update_fields=[
+                            "payment_status",
+                            "payment_id",
+                            "updated_at"
+                        ]
+                    )
+
+                    logger.info(
+                        f"Order marked PAID via webhook: "
+                        f"{order.order_number}"
+                    )
+
+                except Order.DoesNotExist:
+                    logger.warning(
+                        f"Order not found: {order_id_str}"
+                    )
+
+            # -------------------------
+            # PAYMENT FAILED
+            # -------------------------
+            elif event_type == "PAYMENT_FAILED_WEBHOOK":
+
+                order_id_str = (
+                    event_data.get("order", {})
+                    .get("order_id", "")
+                )
+
+                logger.warning(
+                    f"Payment failed for order: {order_id_str}"
+                )
+
+                try:
+                    order_number = "_".join(
+                        order_id_str.split("_")[:-1]
+                    )
+
+                    order = Order.objects.get(
+                        order_number=order_number
+                    )
+
+                    order.payment_status = "failed"
+
+                    order.save(
+                        update_fields=[
+                            "payment_status",
+                            "updated_at"
+                        ]
+                    )
+
+                except Order.DoesNotExist:
+                    logger.warning(
+                        f"Order not found: {order_id_str}"
+                    )
+
+            else:
+                logger.info(
+                    f"Ignoring webhook type: {event_type}"
+                )
+
+            return Response(
+                {"status": "success"},
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            logger.exception(
+                f"Webhook processing failed: {str(e)}"
+            )
+
+            return Response(
+                {
+                    "status": "error",
+                    "message": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

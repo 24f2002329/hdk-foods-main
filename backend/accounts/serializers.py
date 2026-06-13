@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from .models import Address
+from .models import Address, User
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ["id", "phone_number", "name", "role"]
+        read_only_fields = ["id", "phone_number", "role"]
 
 
 class AddressSerializer(
@@ -9,8 +17,19 @@ class AddressSerializer(
     class Meta:
         model = Address
 
-        fields = "__all__"
+        fields = [
+            "id",
+            "label",
+            "house",
+            "street",
+            "landmark",
+            "city",
+            "pincode",
+            "latitude",
+            "longitude",
+            "is_default",
+        ]
 
         read_only_fields = [
-            "user"
+            "id"
         ]

@@ -24,6 +24,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final OrderService _orderService = OrderService();
   
   CustomerAddress? _selectedAddress;
+  String _selectedPaymentMethod = 'cod';
   bool _isLoadingAddresses = true;
   bool _isCreatingOrder = false;
   String? _addressError;
@@ -79,6 +80,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final order = await _orderService.createOrder(
         addressId: _selectedAddress!.id!,
         items: items,
+        paymentMethod: _selectedPaymentMethod,
       );
 
       cart.clearCart();
@@ -90,6 +92,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             builder: (_) => WaitingRoomScreen(
               orderId: order.id,
               orderNumber: order.orderNumber,
+              paymentMethod: _selectedPaymentMethod,
             ),
           ),
         );
@@ -107,6 +110,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         });
       }
     }
+  }
+
+  Widget _paymentTile({
+    required String value,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final selected = _selectedPaymentMethod == value;
+    return GestureDetector(
+      onTap: _isCreatingOrder ? null : () => setState(() => _selectedPaymentMethod = value),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _panel,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? _brandRed : _stroke,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: selected ? _brandRed : Colors.grey),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+            if (selected) const Icon(Icons.check_circle, color: _brandRed),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -236,6 +279,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Payment Mode',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    _paymentTile(
+                      value: 'online',
+                      icon: Icons.account_balance_wallet,
+                      title: 'Pay Online',
+                      subtitle: 'UPI, cards, netbanking via Cashfree',
+                    ),
+                    const SizedBox(height: 12),
+                    _paymentTile(
+                      value: 'cod',
+                      icon: Icons.money,
+                      title: 'Cash on Delivery',
+                      subtitle: 'Pay when your order arrives',
                     ),
                   ],
                 ),

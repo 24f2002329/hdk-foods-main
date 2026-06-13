@@ -1,30 +1,41 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend/main.dart';
+import 'package:frontend/features/cart/services/cart_provider.dart';
+import 'package:frontend/shared/models/product.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('CartProvider manages quantities, totals, and clearing', () {
+    final cart = CartProvider();
+    final product = Product(
+      id: 1,
+      name: 'Classic Boba',
+      description: 'Milk tea with tapioca pearls',
+      image: '',
+      price: 120,
+      isFeatured: true,
+      preparationTime: 10,
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    cart.addProduct(product);
+    cart.increaseQuantity(product);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(cart.itemCount, 2);
+    expect(cart.quantityFor(product), 2);
+    expect(cart.totalAmount, 240);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    cart.decreaseQuantity(product);
+
+    expect(cart.itemCount, 1);
+    expect(cart.totalAmount, 120);
+
+    cart.removeProduct(product);
+
+    expect(cart.itemCount, 0);
+    expect(cart.items, isEmpty);
+
+    cart.addProduct(product);
+    cart.clearCart();
+
+    expect(cart.itemCount, 0);
+    expect(cart.totalAmount, 0);
   });
 }

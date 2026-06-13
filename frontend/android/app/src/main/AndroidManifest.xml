@@ -1,11 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
         android:label="HDK Foods"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -33,6 +39,28 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Fall back to the Skia renderer. Impeller (Flutter's default on
+             Android) fails to composite the Cashfree checkout WebView, which
+             launches as a translucent activity over the Flutter surface, so
+             the payment page renders transparent / not visible.
+             Use EnableImpeller=false; the DisableImpeller key is ignored on
+             some Flutter versions. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+
+        <!-- Switch Flutter from SurfaceView (default) to TextureView.
+             SurfaceView punches a compositing hole in the view hierarchy at
+             the system level; when the Cashfree WebCheckout Activity opens its
+             WebView on top, the Chrome renderer subprocess fails to connect
+             (cr_ChildProcessConn) and OpenGL can't set up its swap chain,
+             giving the transparent/blank payment screen.
+             TextureView renders into a normal Android View texture — no hole,
+             no conflict, WebView renders cleanly. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.SurfaceMode"
+            android:value="texture" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -43,6 +71,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets the Cashfree checkout discover installed UPI apps on
+             Android 11+ (package visibility) for the native UPI intent flow. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="upi"/>
         </intent>
     </queries>
 </manifest>

@@ -65,16 +65,6 @@ kotlin {
     }
 }
 
-// razorpay_flutter declares `com.razorpay:checkout:1.6.+`, which floats to
-// 1.6.40/1.6.41. Those pull in `standard-core` + `core` — two AARs that both
-// declare the `com.razorpay` namespace, which AGP 8 rejects with
-// "Namespace 'com.razorpay' is used in multiple modules". 1.6.38 ships as a
-// single self-contained AAR, so pin to it.
-configurations.all {
-    resolutionStrategy {
-        force("com.razorpay:checkout:1.6.38")
-    }
-}
 flutter {
     source = "../.."
 }

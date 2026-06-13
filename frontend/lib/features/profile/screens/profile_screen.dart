@@ -1,7 +1,54 @@
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
+import '../../../core/storage/token_storage.dart';
+import '../../accounts/models/user.dart';
+import '../../accounts/services/user_service.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final UserService _userService = UserService();
+  User? _user;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final user = await _userService.getCurrentUser();
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _loading = false;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    await TokenStorage.logout();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,79 +62,87 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111111),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF2A2A2A)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF1E1E),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.person_rounded, color: Colors.white),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Rahul Sharma',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF1E1E)))
+          : _error != null
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              : ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111111),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF1E1E),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.person_rounded, color: Colors.white),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _user?.name ?? 'User',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _user?.phoneNumber ?? '',
+                                  style: const TextStyle(
+                                    color: Color(0xFFB8B8B8),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _ProfileTile(icon: Icons.receipt_long_rounded, label: 'My Orders'),
+                    _ProfileTile(
+                      icon: Icons.location_on_rounded,
+                      label: 'Saved Addresses',
+                      onTap: () => Navigator.pushNamed(context, '/addresses'),
+                    ),
+                    _ProfileTile(icon: Icons.account_balance_wallet_rounded, label: 'Wallet'),
+                    _ProfileTile(icon: Icons.local_offer_rounded, label: 'Coupons'),
+                    _ProfileTile(icon: Icons.help_outline_rounded, label: 'Help & Support'),
+                    const SizedBox(height: 18),
+                    OutlinedButton.icon(
+                      onPressed: _logout,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        side: const BorderSide(color: Color(0xFFFF1E1E)),
+                        foregroundColor: const Color(0xFFFF1E1E),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        '+91 98765 43210',
-                        style: TextStyle(
-                          color: Color(0xFFB8B8B8),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text(
+                        'Logout',
+                        style: TextStyle(fontWeight: FontWeight.w900),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _ProfileTile(icon: Icons.receipt_long_rounded, label: 'My Orders'),
-          _ProfileTile(icon: Icons.location_on_rounded, label: 'Saved Addresses', onTap: () => Navigator.pushNamed(context, '/addresses')),
-          _ProfileTile(icon: Icons.account_balance_wallet_rounded, label: 'Wallet'),
-          _ProfileTile(icon: Icons.local_offer_rounded, label: 'Coupons'),
-          _ProfileTile(icon: Icons.help_outline_rounded, label: 'Help & Support'),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-              side: const BorderSide(color: Color(0xFFFF1E1E)),
-              foregroundColor: const Color(0xFFFF1E1E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text(
-              'Logout',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

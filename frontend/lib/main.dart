@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'firebase_options.dart';
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'features/address/screens/address_screen.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/cart/services/cart_provider.dart';
+import 'features/home/screens/home_screen.dart';
+import 'features/checkout/screens/checkout_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(
-    const MyApp(),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -23,140 +25,61 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "HDK Foods",
+    return ChangeNotifierProvider(
+      create: (_) => CartProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFFF1E1E),
+            primary: const Color(0xFFFF1E1E),
+            brightness: Brightness.dark,
           ),
-        ),
-        body: const OtpScreen(),
-      ),
-    );
-  }
-}
-
-
-class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key});
-
-  @override
-  State<OtpScreen> createState() => _OtpScreenState();
-}
-
-class _OtpScreenState extends State<OtpScreen> {
-  final otpController = TextEditingController();
-
-  String? verificationId;
-
-  Future<void> sendOtp() async {
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: "+919999999999",
-
-      verificationCompleted: (credential) async {
-        print("AUTO VERIFIED");
-      },
-
-      verificationFailed: (e) {
-        print("FAILED");
-        print(e.code);
-        print(e.message);
-      },
-
-      codeSent: (id, token) {
-        verificationId = id;
-
-        print("OTP SENT");
-        print(id);
-      },
-
-      codeAutoRetrievalTimeout: (id) {},
-    );
-  }
-
-  Future<void> verifyOtp() async {
-    try {
-      final credential =
-          PhoneAuthProvider.credential(
-        verificationId: verificationId!,
-        smsCode: otpController.text.trim(),
-      );
-
-      final userCredential =
-          await FirebaseAuth.instance
-              .signInWithCredential(
-        credential,
-      );
-
-      final firebaseToken =
-          await userCredential.user!
-              .getIdToken();
-
-      print("FIREBASE TOKEN:");
-      print(firebaseToken);
-
-      final response = await http.post(
-        Uri.parse(
-          "http://10.53.14.18:8000/api/auth/verify-otp/",
-        ),
-        headers: {
-          "Content-Type":
-              "application/json",
-        },
-        body: jsonEncode({
-          "firebase_token":
-              firebaseToken,
-        }),
-      );
-
-      print(
-        "DJANGO STATUS: ${response.statusCode}",
-      );
-
-      print(
-        "DJANGO RESPONSE: ${response.body}",
-      );
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          const EdgeInsets.all(20),
-
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-
-        children: [
-          ElevatedButton(
-            onPressed: sendOtp,
-            child:
-                const Text("Send OTP"),
+          textTheme: GoogleFonts.poppinsTextTheme(
+            ThemeData.dark().textTheme,
           ),
-
-          const SizedBox(height: 20),
-
-          TextField(
-            controller: otpController,
-            decoration:
-                const InputDecoration(
-              labelText: "OTP",
+          scaffoldBackgroundColor: const Color(0xFF050505),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF050505),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: false,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF1E1E),
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
-
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: verifyOtp,
-            child:
-                const Text("Verify OTP"),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFF111111),
+            hintStyle: const TextStyle(color: Color(0xFF8F8F8F)),
+            labelStyle: const TextStyle(color: Color(0xFFB8B8B8)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFFF1E1E)),
+            ),
           ),
-        ],
+          useMaterial3: true,
+        ),
+
+        routes: {
+          '/addresses': (_) => const AddressScreen(),
+          '/login': (_) => const LoginScreen(),
+          '/home': (_) => const HomeScreen(),
+          '/checkout': (_) => const CheckoutScreen(),
+        },
+
+        home: const SplashScreen(),
       ),
     );
   }
