@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from accounts.models import User, Address
 from products.models import Product
@@ -115,6 +116,34 @@ class Order(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="assigned_deliveries"
+    )
+
+    # Discount applied by chef/admin before or after confirmation
+    discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00")
+    )
+
+    discount_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        default=""
+    )
+
+    # Set to True when chef/admin edits items or applies a discount.
+    # Customer sees a popup when this is True after order is confirmed.
+    # Cleared when the customer acknowledges the changes.
+    is_modified_by_staff = models.BooleanField(default=False)
+
+    # Snapshot of total_amount before the first staff modification.
+    # Used to re-base discounts so applying a second discount doesn't
+    # double-count.
+    original_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
     )
 
     created_at = models.DateTimeField(

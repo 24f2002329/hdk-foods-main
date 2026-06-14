@@ -1,13 +1,15 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import (
     IsAuthenticated
 )
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from authentication.permissions import IsAdmin, IsAdminOrChef
 from .models import Address, User
 from .serializers import (
     AddressSerializer,
+    DeliveryStaffSerializer,
     UserSerializer
 )
 
@@ -100,3 +102,41 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class DeliveryStaffListView(generics.ListAPIView):
+    """List all delivery users. Available to admin and chef."""
+
+    serializer_class = DeliveryStaffSerializer
+    permission_classes = [IsAdminOrChef]
+
+    def get_queryset(self):
+        return User.objects.filter(
+            role="delivery"
+        ).order_by("-is_default_delivery", "name")
+
+
+class SetDefaultDeliveryView(APIView):
+    """Mark one delivery user as the default. Admin only."""
+
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk, role="delivery")
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Delivery user not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Clear existing default, then set this one.
+        User.objects.filter(
+            role="delivery",
+            is_default_delivery=True
+        ).update(is_default_delivery=False)
+
+        user.is_default_delivery = True
+        user.save(update_fields=["is_default_delivery"])
+
+        return Response(DeliveryStaffSerializer(user).data)

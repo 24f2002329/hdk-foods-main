@@ -3,7 +3,9 @@ from django.urls import path
 from .views import (
     AddressListCreateView,
     AddressDetailView,
-    CurrentUserView
+    CurrentUserView,
+    DeliveryStaffListView,
+    SetDefaultDeliveryView,
 )
 
 urlpatterns = [
@@ -21,5 +23,15 @@ urlpatterns = [
     path(
         "addresses/<int:pk>/",
         AddressDetailView.as_view()
+    ),
+
+    path(
+        "delivery-staff/",
+        DeliveryStaffListView.as_view()
+    ),
+
+    path(
+        "delivery-staff/<int:pk>/set-default/",
+        SetDefaultDeliveryView.as_view()
     ),
 ]

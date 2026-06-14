@@ -17,6 +17,8 @@ from products.models import Product
 
 from .models import Order, OrderItem
 from .serializers import (
+    AcknowledgeChangesSerializer,
+    ApplyDiscountSerializer,
     AssignDeliverySerializer,
     ConfirmOrderSerializer,
     OrderCreateSerializer,
@@ -455,14 +457,13 @@ class MyOrdersView(generics.ListAPIView):
 
 class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(
-            user=self.request.user
-        )
+        user = self.request.user
+        if hasattr(user, 'role') and user.role in ('admin', 'chef', 'delivery'):
+            return Order.objects.all()
+        return Order.objects.filter(user=user)
     
 
 
@@ -615,7 +616,7 @@ class UpdateOrderStatusView(APIView):
 class AssignDeliveryView(APIView):
 
     permission_classes = [
-        IsAdmin
+        IsAdminOrChef
     ]
 
     def patch(
@@ -717,9 +718,7 @@ class PendingOrdersView(generics.ListAPIView):
 
 class AdminDashboardView(APIView):
 
-    permission_classes = [
-        IsAdmin
-    ]
+    permission_classes = [IsAdminOrChef]
 
     def get(
         self,
@@ -1062,3 +1061,181 @@ class CashfreeWebhookView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class ApplyDiscountView(APIView):
+    """Chef or admin applies a flat rupee discount to an order.
+
+    Re-bases off original_total so a second discount doesn't double-stack.
+    Sets is_modified_by_staff so the customer sees the change popup.
+    """
+
+    permission_classes = [IsAdminOrChef]
+
+    def patch(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if order.status in ("delivered", "cancelled", "rejected"):
+            return Response(
+                {"detail": "Cannot apply discount to a completed order."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = ApplyDiscountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        discount = data["discount_amount"]
+        reason = data.get("discount_reason", "")
+
+        # Snapshot the pre-discount total once (never overwrite it).
+        if order.original_total is None:
+            order.original_total = order.total_amount
+
+        if discount > order.original_total:
+            return Response(
+                {"detail": "Discount cannot exceed the original order total."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order.discount_amount = discount
+        order.discount_reason = reason
+        order.total_amount = order.original_total - discount
+        order.is_modified_by_staff = True
+        order.save(update_fields=[
+            "discount_amount", "discount_reason",
+            "total_amount", "original_total",
+            "is_modified_by_staff", "updated_at"
+        ])
+
+        logger.info(
+            f"Discount applied: order_id={order.id}, "
+            f"discount={discount}, reason='{reason}', "
+            f"new_total={order.total_amount}, user_id={request.user.id}"
+        )
+
+        return Response(OrderSerializer(order).data)
+
+
+class AcknowledgeChangesView(APIView):
+    """Customer accepts or rejects a staff-modified order.
+
+    accepted=true  → clear the notification flag, order continues normally.
+    accepted=false → reject the order; customer gets refund message via app.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = AcknowledgeChangesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        accepted = serializer.validated_data["accepted"]
+
+        if accepted:
+            order.is_modified_by_staff = False
+            order.save(update_fields=["is_modified_by_staff", "updated_at"])
+            logger.info(f"Customer accepted modified order: order_id={order.id}")
+        else:
+            order.status = "rejected"
+            order.rejection_reason = "Customer rejected the modified order."
+            order.is_modified_by_staff = False
+            order.save(update_fields=[
+                "status", "rejection_reason",
+                "is_modified_by_staff", "updated_at"
+            ])
+            logger.info(f"Customer rejected modified order: order_id={order.id}")
+
+        return Response(OrderSerializer(order).data)
+
+
+class EditOrderItemsView(APIView):
+    """Chef or admin edits order items before confirmation.
+
+    Replaces all existing items with the submitted list and recalculates
+    total_amount. Only allowed while status == 'pending_confirmation'.
+    """
+
+    permission_classes = [IsAdminOrChef]
+
+    def patch(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if order.status != "pending_confirmation":
+            return Response(
+                {"detail": "Items can only be edited before confirmation."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        items_data = request.data.get("items", [])
+        if not items_data:
+            return Response(
+                {"detail": "At least one item is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Snapshot original total before any modification.
+        pre_edit_total = order.total_amount
+
+        # Delete existing items and recalculate.
+        order.items.all().delete()
+        total_amount = Decimal("0.00")
+
+        for item in items_data:
+            try:
+                product = Product.objects.get(id=item["product_id"])
+            except Product.DoesNotExist:
+                return Response(
+                    {"detail": f"Product {item['product_id']} not found."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            quantity = int(item.get("quantity", 1))
+            if quantity < 1:
+                continue
+
+            price = product.price
+            total_amount += price * quantity
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=quantity,
+                price=price,
+            )
+
+        # Persist total + flag the modification.
+        if order.original_total is None:
+            order.original_total = pre_edit_total
+        order.total_amount = total_amount
+        order.is_modified_by_staff = True
+        order.save(update_fields=[
+            "total_amount", "original_total",
+            "is_modified_by_staff", "updated_at"
+        ])
+
+        logger.info(
+            f"Order items edited by staff: order_id={order.id}, "
+            f"new_total={total_amount}, user_id={request.user.id}"
+        )
+
+        return Response(OrderSerializer(order).data)

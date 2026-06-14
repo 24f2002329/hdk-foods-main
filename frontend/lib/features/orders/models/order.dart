@@ -32,6 +32,12 @@ class Order {
   final DateTime? createdAt;
   final List<OrderItemLine> items;
 
+  // Staff-modification fields
+  final bool isModifiedByStaff;
+  final double discountAmount;
+  final double? originalTotal;
+  final String discountReason;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -42,6 +48,10 @@ class Order {
     this.paymentSessionId,
     this.createdAt,
     this.items = const [],
+    this.isModifiedByStaff = false,
+    this.discountAmount = 0,
+    this.originalTotal,
+    this.discountReason = '',
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -68,6 +78,12 @@ class Order {
       items: rawItems
           .map((e) => OrderItemLine.fromJson(e as Map<String, dynamic>))
           .toList(),
+      isModifiedByStaff: json['is_modified_by_staff'] ?? false,
+      discountAmount: double.tryParse('${json['discount_amount']}') ?? 0,
+      originalTotal: json['original_total'] != null
+          ? double.tryParse('${json['original_total']}')
+          : null,
+      discountReason: json['discount_reason'] ?? '',
     );
   }
 }

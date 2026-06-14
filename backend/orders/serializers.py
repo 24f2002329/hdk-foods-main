@@ -64,6 +64,23 @@ class SelectPaymentSerializer(serializers.Serializer):
     )
 
 
+class ApplyDiscountSerializer(serializers.Serializer):
+    discount_amount = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0
+    )
+    discount_reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default=""
+    )
+
+
+class AcknowledgeChangesSerializer(serializers.Serializer):
+    accepted = serializers.BooleanField()
+
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
 

@@ -1,12 +1,15 @@
 from django.urls import path
 
 from .views import (
+    AcknowledgeChangesView,
     AdminDashboardView,
+    ApplyDiscountView,
     AssignDeliveryView,
     CashfreeWebhookView,
     ConfirmOrderView,
     CreateOrderView,
     DeliveryOrdersView,
+    EditOrderItemsView,
     MyOrdersView,
     OrderDetailView,
     OrderListView,
@@ -66,6 +69,21 @@ urlpatterns = [
     path(
         "<int:pk>/assign-delivery/",
         AssignDeliveryView.as_view()
+    ),
+
+    path(
+        "<int:pk>/edit-items/",
+        EditOrderItemsView.as_view()
+    ),
+
+    path(
+        "<int:pk>/apply-discount/",
+        ApplyDiscountView.as_view()
+    ),
+
+    path(
+        "<int:pk>/acknowledge-changes/",
+        AcknowledgeChangesView.as_view()
     ),
 
     path(

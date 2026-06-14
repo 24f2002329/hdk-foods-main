@@ -94,6 +94,23 @@ class OrderService {
     throw Exception('Failed to start payment: ${response.body}');
   }
 
+  /// Customer acknowledges a staff-modified order.
+  /// accepted=true continues the order; accepted=false cancels it.
+  Future<Order> acknowledgeChanges({
+    required int orderId,
+    required bool accepted,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$orderId/acknowledge-changes/'),
+      headers: await _headers(),
+      body: jsonEncode({'accepted': accepted}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to acknowledge changes: ${response.body}');
+  }
+
   /// Confirms a Cashfree payment. The backend fetches the order status from
   /// Cashfree server-to-server, so no client-side signature is needed.
   Future<Order> verifyPayment({

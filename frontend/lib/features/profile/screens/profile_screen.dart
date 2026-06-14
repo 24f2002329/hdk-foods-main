@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/storage/token_storage.dart';
+import '../../../core/widgets/error_retry.dart';
 import '../../accounts/models/user.dart';
 import '../../accounts/services/user_service.dart';
 
@@ -65,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF1E1E)))
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? ErrorRetryWidget(error: _error!, onRetry: _loadUser)
               : ListView(
                   padding: const EdgeInsets.all(20),
                   children: [

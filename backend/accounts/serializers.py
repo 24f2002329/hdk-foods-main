@@ -10,6 +10,15 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "phone_number", "role"]
 
 
+class DeliveryStaffSerializer(serializers.ModelSerializer):
+    """Delivery user list — includes the default flag."""
+
+    class Meta:
+        model = User
+        fields = ["id", "phone_number", "name", "is_default_delivery"]
+        read_only_fields = ["id", "phone_number", "name"]
+
+
 class AddressSerializer(
     serializers.ModelSerializer
 ):

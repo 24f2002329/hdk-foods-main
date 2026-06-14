@@ -75,6 +75,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=False
     )
 
+    is_default_delivery = models.BooleanField(
+        default=False
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
