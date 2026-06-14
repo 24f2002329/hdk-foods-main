@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
+import '../../../shared/widgets/login_prompt_widget.dart';
 import '../../accounts/models/user.dart';
 import '../../accounts/services/user_service.dart';
 
@@ -17,10 +18,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? _user;
   bool _loading = true;
   String? _error;
+  bool _isLoggedIn = true;
 
   @override
   void initState() {
     super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final loggedIn = await TokenStorage.isLoggedIn();
+    if (!mounted) return;
+    if (!loggedIn) {
+      setState(() { _isLoggedIn = false; _loading = false; });
+      return;
+    }
     _loadUser();
   }
 
@@ -28,18 +40,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = await _userService.getCurrentUser();
       if (mounted) {
-        setState(() {
-          _user = user;
-          _loading = false;
-          _error = null;
-        });
+        setState(() { _user = user; _loading = false; _error = null; });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = e.toString();
-        });
+        setState(() { _loading = false; _error = e.toString(); });
       }
     }
   }
@@ -65,6 +70,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF1E1E)))
+          : !_isLoggedIn
+              ? const LoginPromptWidget(
+                  icon: Icons.person_outline_rounded,
+                  title: 'Your Profile',
+                  subtitle: 'Login to view your profile, orders, and saved addresses.',
+                )
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _loadUser)
               : ListView(

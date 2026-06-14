@@ -1,7 +1,9 @@
+import 'dart:async';
 import '../../address/screens/address_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../cart/screens/cart_screen.dart';
 import '../../cart/services/cart_provider.dart';
@@ -12,6 +14,7 @@ import '../../../shared/models/category.dart';
 import '../../../shared/models/product.dart';
 import '../../../shared/widgets/category_card.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../services/config_service.dart';
 import '../services/product_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -137,12 +140,20 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   late Future<List<Product>> productsFuture;
   late Future<List<Category>> categoriesFuture;
+  late Future<SiteConfig> configFuture;
+  late Future<List<AppBanner>> bannersFuture;
 
   @override
   void initState() {
     super.initState();
-    productsFuture = ProductService.getProducts();
+    _reload();
+  }
+
+  void _reload() {
+    productsFuture = ProductService.getFeaturedProducts();
     categoriesFuture = ProductService.getCategories();
+    configFuture = ConfigService().getConfig();
+    bannersFuture = ConfigService().getBanners();
   }
 
   @override
@@ -155,11 +166,8 @@ class _HomeTabState extends State<HomeTab> {
           color: _brandRed,
           backgroundColor: _panel,
           onRefresh: () async {
-            setState(() {
-              productsFuture = ProductService.getProducts();
-              categoriesFuture = ProductService.getCategories();
-            });
-            await Future.wait([productsFuture, categoriesFuture]);
+            setState(_reload);
+            await Future.wait([productsFuture, categoriesFuture, configFuture, bannersFuture]);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -176,10 +184,68 @@ class _HomeTabState extends State<HomeTab> {
                   child: _SearchBar(),
                 ),
               ),
-              const SliverToBoxAdapter(
+              // Announcement ribbon
+              SliverToBoxAdapter(
+                child: FutureBuilder<SiteConfig>(
+                  future: configFuture,
+                  builder: (_, snap) {
+                    final cfg = snap.data;
+                    if (cfg == null) return const SizedBox.shrink();
+                    if (!cfg.isCurrentlyOpen) {
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade900.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.access_time, color: Colors.white, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              cfg.storeClosedMsg,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ]),
+                      );
+                    }
+                    if (cfg.announcement.isNotEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                        ),
+                        child: Row(children: [
+                          const Text('📢', style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              cfg.announcement,
+                              style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ]),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+              // Banner carousel
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 18, 20, 0),
-                  child: _OfferBanner(),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                  child: FutureBuilder<List<AppBanner>>(
+                    future: bannersFuture,
+                    builder: (_, snap) => _BannerCarousel(banners: snap.data ?? []),
+                  ),
                 ),
               ),
               SliverToBoxAdapter(
@@ -378,11 +444,121 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _OfferBanner extends StatelessWidget {
-  const _OfferBanner();
+class _BannerCarousel extends StatefulWidget {
+  final List<AppBanner> banners;
+  const _BannerCarousel({required this.banners});
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  final PageController _ctrl = PageController();
+  int _current = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.banners.length > 1) {
+      _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+        if (!mounted) return;
+        final next = (_current + 1) % widget.banners.length;
+        _ctrl.animateToPage(next,
+            duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _handleAction(BuildContext context, String action) {
+    if (action == 'menu') {
+      Navigator.of(context, rootNavigator: true)
+          .push(MaterialPageRoute(builder: (_) => const MenuScreen()));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.banners.isEmpty) return _staticFallbackBanner(context);
+
+    return Column(children: [
+      SizedBox(
+        height: 200,
+        child: PageView.builder(
+          controller: _ctrl,
+          onPageChanged: (i) => setState(() => _current = i),
+          itemCount: widget.banners.length,
+          itemBuilder: (_, i) {
+            final b = widget.banners[i];
+            return GestureDetector(
+              onTap: () => _handleAction(context, b.linkAction),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(fit: StackFit.expand, children: [
+                  Image.network(
+                    b.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFF1E1E), Color(0xFF120000)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (b.title.isNotEmpty)
+                    Positioned(
+                      left: 16, bottom: 16, right: 80,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(b.title,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  shadows: [Shadow(blurRadius: 8, color: Colors.black54)])),
+                          if (b.subtitle.isNotEmpty)
+                            Text(b.subtitle,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+      if (widget.banners.length > 1) ...[
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(widget.banners.length, (i) => AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: _current == i ? 20 : 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: _current == i ? _brandRed : Colors.grey.shade700,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          )),
+        ),
+      ],
+    ]);
+  }
+
+  Widget _staticFallbackBanner(BuildContext context) {
     return Container(
       height: 200,
       width: double.infinity,
@@ -392,129 +568,39 @@ class _OfferBanner extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: _brandRed.withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: _brandRed.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 14))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -50,
-              top: -42,
-              child: Container(
-                width: 190,
-                height: 190,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Fresh & Fast 🍽️',
+                  style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              const Text('Homemade cloud kitchen meals',
+                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 34,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context, rootNavigator: true)
+                      .push(MaterialPageRoute(builder: (_) => const MenuScreen())),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: _brandRed,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: const Text('ORDER NOW', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
                 ),
               ),
-            ),
-            Positioned(
-              right: 14,
-              bottom: 10,
-              child: Container(
-                width: 116,
-                height: 116,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.24),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.local_pizza_rounded,
-                      size: 74,
-                      color: Color(0xFFFFC107),
-                    ),
-                    Positioned(
-                      right: 23,
-                      top: 31,
-                      child: Icon(
-                        Icons.circle,
-                        size: 10,
-                        color: Color(0xFF22C55E),
-                      ),
-                    ),
-                    Positioned(
-                      left: 31,
-                      bottom: 31,
-                      child: Icon(
-                        Icons.circle,
-                        size: 9,
-                        color: Color(0xFFFF1E1E),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 185,
-                    child: Text(
-                      '50% OFF',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        height: 0.96,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'ON YOUR FIRST ORDER',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 34,
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const MenuScreen()),
-                        );
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: _brandRed,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      child: const Text(
-                        'ORDER NOW',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -593,10 +679,26 @@ class _ProductsGrid extends StatelessWidget {
       future: productsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator(color: _brandRed)),
+          return SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid.builder(
+              itemCount: 4,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.58,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              itemBuilder: (_, __) => Shimmer.fromColors(
+                baseColor: const Color(0xFF1A1A1A),
+                highlightColor: const Color(0xFF2A2A2A),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ),
           );
         }

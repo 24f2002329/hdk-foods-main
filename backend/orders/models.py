@@ -198,3 +198,28 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return self.product.name
+
+
+class OrderReview(models.Model):
+    """One review per delivered order, submitted by the customer."""
+
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="review"
+    )
+
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+
+    rating = models.PositiveSmallIntegerField()  # 1-5
+
+    comment = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review for {self.order.order_number} — {self.rating}★"

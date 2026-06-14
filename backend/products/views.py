@@ -49,6 +49,16 @@ class ProductToggleAvailabilityView(APIView):
         return Response(ProductSerializer(product).data)
 
 
+class FeaturedProductsView(generics.ListAPIView):
+    """Public list of featured + available products, ordered by rating descending."""
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        return Product.objects.filter(
+            is_featured=True, is_available=True
+        ).order_by("-rating", "name")
+
+
 class ProductCreateView(APIView):
     """Admin creates a new product."""
 

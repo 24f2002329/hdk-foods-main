@@ -1,0 +1,49 @@
+from datetime import time
+from django.db import models
+
+
+class SiteConfig(models.Model):
+    """Singleton — always fetched as pk=1. Created with defaults on first GET."""
+
+    # Hero / promotional
+    announcement        = models.CharField(max_length=255, blank=True, default="")
+
+    # Store hours
+    is_store_open       = models.BooleanField(default=True)
+    store_open_time     = models.TimeField(default=time(8, 0))
+    store_close_time    = models.TimeField(default=time(22, 0))
+    store_closed_msg    = models.CharField(max_length=255, blank=True, default="We're closed right now. See you soon!")
+
+    # Ratings
+    show_ratings        = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Site Configuration"
+
+    def __str__(self):
+        return "Site Configuration"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class Banner(models.Model):
+    """Rotating hero banners shown on the customer home screen."""
+
+    image_url   = models.URLField()
+    title       = models.CharField(max_length=100, blank=True, default="")
+    subtitle    = models.CharField(max_length=200, blank=True, default="")
+    link_action = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="e.g. 'menu', 'orders' — navigates customer to that section"
+    )
+    order       = models.PositiveIntegerField(default=0)
+    is_active   = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return self.title or self.image_url

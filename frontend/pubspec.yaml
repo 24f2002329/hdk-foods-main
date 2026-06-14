@@ -46,6 +46,10 @@ dependencies:
   geolocator: ^14.0.2
   url_launcher: ^6.2.5
   flutter_cashfree_pg_sdk: ^2.3.2
+  shared_preferences: ^2.3.0
+  firebase_messaging: ^16.3.0
+  connectivity_plus: ^6.1.4
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

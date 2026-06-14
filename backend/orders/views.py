@@ -14,7 +14,9 @@ from authentication.permissions import (
 )
 from products.models import Product
 
-from .models import Order, OrderItem
+from authentication.permissions import IsCustomer
+from authentication.firebase import send_push
+from .models import Order, OrderItem, OrderReview
 from .serializers import (
     AcknowledgeChangesSerializer,
     ApplyDiscountSerializer,
@@ -518,11 +520,16 @@ class ConfirmOrderView(APIView):
         order.confirmed_by = request.user
         order.save()
 
+        send_push(
+            order.user,
+            "Order Confirmed ✅",
+            f"Your order #{order.order_number} is confirmed! Ready in ~{prep_time} mins.",
+            {"order_id": str(order.id)},
+        )
+
         return Response(
             OrderSerializer(order).data
         )
-
-
 
 
 class RejectOrderView(APIView):
@@ -563,6 +570,13 @@ class RejectOrderView(APIView):
 
         order.save()
 
+        send_push(
+            order.user,
+            "Order Rejected ❌",
+            f"Order #{order.order_number} was rejected. Sorry for the inconvenience.",
+            {"order_id": str(order.id)},
+        )
+
         return Response(
             OrderSerializer(order).data
         )
@@ -598,13 +612,18 @@ class UpdateOrderStatusView(APIView):
             raise_exception=True
         )
 
-        order.status = (
-            serializer.validated_data[
-                "status"
-            ]
-        )
-
+        new_status = serializer.validated_data["status"]
+        order.status = new_status
         order.save()
+
+        _push_map = {
+            "preparing": ("Kitchen is preparing your order 👨‍🍳", "Your food is being freshly prepared!"),
+            "out_for_delivery": ("On the way! 🛵", f"Order #{order.order_number} is out for delivery."),
+            "delivered": ("Order Delivered! 🎉", "Rate your food and share your feedback ⭐"),
+        }
+        if new_status in _push_map:
+            title, body = _push_map[new_status]
+            send_push(order.user, title, body, {"order_id": str(order.id)})
 
         return Response(
             OrderSerializer(order).data
@@ -660,11 +679,15 @@ class AssignDeliveryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        order.assigned_delivery = (
-            delivery_user
-        )
-
+        order.assigned_delivery = delivery_user
         order.save()
+
+        send_push(
+            delivery_user,
+            "New Delivery Assigned 🛵",
+            f"Order #{order.order_number} has been assigned to you.",
+            {"order_id": str(order.id)},
+        )
 
         return Response(
             OrderSerializer(order).data
@@ -1237,3 +1260,80 @@ class EditOrderItemsView(APIView):
         )
 
         return Response(OrderSerializer(order).data)
+
+
+class OrderReviewView(APIView):
+    """Customer submits or retrieves a review for a delivered order."""
+
+    permission_classes = [IsCustomer]
+
+    def get(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            review = order.review
+            return Response({
+                "rating": review.rating,
+                "comment": review.comment,
+                "submitted": True,
+            })
+        except OrderReview.DoesNotExist:
+            return Response({"submitted": False})
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user, status="delivered")
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found or not yet delivered."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if hasattr(order, "review"):
+            return Response({"detail": "Review already submitted."}, status=status.HTTP_400_BAD_REQUEST)
+
+        rating = request.data.get("rating")
+        comment = request.data.get("comment", "")
+        if not rating or not (1 <= int(rating) <= 5):
+            return Response({"detail": "Rating must be 1-5."}, status=status.HTTP_400_BAD_REQUEST)
+
+        OrderReview.objects.create(
+            order=order,
+            customer=request.user,
+            rating=int(rating),
+            comment=comment,
+        )
+
+        # Update product ratings based on all reviews for that product
+        from products.models import Product
+        from django.db.models import Avg
+        for item in order.items.all():
+            avg = OrderReview.objects.filter(
+                order__items__product=item.product
+            ).aggregate(avg=Avg("rating"))["avg"] or 0
+            Product.objects.filter(pk=item.product_id).update(rating=round(avg, 1))
+
+        return Response({"detail": "Review submitted. Thank you!"}, status=status.HTTP_201_CREATED)
+
+
+class QueuePositionView(APIView):
+    """Returns this order's position in the pending/confirmed queue."""
+
+    permission_classes = [IsCustomer]
+
+    def get(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status not in ("pending_confirmation", "confirmed"):
+            return Response({"position": None, "ahead": 0})
+
+        ahead = Order.objects.filter(
+            status__in=("pending_confirmation", "confirmed"),
+            created_at__lt=order.created_at,
+        ).count()
+
+        return Response({"position": ahead + 1, "ahead": ahead})

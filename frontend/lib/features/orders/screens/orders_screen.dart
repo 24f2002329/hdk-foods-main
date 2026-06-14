@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/storage/token_storage.dart';
+import '../../../shared/widgets/login_prompt_widget.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import 'order_tracking_screen.dart';
@@ -20,10 +22,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
   final OrderService _orderService = OrderService();
   late Future<List<Order>> _ordersFuture;
 
+  bool _isLoggedIn = true;
+
   @override
   void initState() {
     super.initState();
-    _ordersFuture = _orderService.getMyOrders();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final loggedIn = await TokenStorage.isLoggedIn();
+    if (!mounted) return;
+    setState(() => _isLoggedIn = loggedIn);
+    if (loggedIn) _ordersFuture = _orderService.getMyOrders();
   }
 
   Future<void> _refresh() async {
@@ -96,7 +107,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
         title: const Text('Orders',
             style: TextStyle(fontWeight: FontWeight.w900)),
       ),
-      body: FutureBuilder<List<Order>>(
+      body: !_isLoggedIn
+          ? const LoginPromptWidget(
+              icon: Icons.receipt_long_outlined,
+              title: 'Your Orders',
+              subtitle: 'Login to view your order history and track deliveries.',
+            )
+          : FutureBuilder<List<Order>>(
         future: _ordersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -226,3 +243,4 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 }
+

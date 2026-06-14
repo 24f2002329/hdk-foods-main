@@ -10,7 +10,7 @@ const _panelAlt = Color(0xFF1E1E1E);
 const _stroke = Color(0xFF2A2A2A);
 const _gold = Color(0xFFFFC107);
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final Product product;
   final int quantity;
   final VoidCallback? onAddPressed;
@@ -25,6 +25,41 @@ class ProductCard extends StatelessWidget {
     this.onIncreasePressed,
     this.onDecreasePressed,
   });
+
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> with SingleTickerProviderStateMixin {
+  late AnimationController _bounceCtrl;
+  late Animation<double> _scale;
+
+  Product get product => widget.product;
+  int get quantity => widget.quantity;
+  VoidCallback? get onAddPressed => widget.onAddPressed;
+  VoidCallback? get onIncreasePressed => widget.onIncreasePressed;
+  VoidCallback? get onDecreasePressed => widget.onDecreasePressed;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 150));
+    _scale = Tween<double>(begin: 1.0, end: 0.8)
+        .chain(CurveTween(curve: Curves.easeInOut))
+        .animate(_bounceCtrl);
+  }
+
+  @override
+  void dispose() {
+    _bounceCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onAdd() {
+    _bounceCtrl.forward().then((_) => _bounceCtrl.reverse());
+    onAddPressed?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,19 +233,26 @@ class ProductCard extends StatelessWidget {
                           onIncreasePressed: onIncreasePressed ?? onAddPressed,
                         )
                       else
-                        SizedBox(
-                          width: 48,
-                          height: 34,
-                          child: IconButton.filled(
-                            onPressed: onAddPressed,
-                            style: IconButton.styleFrom(
-                              backgroundColor: _brandRed,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                        AnimatedBuilder(
+                          animation: _scale,
+                          builder: (_, child) => Transform.scale(
+                            scale: _scale.value,
+                            child: child,
+                          ),
+                          child: SizedBox(
+                            width: 48,
+                            height: 34,
+                            child: IconButton.filled(
+                              onPressed: _onAdd,
+                              style: IconButton.styleFrom(
+                                backgroundColor: _brandRed,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
+                              icon: const Icon(Icons.add_rounded),
                             ),
-                            icon: const Icon(Icons.add_rounded),
                           ),
                         ),
                     ],

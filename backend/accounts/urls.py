@@ -6,6 +6,7 @@ from .views import (
     CreateDeliveryStaffView,
     CurrentUserView,
     DeliveryStaffListView,
+    SaveFCMTokenView,
     SetDefaultDeliveryView,
 )
 
@@ -16,4 +17,5 @@ urlpatterns = [
     path("delivery-staff/", DeliveryStaffListView.as_view()),
     path("delivery-staff/create/", CreateDeliveryStaffView.as_view()),
     path("delivery-staff/<int:pk>/set-default/", SetDefaultDeliveryView.as_view()),
+    path("fcm-token/", SaveFCMTokenView.as_view()),
 ]

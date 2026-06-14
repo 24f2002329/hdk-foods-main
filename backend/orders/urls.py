@@ -13,7 +13,9 @@ from .views import (
     MyOrdersView,
     OrderDetailView,
     OrderListView,
+    OrderReviewView,
     PendingOrdersView,
+    QueuePositionView,
     RejectOrderView,
     SelectPaymentView,
     UpdateOrderStatusView,
@@ -21,88 +23,23 @@ from .views import (
 )
 
 urlpatterns = [
-    path(
-        "",
-        OrderListView.as_view()
-    ),
-
-    path(
-        "create/",
-        CreateOrderView.as_view()
-    ),
-
-    path(
-        "my-orders/",
-        MyOrdersView.as_view()
-    ),
-
-    path(
-        "<int:pk>/",
-        OrderDetailView.as_view()
-    ),
-
-    path(
-        "<int:pk>/confirm/",
-        ConfirmOrderView.as_view()
-    ),
-
-    path(
-        "<int:pk>/reject/",
-        RejectOrderView.as_view()
-    ),
-
-    path(
-        "<int:pk>/status/",
-        UpdateOrderStatusView.as_view()
-    ),
-
-    path(
-        "<int:pk>/select-payment/",
-        SelectPaymentView.as_view()
-    ),
-
-    path(
-        "<int:pk>/verify-payment/",
-        VerifyPaymentView.as_view()
-    ),
-
-    path(
-        "<int:pk>/assign-delivery/",
-        AssignDeliveryView.as_view()
-    ),
-
-    path(
-        "<int:pk>/edit-items/",
-        EditOrderItemsView.as_view()
-    ),
-
-    path(
-        "<int:pk>/apply-discount/",
-        ApplyDiscountView.as_view()
-    ),
-
-    path(
-        "<int:pk>/acknowledge-changes/",
-        AcknowledgeChangesView.as_view()
-    ),
-
-    path(
-        "delivery/",
-        DeliveryOrdersView.as_view()
-    ),
-
-    path(
-        "pending/",
-        PendingOrdersView.as_view()
-    ),
-
-    path(
-        "admin/dashboard/",
-        AdminDashboardView.as_view()
-    ),
-
-    path(
-        "webhook/cashfree/",
-        CashfreeWebhookView.as_view()
-    ),
+    path("", OrderListView.as_view()),
+    path("create/", CreateOrderView.as_view()),
+    path("my-orders/", MyOrdersView.as_view()),
+    path("<int:pk>/", OrderDetailView.as_view()),
+    path("<int:pk>/confirm/", ConfirmOrderView.as_view()),
+    path("<int:pk>/reject/", RejectOrderView.as_view()),
+    path("<int:pk>/status/", UpdateOrderStatusView.as_view()),
+    path("<int:pk>/select-payment/", SelectPaymentView.as_view()),
+    path("<int:pk>/verify-payment/", VerifyPaymentView.as_view()),
+    path("<int:pk>/assign-delivery/", AssignDeliveryView.as_view()),
+    path("<int:pk>/edit-items/", EditOrderItemsView.as_view()),
+    path("<int:pk>/apply-discount/", ApplyDiscountView.as_view()),
+    path("<int:pk>/acknowledge-changes/", AcknowledgeChangesView.as_view()),
+    path("<int:pk>/review/", OrderReviewView.as_view()),
+    path("<int:pk>/queue-position/", QueuePositionView.as_view()),
+    path("delivery/", DeliveryOrdersView.as_view()),
+    path("pending/", PendingOrdersView.as_view()),
+    path("admin/dashboard/", AdminDashboardView.as_view()),
+    path("webhook/cashfree/", CashfreeWebhookView.as_view()),
 ]

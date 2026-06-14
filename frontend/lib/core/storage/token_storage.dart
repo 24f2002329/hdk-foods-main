@@ -48,4 +48,9 @@ class TokenStorage {
     final value = await _storage.read(key: "onboarding_complete");
     return value == "true";
   }
+
+  static Future<bool> isLoggedIn() async {
+    final token = await _storage.read(key: "access");
+    return token != null && token.isNotEmpty;
+  }
 }

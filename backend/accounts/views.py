@@ -150,6 +150,20 @@ class SetDefaultDeliveryView(APIView):
         return Response(DeliveryStaffSerializer(user).data)
 
 
+class SaveFCMTokenView(APIView):
+    """Customer saves their FCM device token after login."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get("fcm_token", "").strip()
+        if not token:
+            return Response({"detail": "fcm_token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.fcm_token = token
+        request.user.save(update_fields=["fcm_token"])
+        return Response({"detail": "Token saved."})
+
+
 class CreateDeliveryStaffView(APIView):
     """Admin creates a new delivery staff account."""
 

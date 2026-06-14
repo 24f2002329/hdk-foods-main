@@ -21,6 +21,18 @@ class ProductService {
     throw Exception("Failed to load products");
   }
 
+  static Future<List<Product>> getFeaturedProducts() async {
+    try {
+      final response = await http.get(Uri.parse("${ApiConfig.baseUrl}/products/featured/"));
+      if (response.statusCode == 200) {
+        final list = (jsonDecode(response.body) as List).map((e) => Product.fromJson(e)).toList();
+        if (list.isNotEmpty) return list;
+      }
+    } catch (_) {}
+    // Fallback to all products if featured endpoint fails or returns empty
+    return getProducts();
+  }
+
   static Future<List<Category>> getCategories() async {
     final response = await http.get(
       Uri.parse("${ApiConfig.baseUrl}/categories/"),

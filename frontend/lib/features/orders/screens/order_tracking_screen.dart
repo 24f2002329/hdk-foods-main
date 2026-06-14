@@ -35,6 +35,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   String? _error;
   bool _loading = true;
   bool _modifiedDialogShown = false;
+  int? _queuePosition;
+  bool _reviewSubmitted = false;
+  bool _reviewLoading = false;
 
   @override
   void initState() {
@@ -79,6 +82,24 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _showModifiedOrderDialog(order);
         });
+      }
+
+      // Fetch queue position when pending
+      if (order.status == 'pending_confirmation') {
+        try {
+          final q = await _orderService.getQueuePosition(widget.orderId);
+          if (mounted) setState(() => _queuePosition = q);
+        } catch (_) {}
+      } else {
+        if (mounted) setState(() => _queuePosition = null);
+      }
+
+      // Check if review already submitted
+      if (order.status == 'delivered' && !_reviewSubmitted) {
+        try {
+          final reviewed = await _orderService.hasReview(widget.orderId);
+          if (mounted) setState(() => _reviewSubmitted = reviewed);
+        } catch (_) {}
       }
 
       if (order.status == 'delivered' ||
@@ -215,6 +236,63 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             ),
           ),
+          // Queue position banner
+          if (_queuePosition != null && order.status == 'pending_confirmation') ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.queue, color: Colors.blueAccent, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                      _queuePosition == 1
+                          ? "You're next! 🎉"
+                          : "You're #$_queuePosition in queue",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                    if (_queuePosition != null && _queuePosition! > 1)
+                      Text(
+                        '${_queuePosition! - 1} order${_queuePosition! - 1 > 1 ? "s" : ""} ahead of you',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                  ]),
+                ),
+              ]),
+            ),
+          ],
+          // Late warning
+          if (order.estimatedDeliveryTime != null &&
+              DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
+              order.status != 'delivered' &&
+              order.status != 'cancelled' &&
+              order.status != 'rejected') ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade900.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.5)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.access_time, color: Colors.orangeAccent, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Your order is taking longer than expected. Sorry for the wait! 🙏',
+                    style: TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ]),
+            ),
+          ],
           const SizedBox(height: 24),
           if (isCancelled)
             Container(
@@ -278,6 +356,30 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ),
             ),
           ],
+          // Review card for delivered orders
+          if (order.status == 'delivered') ...[
+            const SizedBox(height: 24),
+            _ReviewCard(
+              orderId: order.id,
+              submitted: _reviewSubmitted,
+              loading: _reviewLoading,
+              onSubmit: (rating, comment) async {
+                setState(() => _reviewLoading = true);
+                try {
+                  await _orderService.submitReview(
+                      orderId: order.id, rating: rating, comment: comment);
+                  if (mounted) setState(() { _reviewSubmitted = true; _reviewLoading = false; });
+                } catch (e) {
+                  if (mounted) {
+                    setState(() => _reviewLoading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$e')));
+                  }
+                }
+              },
+            ),
+          ],
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -517,6 +619,100 @@ class _ModifiedOrderDialog extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReviewCard extends StatefulWidget {
+  final int orderId;
+  final bool submitted;
+  final bool loading;
+  final Future<void> Function(int rating, String comment) onSubmit;
+
+  const _ReviewCard({
+    required this.orderId,
+    required this.submitted,
+    required this.loading,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  int _rating = 0;
+  final _commentCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+      ),
+      child: widget.submitted
+          ? const Row(children: [
+              Icon(Icons.star, color: Colors.amber, size: 20),
+              SizedBox(width: 10),
+              Text('Thanks for your review! ⭐',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ])
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('How was your order? 🍽️',
+                  style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              Row(
+                children: List.generate(5, (i) => GestureDetector(
+                  onTap: () => setState(() => _rating = i + 1),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(
+                      i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                  ),
+                )),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _commentCtrl,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: 'Add a comment (optional)',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Color(0xFF1A1A1A),
+                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2A2A2A))),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2A2A2A))),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _brandRed)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: (_rating == 0 || widget.loading)
+                      ? null
+                      : () => widget.onSubmit(_rating, _commentCtrl.text.trim()),
+                  style: FilledButton.styleFrom(backgroundColor: _brandRed),
+                  child: widget.loading
+                      ? const SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ]),
     );
   }
 }

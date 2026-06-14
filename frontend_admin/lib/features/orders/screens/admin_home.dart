@@ -13,6 +13,7 @@ import '../../orders/services/order_service.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
+import '../../settings/screens/site_config_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -37,6 +38,7 @@ class _AdminHomeState extends State<AdminHome> {
     _ProductsTab(),
     _StaffTab(),
     _ProfileTab(),
+    SiteConfigScreen(),
   ];
 
   @override
@@ -69,6 +71,10 @@ class _AdminHomeState extends State<AdminHome> {
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person, color: _red),
               label: 'Profile'),
+          NavigationDestination(
+              icon: Icon(Icons.tune_outlined),
+              selectedIcon: Icon(Icons.tune, color: _red),
+              label: 'Settings'),
         ],
       ),
     );
@@ -972,6 +978,12 @@ class _OrderCard extends StatelessWidget {
                 if (order.paymentMethod == 'cod') ...[
                   const SizedBox(width: 6),
                   _badge('COD', Colors.grey),
+                ],
+                if (order.estimatedDeliveryTime != null &&
+                    DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
+                    !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
+                  const SizedBox(width: 6),
+                  _badge('⚠ LATE', Colors.redAccent),
                 ],
               ]),
               if (showQuickActions) ...[

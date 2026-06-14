@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'products',
     'orders',
     "authentication",
+    'app_config',
     'rest_framework',
     'corsheaders',
 ]

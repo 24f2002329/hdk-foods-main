@@ -37,6 +37,7 @@ class Order {
   final double discountAmount;
   final double? originalTotal;
   final String discountReason;
+  final DateTime? estimatedDeliveryTime;
 
   Order({
     required this.id,
@@ -52,6 +53,7 @@ class Order {
     this.discountAmount = 0,
     this.originalTotal,
     this.discountReason = '',
+    this.estimatedDeliveryTime,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -84,6 +86,9 @@ class Order {
           ? double.tryParse('${json['original_total']}')
           : null,
       discountReason: json['discount_reason'] ?? '',
+      estimatedDeliveryTime: json['estimated_delivery_time'] != null
+          ? DateTime.tryParse(json['estimated_delivery_time'])
+          : null,
     );
   }
 }

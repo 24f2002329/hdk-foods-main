@@ -1,0 +1,244 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../services/config_service.dart';
+import 'banners_screen.dart';
+import 'send_notification_screen.dart';
+
+const _red = Color(0xFFFF1E1E);
+const _surface = Color(0xFF050505);
+const _card = Color(0xFF111111);
+const _stroke = Color(0xFF2A2A2A);
+
+class SiteConfigScreen extends StatefulWidget {
+  const SiteConfigScreen({super.key});
+
+  @override
+  State<SiteConfigScreen> createState() => _SiteConfigScreenState();
+}
+
+class _SiteConfigScreenState extends State<SiteConfigScreen> {
+  final AdminConfigService _svc = AdminConfigService();
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  // Controllers
+  final _announcement = TextEditingController();
+  final _closedMsg = TextEditingController();
+  bool _isStoreOpen = true;
+  bool _showRatings = true;
+  TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 22, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _announcement.dispose();
+    _closedMsg.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final data = await _svc.getConfig();
+      if (mounted) {
+        setState(() {
+          _announcement.text = data['announcement'] ?? '';
+          _closedMsg.text = data['store_closed_msg'] ?? '';
+          _isStoreOpen = data['is_store_open'] ?? true;
+          _showRatings = data['show_ratings'] ?? true;
+          final ot = (data['store_open_time'] as String? ?? '08:00:00').split(':');
+          final ct = (data['store_close_time'] as String? ?? '22:00:00').split(':');
+          _openTime = TimeOfDay(hour: int.parse(ot[0]), minute: int.parse(ot[1]));
+          _closeTime = TimeOfDay(hour: int.parse(ct[0]), minute: int.parse(ct[1]));
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await _svc.updateConfig({
+        'announcement': _announcement.text.trim(),
+        'store_closed_msg': _closedMsg.text.trim(),
+        'is_store_open': _isStoreOpen,
+        'show_ratings': _showRatings,
+        'store_open_time': '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}:00',
+        'store_close_time': '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}:00',
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _pickTime(bool isOpen) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isOpen ? _openTime : _closeTime,
+    );
+    if (picked != null) setState(() => isOpen ? _openTime = picked : _closeTime = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        title: Text('Settings', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        actions: [
+          _saving
+              ? const Padding(padding: EdgeInsets.all(16),
+                  child: SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _red)))
+              : TextButton(
+                  onPressed: _save,
+                  child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+                ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _red))
+          : _error != null
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(_error!, style: const TextStyle(color: Colors.grey)),
+                  TextButton(onPressed: _load, child: const Text('Retry', style: TextStyle(color: _red))),
+                ]))
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Quick links
+                    _sectionHeader('Quick Actions'),
+                    Row(children: [
+                      Expanded(
+                        child: _actionCard(
+                          icon: Icons.image_outlined,
+                          label: 'Manage Banners',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const BannersScreen())),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _actionCard(
+                          icon: Icons.notifications_outlined,
+                          label: 'Send Notification',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const SendNotificationScreen())),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+
+                    // Store status
+                    _sectionHeader('Store Status'),
+                    _toggleTile('Store Open', _isStoreOpen, (v) => setState(() => _isStoreOpen = v)),
+                    const SizedBox(height: 12),
+                    _timeTile('Open Time', _openTime, () => _pickTime(true)),
+                    const SizedBox(height: 8),
+                    _timeTile('Close Time', _closeTime, () => _pickTime(false)),
+                    const SizedBox(height: 12),
+                    _inputField('Closed Message', _closedMsg,
+                        hint: 'e.g. We\'re closed. Back at 10 AM!'),
+                    const SizedBox(height: 24),
+
+                    // Announcement
+                    _sectionHeader('Announcement Ribbon'),
+                    _inputField('Announcement', _announcement,
+                        hint: 'e.g. 🎉 Free delivery this weekend! (leave blank to hide)'),
+                    const SizedBox(height: 24),
+
+                    // Ratings
+                    _sectionHeader('Product Ratings'),
+                    _toggleTile('Show ratings on product cards', _showRatings,
+                        (v) => setState(() => _showRatings = v)),
+                  ],
+                ),
+    );
+  }
+
+  Widget _sectionHeader(String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(title,
+            style: GoogleFonts.poppins(
+                color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
+      );
+
+  Widget _toggleTile(String label, bool value, ValueChanged<bool> onChanged) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _stroke),
+        ),
+        child: Row(children: [
+          Expanded(child: Text(label, style: const TextStyle(color: Colors.white))),
+          Switch(value: value, onChanged: onChanged, activeThumbColor: _red, activeTrackColor: _red.withValues(alpha: 0.3)),
+        ]),
+      );
+
+  Widget _timeTile(String label, TimeOfDay time, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _stroke)),
+          child: Row(children: [
+            Expanded(child: Text(label, style: const TextStyle(color: Colors.white))),
+            Text(time.format(context), style: const TextStyle(color: _red, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 8),
+            const Icon(Icons.access_time, color: Colors.grey, size: 18),
+          ]),
+        ),
+      );
+
+  Widget _inputField(String label, TextEditingController ctrl, {String hint = ''}) => TextFormField(
+        controller: ctrl,
+        maxLines: 2,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          labelStyle: const TextStyle(color: Colors.grey),
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+          filled: true, fillColor: _card,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _red)),
+        ),
+      );
+
+  Widget _actionCard({required IconData icon, required String label, required VoidCallback onTap}) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _stroke),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: _red, size: 28),
+            const SizedBox(height: 8),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      );
+}

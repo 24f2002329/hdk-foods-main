@@ -128,4 +128,42 @@ class OrderService {
 
     throw Exception('Payment verification failed: ${response.body}');
   }
+
+  Future<int?> getQueuePosition(int orderId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/$orderId/queue-position/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['position'] as int?;
+    }
+    return null;
+  }
+
+  Future<bool> hasReview(int orderId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/$orderId/review/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body)['submitted'] as bool?) ?? false;
+    }
+    return false;
+  }
+
+  Future<void> submitReview({
+    required int orderId,
+    required int rating,
+    String comment = '',
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$orderId/review/'),
+      headers: await _headers(),
+      body: jsonEncode({'rating': rating, 'comment': comment}),
+    );
+    if (response.statusCode != 201) {
+      throw Exception('Failed to submit review: ${response.body}');
+    }
+  }
 }
