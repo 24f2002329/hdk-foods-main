@@ -1,1 +1,1 @@
-web: gunicorn --chdir backend config.wsgi
+web: ./startup.sh
