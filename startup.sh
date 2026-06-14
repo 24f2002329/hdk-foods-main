@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /home/site/wwwroot/backend
+cd backend
 
 echo "==> Running migrations..."
 python manage.py migrate --noinput
