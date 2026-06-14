@@ -6,7 +6,8 @@ from authentication.permissions import IsAdmin
 from .models import Category, Product
 from .serializers import (
     CategorySerializer,
-    ProductSerializer
+    ProductSerializer,
+    ProductWriteSerializer,
 )
 
 
@@ -46,3 +47,52 @@ class ProductToggleAvailabilityView(APIView):
         product.save(update_fields=["is_available"])
 
         return Response(ProductSerializer(product).data)
+
+
+class ProductCreateView(APIView):
+    """Admin creates a new product."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        serializer = ProductWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            product = serializer.save()
+            return Response(
+                ProductSerializer(product).data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProductUpdateView(APIView):
+    """Admin updates an existing product."""
+
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProductWriteSerializer(product, data=request.data, partial=True)
+        if serializer.is_valid():
+            product = serializer.save()
+            return Response(ProductSerializer(product).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProductDeleteView(APIView):
+    """Admin deletes a product."""
+
+    permission_classes = [IsAdmin]
+
+    def delete(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -5,17 +6,20 @@ import 'package:intl/intl.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../delivery_staff/models/delivery_staff.dart';
+import '../../delivery_staff/services/delivery_staff_service.dart';
 import '../../orders/models/order.dart';
 import '../../orders/services/order_service.dart';
-import '../../delivery_staff/services/delivery_staff_service.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
-import '../../products/screens/product_management_screen.dart';
+import '../../products/models/product.dart';
+import '../../products/services/product_service.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
 const _card = Color(0xFF111111);
+const _stroke = Color(0xFF2A2A2A);
 
-// ─── Home shell ──────────────────────────────────────────────────────────────
+// ─── Shell ────────────────────────────────────────────────────────────────────
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -29,16 +33,16 @@ class _AdminHomeState extends State<AdminHome> {
 
   static const _tabs = [
     _DashboardTab(),
-    _PendingOrdersTab(),
-    _AllOrdersTab(),
-    _DeliveryStaffTab(),
-    _AdminProfileTab(),
+    _OrdersTab(),
+    _ProductsTab(),
+    _StaffTab(),
+    _ProfileTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _tabs[_index],
+      body: IndexedStack(index: _index, children: _tabs),
       bottomNavigationBar: NavigationBar(
         backgroundColor: _card,
         indicatorColor: _red.withValues(alpha: 0.15),
@@ -50,17 +54,17 @@ class _AdminHomeState extends State<AdminHome> {
               selectedIcon: Icon(Icons.dashboard, color: _red),
               label: 'Dashboard'),
           NavigationDestination(
-              icon: Icon(Icons.pending_outlined),
-              selectedIcon: Icon(Icons.pending, color: _red),
-              label: 'Pending'),
-          NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long, color: _red),
-              label: 'All Orders'),
+              label: 'Orders'),
+          NavigationDestination(
+              icon: Icon(Icons.fastfood_outlined),
+              selectedIcon: Icon(Icons.fastfood, color: _red),
+              label: 'Products'),
           NavigationDestination(
               icon: Icon(Icons.delivery_dining_outlined),
               selectedIcon: Icon(Icons.delivery_dining, color: _red),
-              label: 'Delivery'),
+              label: 'Staff'),
           NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person, color: _red),
@@ -71,7 +75,7 @@ class _AdminHomeState extends State<AdminHome> {
   }
 }
 
-// ─── Dashboard tab ────────────────────────────────────────────────────────────
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 class _DashboardTab extends StatefulWidget {
   const _DashboardTab();
@@ -85,26 +89,34 @@ class _DashboardTabState extends State<_DashboardTab> {
   bool _loading = true;
   String? _error;
   final OrderService _svc = OrderService();
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _load(silent: true));
   }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) setState(() { _loading = true; _error = null; });
     try {
       final data = await _svc.getDashboard();
-      setState(() { _data = data; _loading = false; });
+      if (mounted) setState(() { _data = data; _loading = false; });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
-  Widget _statCard(String label, String value, IconData icon, Color color) =>
+  Widget _stat(String label, String value, IconData icon, Color color) =>
       Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _card,
           borderRadius: BorderRadius.circular(14),
@@ -120,7 +132,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,8 +143,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         fontSize: 22,
                         fontWeight: FontWeight.w700)),
                 Text(label,
-                    style: GoogleFonts.poppins(
-                        color: Colors.grey, fontSize: 11)),
+                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
               ],
             ),
           ],
@@ -146,12 +157,9 @@ class _DashboardTabState extends State<_DashboardTab> {
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text('Dashboard',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
       ),
       body: _loading
@@ -163,49 +171,42 @@ class _DashboardTabState extends State<_DashboardTab> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text("Today's Overview",
                           style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text('Live restaurant stats',
-                          style: GoogleFonts.poppins(
-                              color: Colors.grey, fontSize: 13)),
+                      Text(DateFormat('EEEE, MMM d').format(DateTime.now()),
+                          style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12)),
                       const SizedBox(height: 20),
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.25,
                         children: [
-                          _statCard(
-                            'Orders Today',
-                            '${_data?['today_orders'] ?? 0}',
-                            Icons.receipt_long,
-                            Colors.blueAccent,
-                          ),
-                          _statCard(
-                            'Pending',
-                            '${_data?['pending_orders'] ?? 0}',
-                            Icons.pending_outlined,
-                            Colors.orangeAccent,
-                          ),
-                          _statCard(
-                            'Out for Delivery',
-                            '${_data?['active_deliveries'] ?? 0}',
-                            Icons.delivery_dining,
-                            Colors.purpleAccent,
-                          ),
-                          _statCard(
-                            'Revenue',
-                            '₹${double.tryParse('${_data?['today_revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
-                            Icons.currency_rupee,
-                            Colors.greenAccent,
-                          ),
+                          _stat('Orders Today',
+                              '${_data?['today_orders'] ?? 0}',
+                              Icons.receipt_long, Colors.blueAccent),
+                          _stat('Needs Action',
+                              '${_data?['pending_orders'] ?? 0}',
+                              Icons.notification_important_outlined,
+                              Colors.orangeAccent),
+                          _stat('In Progress',
+                              '${_data?['in_progress'] ?? 0}',
+                              Icons.restaurant, Colors.amberAccent),
+                          _stat('Out for Delivery',
+                              '${_data?['active_deliveries'] ?? 0}',
+                              Icons.delivery_dining, Colors.purpleAccent),
+                          _stat('Delivered Today',
+                              '${_data?['delivered_today'] ?? 0}',
+                              Icons.check_circle_outline, Colors.tealAccent),
+                          _stat('Revenue Today',
+                              '₹${double.tryParse('${_data?['today_revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
+                              Icons.currency_rupee, Colors.greenAccent),
                         ],
                       ),
                     ],
@@ -215,100 +216,224 @@ class _DashboardTabState extends State<_DashboardTab> {
   }
 }
 
-// ─── Pending orders tab ───────────────────────────────────────────────────────
+// ─── Orders (unified with filter) ────────────────────────────────────────────
 
-class _PendingOrdersTab extends StatefulWidget {
-  const _PendingOrdersTab();
+class _OrdersTab extends StatefulWidget {
+  const _OrdersTab();
 
   @override
-  State<_PendingOrdersTab> createState() => _PendingOrdersTabState();
+  State<_OrdersTab> createState() => _OrdersTabState();
 }
 
-class _PendingOrdersTabState extends State<_PendingOrdersTab> {
-  List<Order> _orders = [];
+class _OrdersTabState extends State<_OrdersTab> {
+  final OrderService _svc = OrderService();
+  List<Order> _all = [];
   bool _loading = true;
   String? _error;
-  final OrderService _svc = OrderService();
+  String _filter = 'pending';
+  Timer? _timer;
+
+  static const _filters = [
+    ('pending', 'Pending'),
+    ('active', 'Active'),
+    ('all', 'All'),
+    ('delivered', 'Delivered'),
+    ('rejected', 'Rejected'),
+  ];
 
   @override
   void initState() {
     super.initState();
     _load();
+    _timer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (_filter == 'pending') _load(silent: true);
+    });
   }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) setState(() { _loading = true; _error = null; });
     try {
-      final all = await _svc.getOrders();
-      setState(() {
-        _orders = all.where((o) => o.status == 'pending_confirmation').toList();
-        _loading = false;
-      });
+      final orders = await _svc.getAllOrders();
+      if (mounted) setState(() { _all = orders; _loading = false; });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  List<Order> get _filtered {
+    switch (_filter) {
+      case 'pending':
+        return _all.where((o) => o.status == 'pending_confirmation').toList();
+      case 'active':
+        return _all.where((o) =>
+            ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']
+                .contains(o.status)).toList();
+      case 'delivered':
+        return _all.where((o) => o.status == 'delivered').toList();
+      case 'rejected':
+        return _all.where((o) => o.status == 'rejected').toList();
+      default:
+        return _all;
+    }
+  }
+
+  Future<void> _quickConfirm(Order order) async {
+    final prepTime = await showDialog<int>(
+      context: context,
+      builder: (_) => _PrepTimeDialog(),
+    );
+    if (prepTime == null) return;
+    try {
+      await _svc.confirmOrder(order.id, prepTime);
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  Future<void> _quickReject(Order order) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => _RejectDialog(),
+    );
+    if (reason == null) return;
+    try {
+      await _svc.rejectOrder(order.id, reason);
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filtered;
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Pending Orders',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text('Orders',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              children: _filters.map((f) {
+                final selected = _filter == f.$1;
+                final count = _filterCount(f.$1);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(count > 0 ? '${f.$2} ($count)' : f.$2),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _filter = f.$1),
+                    selectedColor: _red.withValues(alpha: 0.2),
+                    checkmarkColor: _red,
+                    labelStyle: TextStyle(
+                      color: selected ? _red : Colors.grey,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    backgroundColor: _card,
+                    side: BorderSide(color: selected ? _red : _stroke),
+                    showCheckmark: false,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : _orders.isEmpty
-                  ? Center(
-                      child: Text('No pending orders',
-                          style: GoogleFonts.poppins(color: Colors.grey)))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _orders.length,
-                        itemBuilder: (_, i) => _OrderCard(
-                          order: _orders[i],
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AdminOrderDetailScreen(
-                                    orderId: _orders[i].id)),
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: filtered.isEmpty
+                      ? Center(
+                          child: Text('No orders',
+                              style: GoogleFonts.poppins(color: Colors.grey)))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final order = filtered[i];
+                            return _OrderCard(
+                              order: order,
+                              showQuickActions:
+                                  order.status == 'pending_confirmation',
+                              onConfirm: () => _quickConfirm(order),
+                              onReject: () => _quickReject(order),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AdminOrderDetailScreen(
+                                        orderId: order.id),
+                                  ),
+                                );
+                                _load();
+                              },
                             );
-                            _load();
                           },
                         ),
-                      ),
-                    ),
+                ),
     );
+  }
+
+  int _filterCount(String filter) {
+    switch (filter) {
+      case 'pending':
+        return _all.where((o) => o.status == 'pending_confirmation').length;
+      case 'active':
+        return _all.where((o) =>
+            ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']
+                .contains(o.status)).length;
+      case 'delivered':
+        return _all.where((o) => o.status == 'delivered').length;
+      case 'rejected':
+        return _all.where((o) => o.status == 'rejected').length;
+      default:
+        return _all.length;
+    }
   }
 }
 
-// ─── All orders tab ───────────────────────────────────────────────────────────
+// ─── Products ─────────────────────────────────────────────────────────────────
 
-class _AllOrdersTab extends StatefulWidget {
-  const _AllOrdersTab();
+class _ProductsTab extends StatefulWidget {
+  const _ProductsTab();
 
   @override
-  State<_AllOrdersTab> createState() => _AllOrdersTabState();
+  State<_ProductsTab> createState() => _ProductsTabState();
 }
 
-class _AllOrdersTabState extends State<_AllOrdersTab> {
-  List<Order> _orders = [];
+class _ProductsTabState extends State<_ProductsTab> {
+  final ProductService _svc = ProductService();
+  List<Product> _products = [];
+  List<Category> _categories = [];
   bool _loading = true;
   String? _error;
-  final OrderService _svc = OrderService();
+  final Map<int, bool> _toggling = {};
 
   @override
   void initState() {
@@ -319,10 +444,82 @@ class _AllOrdersTabState extends State<_AllOrdersTab> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final orders = await _svc.getOrders();
-      setState(() { _orders = orders; _loading = false; });
+      final results = await Future.wait([
+        _svc.getProducts(),
+        _svc.getCategories(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _products = results[0] as List<Product>;
+          _categories = results[1] as List<Category>;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _toggle(Product p) async {
+    setState(() => _toggling[p.id] = true);
+    try {
+      final updated = await _svc.toggleAvailability(p.id);
+      if (mounted) {
+        setState(() {
+          final idx = _products.indexWhere((x) => x.id == p.id);
+          if (idx >= 0) _products[idx] = updated;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _toggling.remove(p.id));
+    }
+  }
+
+  Future<void> _openForm({Product? product}) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductFormScreen(
+          categories: _categories,
+          product: product,
+        ),
+      ),
+    );
+    if (result == true) _load();
+  }
+
+  Future<void> _deleteProduct(Product p) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: _card,
+        title: const Text('Delete Product', style: TextStyle(color: Colors.white)),
+        content: Text('Delete "${p.name}"? This cannot be undone.',
+            style: const TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _svc.deleteProduct(p.id);
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -332,14 +529,16 @@ class _AllOrdersTabState extends State<_AllOrdersTab> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('All Orders',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text('Products',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openForm(),
+        backgroundColor: _red,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
@@ -348,38 +547,88 @@ class _AllOrdersTabState extends State<_AllOrdersTab> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _orders.length,
-                    itemBuilder: (_, i) => _OrderCard(
-                      order: _orders[i],
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AdminOrderDetailScreen(
-                                orderId: _orders[i].id),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                    itemCount: _products.length,
+                    itemBuilder: (_, i) {
+                      final p = _products[i];
+                      final toggling = _toggling[p.id] == true;
+                      return Card(
+                        color: _card,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: p.image.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(p.image,
+                                      width: 48, height: 48, fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stack) =>
+                                          const Icon(Icons.fastfood,
+                                              color: Colors.grey)),
+                                )
+                              : Container(
+                                  width: 48, height: 48,
+                                  decoration: BoxDecoration(
+                                    color: _red.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.fastfood, color: _red, size: 24),
+                                ),
+                          title: Text(p.name,
+                              style: TextStyle(
+                                  color: p.isAvailable ? Colors.white : Colors.grey,
+                                  fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                              '${p.categoryName} • ₹${p.price.toStringAsFixed(0)}',
+                              style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined,
+                                    color: Colors.grey, size: 20),
+                                onPressed: () => _openForm(product: p),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.redAccent, size: 20),
+                                onPressed: () => _deleteProduct(p),
+                              ),
+                              toggling
+                                  ? const SizedBox(
+                                      width: 36, height: 36,
+                                      child: Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2, color: _red),
+                                      ))
+                                  : Switch(
+                                      value: p.isAvailable,
+                                      onChanged: (_) => _toggle(p),
+                                      activeColor: _red,
+                                    ),
+                            ],
                           ),
-                        );
-                        _load();
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
     );
   }
 }
 
-// ─── Delivery staff tab ───────────────────────────────────────────────────────
+// ─── Staff ────────────────────────────────────────────────────────────────────
 
-class _DeliveryStaffTab extends StatefulWidget {
-  const _DeliveryStaffTab();
+class _StaffTab extends StatefulWidget {
+  const _StaffTab();
 
   @override
-  State<_DeliveryStaffTab> createState() => _DeliveryStaffTabState();
+  State<_StaffTab> createState() => _StaffTabState();
 }
 
-class _DeliveryStaffTabState extends State<_DeliveryStaffTab> {
-  List<Map<String, dynamic>> _staff = [];
+class _StaffTabState extends State<_StaffTab> {
+  final DeliveryStaffService _svc = DeliveryStaffService();
+  List<DeliveryStaff> _staff = [];
   bool _loading = true;
   String? _error;
 
@@ -392,35 +641,31 @@ class _DeliveryStaffTabState extends State<_DeliveryStaffTab> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final svc = DeliveryStaffService();
-      final list = await svc.getDeliveryStaff();
-      setState(() {
-        _staff = list
-            .map((s) => {
-                  'id': s.id,
-                  'name': s.name,
-                  'phone_number': s.phoneNumber,
-                  'is_default_delivery': s.isDefaultDelivery,
-                })
-            .toList();
-        _loading = false;
-      });
+      final list = await _svc.getDeliveryStaff();
+      if (mounted) setState(() { _staff = list; _loading = false; });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
-  Future<void> _setDefault(int userId) async {
+  Future<void> _setDefault(int id) async {
     try {
-      final svc = DeliveryStaffService();
-      await svc.setDefaultDelivery(userId);
+      await _svc.setDefaultDelivery(id);
       _load();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
+  }
+
+  Future<void> _addStaff() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateDeliveryStaffScreen()),
+    );
+    if (created == true) _load();
   }
 
   @override
@@ -430,13 +675,15 @@ class _DeliveryStaffTabState extends State<_DeliveryStaffTab> {
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text('Delivery Staff',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addStaff,
+        backgroundColor: _red,
+        child: const Icon(Icons.person_add, color: Colors.white),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
@@ -444,80 +691,94 @@ class _DeliveryStaffTabState extends State<_DeliveryStaffTab> {
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _staff.isEmpty
                   ? Center(
-                      child: Text('No delivery staff found',
-                          style: GoogleFonts.poppins(color: Colors.grey)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _staff.length,
-                      itemBuilder: (_, i) {
-                        final s = _staff[i];
-                        final isDefault = s['is_default_delivery'] == true;
-                        return Card(
-                          color: _card,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  isDefault ? _red : Colors.grey[800],
-                              child: Text(
-                                (s['name'] as String? ?? '?')
-                                    .substring(0, 1)
-                                    .toUpperCase(),
-                                style: const TextStyle(color: Colors.white),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.delivery_dining,
+                              color: Colors.grey, size: 64),
+                          const SizedBox(height: 12),
+                          Text('No delivery staff yet',
+                              style: GoogleFonts.poppins(color: Colors.grey)),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _addStaff,
+                            icon: const Icon(Icons.person_add, color: _red),
+                            label: const Text('Add Staff',
+                                style: TextStyle(color: _red)),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                        itemCount: _staff.length,
+                        itemBuilder: (_, i) {
+                          final s = _staff[i];
+                          return Card(
+                            color: _card,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    s.isDefaultDelivery ? _red : Colors.grey[800],
+                                child: Text(
+                                  (s.name.isNotEmpty ? s.name : '?')
+                                      .substring(0, 1)
+                                      .toUpperCase(),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
-                            ),
-                            title: Row(
-                              children: [
-                                Text(s['name'] ?? 'Unknown',
+                              title: Row(children: [
+                                Text(s.name,
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600)),
-                                if (isDefault) ...[
+                                if (s.isDefaultDelivery) ...[
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: _red,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
+                                        color: _red,
+                                        borderRadius: BorderRadius.circular(4)),
                                     child: const Text('DEFAULT',
                                         style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 10,
+                                            fontSize: 9,
                                             fontWeight: FontWeight.bold)),
                                   ),
                                 ],
-                              ],
+                              ]),
+                              subtitle: Text(s.phoneNumber,
+                                  style: const TextStyle(color: Colors.grey)),
+                              trailing: s.isDefaultDelivery
+                                  ? null
+                                  : TextButton(
+                                      onPressed: () => _setDefault(s.id),
+                                      child: const Text('Set Default',
+                                          style: TextStyle(color: _red)),
+                                    ),
                             ),
-                            subtitle: Text(s['phone_number'] ?? '',
-                                style: const TextStyle(color: Colors.grey)),
-                            trailing: isDefault
-                                ? null
-                                : TextButton(
-                                    onPressed: () =>
-                                        _setDefault(s['id'] as int),
-                                    child: const Text('Set Default',
-                                        style: TextStyle(color: _red)),
-                                  ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
     );
   }
 }
 
-// ─── Profile tab ──────────────────────────────────────────────────────────────
+// ─── Profile ──────────────────────────────────────────────────────────────────
 
-class _AdminProfileTab extends StatefulWidget {
-  const _AdminProfileTab();
+class _ProfileTab extends StatefulWidget {
+  const _ProfileTab();
 
   @override
-  State<_AdminProfileTab> createState() => _AdminProfileTabState();
+  State<_ProfileTab> createState() => _ProfileTabState();
 }
 
-class _AdminProfileTabState extends State<_AdminProfileTab> {
+class _ProfileTabState extends State<_ProfileTab> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
 
@@ -529,8 +790,7 @@ class _AdminProfileTabState extends State<_AdminProfileTab> {
 
   Future<void> _load() async {
     try {
-      final svc = OrderService();
-      final data = await svc.getMe();
+      final data = await OrderService().getMe();
       if (mounted) setState(() { _profile = data; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -554,8 +814,7 @@ class _AdminProfileTabState extends State<_AdminProfileTab> {
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text('Profile',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
@@ -564,68 +823,61 @@ class _AdminProfileTabState extends State<_AdminProfileTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
-                    radius: 36,
-                    backgroundColor: _red,
-                    child: Icon(Icons.admin_panel_settings,
-                        size: 36, color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(_profile?['name'] ?? 'Admin',
-                      style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700)),
-                  Text(_profile?['phone_number'] ?? '',
-                      style: GoogleFonts.poppins(
-                          color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: _red,
-                      borderRadius: BorderRadius.circular(4),
+                      color: _card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _stroke),
                     ),
-                    child: const Text('ADMIN',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(color: Color(0xFF2A2A2A)),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                    child: Row(children: [
+                      Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          color: _red, borderRadius: BorderRadius.circular(16)),
+                        child: const Icon(Icons.admin_panel_settings,
+                            size: 28, color: Colors.white),
                       ),
-                      child: const Icon(Icons.fastfood,
-                          color: Colors.orangeAccent, size: 20),
-                    ),
-                    title: const Text('Manage Products',
-                        style: TextStyle(color: Colors.white)),
-                    subtitle: const Text('Toggle menu availability',
-                        style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: Colors.grey),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ProductManagementScreen()),
-                    ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_profile?['name'] ?? 'Admin',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(_profile?['phone_number'] ?? '',
+                                style: const TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color: _red,
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: const Text('ADMIN',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ]),
                   ),
-                  const Divider(color: Color(0xFF2A2A2A)),
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: _logout,
                     icon: const Icon(Icons.logout),
                     label: const Text('Logout'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[900]),
+                      backgroundColor: Colors.grey[900],
+                      minimumSize: const Size.fromHeight(52),
+                    ),
                   ),
                 ],
               ),
@@ -639,8 +891,17 @@ class _AdminProfileTabState extends State<_AdminProfileTab> {
 class _OrderCard extends StatelessWidget {
   final Order order;
   final VoidCallback onTap;
+  final bool showQuickActions;
+  final VoidCallback? onConfirm;
+  final VoidCallback? onReject;
 
-  const _OrderCard({required this.order, required this.onTap});
+  const _OrderCard({
+    required this.order,
+    required this.onTap,
+    this.showQuickActions = false,
+    this.onConfirm,
+    this.onReject,
+  });
 
   Color _statusColor(String s) {
     switch (s) {
@@ -665,92 +926,545 @@ class _OrderCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('#${order.orderNumber}',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15)),
-                    const SizedBox(height: 4),
-                    Text(
-                      order.createdAt != null
-                          ? DateFormat('MMM d, h:mm a').format(order.createdAt!)
-                          : '',
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _statusColor(order.status)
-                                .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                                color: _statusColor(order.status),
-                                width: 0.5),
-                          ),
-                          child: Text(
-                            order.status
-                                .replaceAll('_', ' ')
-                                .toUpperCase(),
-                            style: TextStyle(
-                                color: _statusColor(order.status),
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        if (order.paymentMethod == 'online') ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: order.paymentStatus == 'paid'
-                                  ? Colors.green.withValues(alpha: 0.15)
-                                  : Colors.amber.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              order.paymentStatus.toUpperCase(),
-                              style: TextStyle(
-                                  color: order.paymentStatus == 'paid'
-                                      ? Colors.green
-                                      : Colors.amber,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+              Row(children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('#${order.orderNumber}',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text(
+                        order.createdAt != null
+                            ? DateFormat('MMM d, h:mm a').format(order.createdAt!)
+                            : '',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Rs ${order.totalAmount.toStringAsFixed(0)}',
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('₹${order.totalAmount.toStringAsFixed(0)}',
                       style: GoogleFonts.poppins(
-                          color: _red,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16)),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.grey, size: 20),
+                          color: _red, fontWeight: FontWeight.w700, fontSize: 16)),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                ]),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                _badge(
+                  order.status.replaceAll('_', ' ').toUpperCase(),
+                  _statusColor(order.status),
+                ),
+                if (order.paymentMethod == 'online') ...[
+                  const SizedBox(width: 6),
+                  _badge(
+                    order.paymentStatus.toUpperCase(),
+                    order.paymentStatus == 'paid' ? Colors.green : Colors.amber,
+                  ),
                 ],
-              ),
+                if (order.paymentMethod == 'cod') ...[
+                  const SizedBox(width: 6),
+                  _badge('COD', Colors.grey),
+                ],
+              ]),
+              if (showQuickActions) ...[
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onReject,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        minimumSize: Size.zero,
+                      ),
+                      child: const Text('Reject', style: TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onConfirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        minimumSize: Size.zero,
+                      ),
+                      child: const Text('Confirm', style: TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                ]),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _badge(String text, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color, width: 0.5),
+        ),
+        child: Text(text,
+            style:
+                TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+      );
+}
+
+// ─── Quick-action dialogs ─────────────────────────────────────────────────────
+
+class _PrepTimeDialog extends StatefulWidget {
+  @override
+  State<_PrepTimeDialog> createState() => _PrepTimeDialogState();
+}
+
+class _PrepTimeDialogState extends State<_PrepTimeDialog> {
+  int _mins = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: _card,
+      title: const Text('Confirm Order', style: TextStyle(color: Colors.white)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('Estimated prep time (minutes):',
+            style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 12),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.white),
+            onPressed: () { if (_mins > 5) setState(() => _mins -= 5); },
+          ),
+          Text('$_mins min',
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () => setState(() => _mins += 5),
+          ),
+        ]),
+      ]),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, _mins),
+          style: ElevatedButton.styleFrom(backgroundColor: _red),
+          child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
+class _RejectDialog extends StatefulWidget {
+  @override
+  State<_RejectDialog> createState() => _RejectDialogState();
+}
+
+class _RejectDialogState extends State<_RejectDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: _card,
+      title: const Text('Reject Order', style: TextStyle(color: Colors.white)),
+      content: TextField(
+        controller: _ctrl,
+        style: const TextStyle(color: Colors.white),
+        decoration: const InputDecoration(
+          labelText: 'Reason (optional)',
+          labelStyle: TextStyle(color: Colors.grey),
+        ),
+        maxLines: 2,
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+          child: const Text('Reject', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Product form screen ──────────────────────────────────────────────────────
+
+class ProductFormScreen extends StatefulWidget {
+  final List<Category> categories;
+  final Product? product;
+
+  const ProductFormScreen({super.key, required this.categories, this.product});
+
+  @override
+  State<ProductFormScreen> createState() => _ProductFormScreenState();
+}
+
+class _ProductFormScreenState extends State<ProductFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final ProductService _svc = ProductService();
+
+  late TextEditingController _name;
+  late TextEditingController _description;
+  late TextEditingController _price;
+  late TextEditingController _image;
+  late TextEditingController _prepTime;
+  int? _categoryId;
+  bool _isAvailable = true;
+  bool _isFeatured = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.product;
+    _name = TextEditingController(text: p?.name ?? '');
+    _description = TextEditingController(text: p?.description ?? '');
+    _price = TextEditingController(
+        text: p != null ? p.price.toStringAsFixed(2) : '');
+    _image = TextEditingController(text: p?.image ?? '');
+    _prepTime = TextEditingController(
+        text: '${p?.preparationTime ?? 15}');
+    _categoryId = p?.categoryId;
+    _isAvailable = p?.isAvailable ?? true;
+    _isFeatured = p?.isFeatured ?? false;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _description.dispose();
+    _price.dispose();
+    _image.dispose();
+    _prepTime.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_categoryId == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Select a category')));
+      return;
+    }
+    setState(() => _saving = true);
+    final data = {
+      'category': _categoryId,
+      'name': _name.text.trim(),
+      'description': _description.text.trim(),
+      'price': _price.text.trim(),
+      'image': _image.text.trim(),
+      'preparation_time': int.tryParse(_prepTime.text) ?? 15,
+      'is_available': _isAvailable,
+      'is_featured': _isFeatured,
+    };
+    try {
+      if (widget.product == null) {
+        await _svc.createProduct(data);
+      } else {
+        await _svc.updateProduct(widget.product!.id, data);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.product != null;
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        title: Text(isEdit ? 'Edit Product' : 'Add Product',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        actions: [
+          _saving
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _red)))
+              : TextButton(
+                  onPressed: _save,
+                  child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+                ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _field('Product Name', _name, required: true),
+            const SizedBox(height: 12),
+            _field('Description', _description, maxLines: 3),
+            const SizedBox(height: 12),
+            _field('Price (₹)', _price,
+                required: true,
+                keyboardType: TextInputType.numberWithOptions(decimal: true)),
+            const SizedBox(height: 12),
+            _field('Image URL', _image),
+            const SizedBox(height: 12),
+            _field('Prep Time (mins)', _prepTime,
+                keyboardType: TextInputType.number),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              value: _categoryId,
+              decoration: _inputDec('Category'),
+              dropdownColor: _card,
+              style: const TextStyle(color: Colors.white),
+              items: widget.categories
+                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => _categoryId = v),
+            ),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                child: _toggle('Available', _isAvailable,
+                    (v) => setState(() => _isAvailable = v)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _toggle('Featured', _isFeatured,
+                    (v) => setState(() => _isFeatured = v)),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _field(String label, TextEditingController ctrl,
+      {bool required = false,
+      int maxLines = 1,
+      TextInputType? keyboardType}) {
+    return TextFormField(
+      controller: ctrl,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.white),
+      decoration: _inputDec(label),
+      validator: required
+          ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+          : null,
+    );
+  }
+
+  Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _stroke),
+        ),
+        child: Row(children: [
+          Text(label, style: const TextStyle(color: Colors.white)),
+          const Spacer(),
+          Switch(value: value, onChanged: onChanged, activeColor: _red),
+        ]),
+      );
+
+  InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: _card,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _red),
+        ),
+      );
+}
+
+// ─── Create delivery staff screen ─────────────────────────────────────────────
+
+class CreateDeliveryStaffScreen extends StatefulWidget {
+  const CreateDeliveryStaffScreen({super.key});
+
+  @override
+  State<CreateDeliveryStaffScreen> createState() =>
+      _CreateDeliveryStaffScreenState();
+}
+
+class _CreateDeliveryStaffScreenState
+    extends State<CreateDeliveryStaffScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _svc = DeliveryStaffService();
+  final _phone = TextEditingController();
+  final _name = TextEditingController();
+  final _password = TextEditingController();
+  bool _saving = false;
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _name.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await _svc.createDeliveryStaff(
+        phone: _phone.text.trim(),
+        name: _name.text.trim(),
+        password: _password.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Delivery staff created')));
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        title: Text('Add Delivery Staff',
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const SizedBox(height: 8),
+            _field('Full Name', _name, required: true),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDec('Phone Number'),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Required';
+                if (v.trim().length < 10) return 'Enter valid phone number';
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _password,
+              obscureText: _obscure,
+              style: const TextStyle(color: Colors.white),
+              decoration: _inputDec('Password').copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                      _obscure ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                if (v.length < 6) return 'Min 6 characters';
+                return null;
+              },
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton(
+              onPressed: _saving ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _red,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Create Account',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _field(String label, TextEditingController ctrl, {bool required = false}) =>
+      TextFormField(
+        controller: ctrl,
+        style: const TextStyle(color: Colors.white),
+        decoration: _inputDec(label),
+        validator: required
+            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+            : null,
+      );
+
+  InputDecoration _inputDec(String label) => InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: _card,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _red),
+        ),
+      );
 }

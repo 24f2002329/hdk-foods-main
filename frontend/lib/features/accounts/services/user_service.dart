@@ -32,4 +32,19 @@ class UserService {
 
     throw Exception('Failed to load user profile');
   }
+
+  /// Update the current user's name.
+  Future<User> updateName(String name) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/me/'),
+      headers: await _headers(),
+      body: jsonEncode({'name': name}),
+    );
+
+    if (response.statusCode == 200) {
+      return User.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    }
+
+    throw Exception('Failed to update name');
+  }
 }

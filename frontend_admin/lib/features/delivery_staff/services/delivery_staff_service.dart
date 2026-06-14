@@ -39,4 +39,22 @@ class DeliveryStaffService {
       throw Exception('Failed to set default: ${response.body}');
     }
   }
+
+  Future<DeliveryStaff> createDeliveryStaff({
+    required String phone,
+    required String name,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_base/delivery-staff/create/'),
+      headers: await _headers(),
+      body: jsonEncode({'phone_number': phone, 'name': name, 'password': password}),
+    );
+    if (response.statusCode == 201) {
+      return DeliveryStaff.fromJson(jsonDecode(response.body));
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final msg = body.values.first;
+    throw Exception(msg is List ? msg.first : '$msg');
+  }
 }

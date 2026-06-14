@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/storage/token_storage.dart';
+import '../../accounts/services/user_service.dart';
+import '../screens/name_collection_screen.dart';
 import '../services/auth_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -86,6 +88,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!mounted) return;
+
+    // Check if the user already has a name; if not, collect it first.
+    try {
+      final user = await UserService().getCurrentUser();
+      if (!mounted) return;
+      if (user.name.trim().isEmpty) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const NameCollectionScreen()),
+        );
+        return;
+      }
+    } catch (_) {
+      // If profile fetch fails, just go home — name can be set later.
+    }
 
     Navigator.pushReplacementNamed(context, "/home");
   }

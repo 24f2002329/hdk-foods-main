@@ -42,7 +42,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     ROLE_CHOICES = [
         ('customer', 'Customer'),
-        ('chef', 'Chef'),
         ('delivery', 'Delivery'),
         ('admin', 'Admin'),
     ]

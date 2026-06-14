@@ -14,3 +14,14 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = "__all__"
+
+
+class ProductWriteSerializer(serializers.ModelSerializer):
+    """Used for create/update — accepts category as a PK."""
+    class Meta:
+        model = Product
+        fields = [
+            "id", "category", "name", "description",
+            "price", "image", "is_available", "is_featured",
+            "preparation_time",
+        ]

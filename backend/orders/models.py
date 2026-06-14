@@ -118,7 +118,7 @@ class Order(models.Model):
         related_name="assigned_deliveries"
     )
 
-    # Discount applied by chef/admin before or after confirmation
+    # Discount applied by admin before or after confirmation
     discount_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -131,7 +131,7 @@ class Order(models.Model):
         default=""
     )
 
-    # Set to True when chef/admin edits items or applies a discount.
+    # Set to True when admin edits items or applies a discount.
     # Customer sees a popup when this is True after order is confirmed.
     # Cleared when the customer acknowledges the changes.
     is_modified_by_staff = models.BooleanField(default=False)

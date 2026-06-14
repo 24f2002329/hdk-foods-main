@@ -5,12 +5,13 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from authentication.permissions import IsAdmin, IsAdminOrChef
+from authentication.permissions import IsAdmin
 from .models import Address, User
 from .serializers import (
     AddressSerializer,
+    CreateDeliveryStaffSerializer,
     DeliveryStaffSerializer,
-    UserSerializer
+    UserSerializer,
 )
 
 
@@ -95,7 +96,7 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CurrentUserView(APIView):
-    """Return the current authenticated user's profile."""
+    """Return or update the current authenticated user's profile."""
 
     permission_classes = [IsAuthenticated]
 
@@ -103,12 +104,19 @@ class CurrentUserView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class DeliveryStaffListView(generics.ListAPIView):
-    """List all delivery users. Available to admin and chef."""
+    """List all delivery users. Admin only."""
 
     serializer_class = DeliveryStaffSerializer
-    permission_classes = [IsAdminOrChef]
+    permission_classes = [IsAdmin]
 
     def get_queryset(self):
         return User.objects.filter(
@@ -140,3 +148,19 @@ class SetDefaultDeliveryView(APIView):
         user.save(update_fields=["is_default_delivery"])
 
         return Response(DeliveryStaffSerializer(user).data)
+
+
+class CreateDeliveryStaffView(APIView):
+    """Admin creates a new delivery staff account."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        serializer = CreateDeliveryStaffSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response(
+                DeliveryStaffSerializer(user).data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

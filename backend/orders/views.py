@@ -9,8 +9,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Address, User
 from authentication.permissions import (
-    IsAdminOrChef, 
-    IsAdmin, 
+    IsAdmin,
     IsDelivery
 )
 from products.models import Product
@@ -461,7 +460,7 @@ class OrderDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'role') and user.role in ('admin', 'chef', 'delivery'):
+        if hasattr(user, 'role') and user.role in ('admin', 'delivery'):
             return Order.objects.all()
         return Order.objects.filter(user=user)
     
@@ -470,7 +469,7 @@ class OrderDetailView(generics.RetrieveAPIView):
 class ConfirmOrderView(APIView):
 
     permission_classes = [
-        IsAdminOrChef
+        IsAdmin
     ]
 
     def patch(self, request, pk):
@@ -529,7 +528,7 @@ class ConfirmOrderView(APIView):
 class RejectOrderView(APIView):
 
     permission_classes = [
-        IsAdminOrChef
+        IsAdmin
     ]
     
     def patch(self, request, pk):
@@ -574,7 +573,7 @@ class RejectOrderView(APIView):
 class UpdateOrderStatusView(APIView):
 
     permission_classes = [
-        IsAdminOrChef
+        IsAdmin
     ]
 
     def patch(self, request, pk):
@@ -616,7 +615,7 @@ class UpdateOrderStatusView(APIView):
 class AssignDeliveryView(APIView):
 
     permission_classes = [
-        IsAdminOrChef
+        IsAdmin
     ]
 
     def patch(
@@ -699,7 +698,7 @@ class PendingOrdersView(generics.ListAPIView):
     )
 
     permission_classes = [
-        IsAdminOrChef
+        IsAdmin
     ]
 
     def get_queryset(self):
@@ -718,7 +717,7 @@ class PendingOrdersView(generics.ListAPIView):
 
 class AdminDashboardView(APIView):
 
-    permission_classes = [IsAdminOrChef]
+    permission_classes = [IsAdmin]
 
     def get(
         self,
@@ -758,28 +757,27 @@ class AdminDashboardView(APIView):
                 created_at__date=today,
                 payment_status="paid"
             )
-            .aggregate(
-                total=
-                Sum(
-                    "total_amount"
-                )
-            )["total"]
+            .aggregate(total=Sum("total_amount"))["total"]
             or 0
         )
 
+        in_progress = Order.objects.filter(
+            status__in=["confirmed", "preparing", "ready_for_pickup"]
+        ).count()
+
+        delivered_today = Order.objects.filter(
+            created_at__date=today,
+            status="delivered"
+        ).count()
+
         return Response(
             {
-                "today_orders":
-                    today_orders,
-
-                "pending_orders":
-                    pending_orders,
-
-                "active_deliveries":
-                    active_deliveries,
-
-                "today_revenue":
-                    today_revenue,
+                "today_orders": today_orders,
+                "pending_orders": pending_orders,
+                "in_progress": in_progress,
+                "active_deliveries": active_deliveries,
+                "delivered_today": delivered_today,
+                "today_revenue": today_revenue,
             }
         )
 
@@ -1070,7 +1068,7 @@ class ApplyDiscountView(APIView):
     Sets is_modified_by_staff so the customer sees the change popup.
     """
 
-    permission_classes = [IsAdminOrChef]
+    permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
         try:
@@ -1169,7 +1167,7 @@ class EditOrderItemsView(APIView):
     total_amount. Only allowed while status == 'pending_confirmation'.
     """
 
-    permission_classes = [IsAdminOrChef]
+    permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
         try:

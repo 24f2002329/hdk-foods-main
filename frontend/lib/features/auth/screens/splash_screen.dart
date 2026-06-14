@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/storage/token_storage.dart';
+import '../../accounts/services/user_service.dart';
 import '../../home/screens/home_screen.dart';
 import 'login_screen.dart';
+import 'name_collection_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,7 +31,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Widget nextScreen;
     if (token != null) {
-      nextScreen = const HomeScreen();
+      // Returning user — check if they have a name yet.
+      try {
+        final user = await UserService().getCurrentUser();
+        nextScreen = user.name.trim().isEmpty
+            ? const NameCollectionScreen()
+            : const HomeScreen();
+      } catch (_) {
+        nextScreen = const HomeScreen();
+      }
     } else if (!hasCompletedOnboarding) {
       nextScreen = const OnboardingScreen();
     } else {
