@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/storage/token_storage.dart';
+import '../../auth/screens/login_screen.dart';
+import '../../orders/services/order_service.dart';
 import '../services/config_service.dart';
 import 'banners_screen.dart';
 import 'send_notification_screen.dart';
@@ -23,6 +26,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
   bool _saving = false;
   String? _error;
 
+  // Profile
+  Map<String, dynamic>? _profile;
+
   // Controllers
   final _announcement = TextEditingController();
   final _closedMsg = TextEditingController();
@@ -35,6 +41,24 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
   void initState() {
     super.initState();
     _load();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final data = await OrderService().getMe();
+      if (mounted) setState(() => _profile = data);
+    } catch (_) {}
+  }
+
+  Future<void> _logout() async {
+    await TokenStorage.logout();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+      (_) => false,
+    );
   }
 
   @override
@@ -166,6 +190,85 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
                     _sectionHeader('Product Ratings'),
                     _toggleTile('Show ratings on product cards', _showRatings,
                         (v) => setState(() => _showRatings = v)),
+                    const SizedBox(height: 32),
+
+                    // Profile
+                    _sectionHeader('Account'),
+                    if (_profile != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _stroke),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: _red,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                                Icons.admin_panel_settings_rounded,
+                                color: Colors.white,
+                                size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _profile?['name'] ?? 'Admin',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15),
+                                ),
+                                Text(
+                                  _profile?['phone_number'] ?? '',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.grey, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _red,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('ADMIN',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _logout,
+                        icon: const Icon(Icons.logout_rounded, color: _red),
+                        label: const Text('Logout',
+                            style: TextStyle(
+                                color: _red, fontWeight: FontWeight.w700)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: _red),
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
     );

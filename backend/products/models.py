@@ -39,6 +39,12 @@ class Product(models.Model):
         default=False
     )
 
+    # Add-on / extra items (e.g. Coke, Juice) offered as checkboxes in the
+    # cart. Excluded from the main menu and featured lists.
+    is_addon = models.BooleanField(
+        default=False
+    )
+
     preparation_time = models.PositiveIntegerField(
         default=15
     )

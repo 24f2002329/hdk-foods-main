@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:smart_auth/smart_auth.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../accounts/services/user_service.dart';
@@ -30,6 +31,7 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final _otpController = TextEditingController();
   final _authService = AuthService();
+  final _smartAuth = SmartAuth.instance;
 
   late String _verificationId;
   bool _loading = false;
@@ -42,13 +44,31 @@ class _OtpScreenState extends State<OtpScreen> {
     _verificationId = widget.verificationId;
     _otpController.addListener(() => setState(() {}));
     _startResendTimer();
+    _listenForOtpSms();
   }
 
   @override
   void dispose() {
     _otpController.dispose();
     _timer?.cancel();
+    _smartAuth.removeUserConsentApiListener();
     super.dispose();
+  }
+
+  /// Auto-read the incoming OTP SMS via Google's SMS User Consent API.
+  /// Shows a one-tap system prompt, then fills the code and verifies.
+  Future<void> _listenForOtpSms() async {
+    try {
+      final res = await _smartAuth.getSmsWithUserConsentApi();
+      if (!mounted) return;
+      final code = res.data?.code;
+      if (code != null && code.length == 6) {
+        _otpController.text = code;
+        _verifyOtp();
+      }
+    } catch (_) {
+      // User dismissed the prompt or no SMS arrived — manual entry still works.
+    }
   }
 
   void _startResendTimer() {
@@ -85,6 +105,7 @@ class _OtpScreenState extends State<OtpScreen> {
     _verificationId = verificationId;
     _otpController.clear();
     _startResendTimer();
+    _listenForOtpSms();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("OTP resent successfully")),
     );

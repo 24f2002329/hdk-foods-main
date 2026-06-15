@@ -100,6 +100,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
 
 
+class OrderAddressSerializer(serializers.Serializer):
+    """Read-only snapshot of the delivery address for an order."""
+    label = serializers.CharField()
+    house = serializers.CharField()
+    street = serializers.CharField()
+    landmark = serializers.CharField()
+    city = serializers.CharField()
+    pincode = serializers.CharField()
+
+
 class OrderSerializer(serializers.ModelSerializer):
 
     items = OrderItemSerializer(
@@ -107,9 +117,16 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    address_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = Order
         fields = "__all__"
+
+    def get_address_detail(self, obj):
+        if not obj.address_id:
+            return None
+        return OrderAddressSerializer(obj.address).data
 
 
 

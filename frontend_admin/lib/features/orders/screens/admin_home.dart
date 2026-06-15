@@ -32,12 +32,12 @@ class AdminHome extends StatefulWidget {
 class _AdminHomeState extends State<AdminHome> {
   int _index = 0;
 
+  // Profile is merged into Settings — 5 tabs instead of 6.
   static const _tabs = [
     _DashboardTab(),
     _OrdersTab(),
     _ProductsTab(),
     _StaffTab(),
-    _ProfileTab(),
     SiteConfigScreen(),
   ];
 
@@ -67,10 +67,6 @@ class _AdminHomeState extends State<AdminHome> {
               icon: Icon(Icons.delivery_dining_outlined),
               selectedIcon: Icon(Icons.delivery_dining, color: _red),
               label: 'Staff'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: _red),
-              label: 'Profile'),
           NavigationDestination(
               icon: Icon(Icons.tune_outlined),
               selectedIcon: Icon(Icons.tune, color: _red),
@@ -1149,6 +1145,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   int? _categoryId;
   bool _isAvailable = true;
   bool _isFeatured = false;
+  bool _isAddon = false;
   bool _saving = false;
 
   @override
@@ -1165,6 +1162,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _categoryId = p?.categoryId;
     _isAvailable = p?.isAvailable ?? true;
     _isFeatured = p?.isFeatured ?? false;
+    _isAddon = p?.isAddon ?? false;
   }
 
   @override
@@ -1194,6 +1192,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       'preparation_time': int.tryParse(_prepTime.text) ?? 15,
       'is_available': _isAvailable,
       'is_featured': _isFeatured,
+      'is_addon': _isAddon,
     };
     try {
       if (widget.product == null) {
@@ -1274,6 +1273,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     (v) => setState(() => _isFeatured = v)),
               ),
             ]),
+            const SizedBox(height: 12),
+            _toggle(
+              'Add-on (Coke / Juice / Extra)',
+              _isAddon,
+              (v) => setState(() => _isAddon = v),
+            ),
           ],
         ),
       ),

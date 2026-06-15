@@ -26,7 +26,10 @@ class ProductListView(generics.ListAPIView):
     def get_queryset(self):
         if self.request.query_params.get('all') == '1':
             return Product.objects.all().order_by('category', 'name')
-        return Product.objects.filter(is_available=True).order_by('category', 'name')
+        # Customers see available, non-add-on products in the menu.
+        return Product.objects.filter(
+            is_available=True, is_addon=False
+        ).order_by('category', 'name')
 
 
 class ProductToggleAvailabilityView(APIView):
@@ -55,8 +58,18 @@ class FeaturedProductsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Product.objects.filter(
-            is_featured=True, is_available=True
+            is_featured=True, is_available=True, is_addon=False
         ).order_by("-rating", "name")
+
+
+class AddOnListView(generics.ListAPIView):
+    """Public list of available add-on items (e.g. Coke, Juice) for the cart."""
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        return Product.objects.filter(
+            is_addon=True, is_available=True
+        ).order_by("name")
 
 
 class ProductCreateView(APIView):

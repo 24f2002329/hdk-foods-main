@@ -6,6 +6,7 @@ class Product {
   final double price;
 
   final bool isFeatured;
+  final bool isAddon;
   final int preparationTime;
   final int? categoryId;
   final double rating;
@@ -17,6 +18,7 @@ class Product {
     required this.image,
     required this.price,
     required this.isFeatured,
+    this.isAddon = false,
     required this.preparationTime,
     this.categoryId,
     this.rating = 0,
@@ -47,6 +49,9 @@ class Product {
 
       isFeatured:
           json["is_featured"] ?? false,
+
+      isAddon:
+          json["is_addon"] ?? false,
 
       preparationTime:
           json["preparation_time"] ?? 15,

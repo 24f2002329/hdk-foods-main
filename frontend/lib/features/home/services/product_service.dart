@@ -33,6 +33,20 @@ class ProductService {
     return getProducts();
   }
 
+  static Future<List<Product>> getAddOns() async {
+    try {
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/products/addons/"),
+      );
+      if (response.statusCode == 200) {
+        return (jsonDecode(response.body) as List)
+            .map((item) => Product.fromJson(item))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   static Future<List<Category>> getCategories() async {
     final response = await http.get(
       Uri.parse("${ApiConfig.baseUrl}/categories/"),

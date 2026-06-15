@@ -22,6 +22,7 @@ class Product {
   final String image;
   final bool isAvailable;
   final bool isFeatured;
+  final bool isAddon;
   final int preparationTime;
 
   Product({
@@ -34,6 +35,7 @@ class Product {
     this.image = '',
     this.isAvailable = true,
     this.isFeatured = false,
+    this.isAddon = false,
     this.preparationTime = 15,
   });
 
@@ -49,6 +51,7 @@ class Product {
       image: json['image'] ?? '',
       isAvailable: json['is_available'] ?? true,
       isFeatured: json['is_featured'] ?? false,
+      isAddon: json['is_addon'] ?? false,
       preparationTime: json['preparation_time'] ?? 15,
     );
   }
@@ -63,6 +66,7 @@ class Product {
         image: image,
         isAvailable: isAvailable ?? this.isAvailable,
         isFeatured: isFeatured,
+        isAddon: isAddon,
         preparationTime: preparationTime,
       );
 }

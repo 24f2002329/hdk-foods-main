@@ -21,6 +21,49 @@ class OrderItemLine {
   }
 }
 
+class OrderAddress {
+  final String label;
+  final String house;
+  final String street;
+  final String landmark;
+  final String city;
+  final String pincode;
+
+  OrderAddress({
+    this.label = '',
+    this.house = '',
+    this.street = '',
+    this.landmark = '',
+    this.city = '',
+    this.pincode = '',
+  });
+
+  factory OrderAddress.fromJson(Map<String, dynamic> json) {
+    return OrderAddress(
+      label: json['label'] ?? '',
+      house: json['house'] ?? '',
+      street: json['street'] ?? '',
+      landmark: json['landmark'] ?? '',
+      city: json['city'] ?? '',
+      pincode: json['pincode'] ?? '',
+    );
+  }
+
+  String get lineOne {
+    final parts = [house, street].where((p) => p.trim().isNotEmpty);
+    return parts.join(', ');
+  }
+
+  String get lineTwo {
+    final parts = [
+      if (landmark.trim().isNotEmpty) landmark,
+      city,
+      if (pincode.trim().isNotEmpty) pincode,
+    ].where((p) => p.trim().isNotEmpty);
+    return parts.join(', ');
+  }
+}
+
 class Order {
   final int id;
   final String orderNumber;
@@ -39,6 +82,10 @@ class Order {
   final String discountReason;
   final DateTime? estimatedDeliveryTime;
 
+  // Delivery
+  final OrderAddress? address;
+  final String deliveryNotes;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -54,6 +101,8 @@ class Order {
     this.originalTotal,
     this.discountReason = '',
     this.estimatedDeliveryTime,
+    this.address,
+    this.deliveryNotes = '',
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -67,6 +116,8 @@ class Order {
         createdAt = null;
       }
     }
+
+    final addrJson = json['address_detail'] as Map<String, dynamic>?;
 
     return Order(
       id: json['id'],
@@ -89,6 +140,8 @@ class Order {
       estimatedDeliveryTime: json['estimated_delivery_time'] != null
           ? DateTime.tryParse(json['estimated_delivery_time'])
           : null,
+      address: addrJson != null ? OrderAddress.fromJson(addrJson) : null,
+      deliveryNotes: json['delivery_notes'] ?? '',
     );
   }
 }

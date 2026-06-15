@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
 import '../models/order.dart';
@@ -8,26 +9,28 @@ import '../services/order_service.dart';
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
 const _panel = Color(0xFF111111);
+const _panelAlt = Color(0xFF181818);
 const _stroke = Color(0xFF2A2A2A);
+const _mutedText = Color(0xFFB8B8B8);
 
 class OrderTrackingScreen extends StatefulWidget {
   final int orderId;
-
   const OrderTrackingScreen({super.key, required this.orderId});
 
   @override
   State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
 }
 
-class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
+class _OrderTrackingScreenState extends State<OrderTrackingScreen>
+    with SingleTickerProviderStateMixin {
   final OrderService _orderService = OrderService();
 
-  static const List<Map<String, String>> _steps = [
-    {'key': 'confirmed', 'label': 'Confirmed'},
-    {'key': 'preparing', 'label': 'Preparing'},
-    {'key': 'ready_for_pickup', 'label': 'Ready for Pickup'},
-    {'key': 'out_for_delivery', 'label': 'Out for Delivery'},
-    {'key': 'delivered', 'label': 'Delivered'},
+  static const List<Map<String, dynamic>> _steps = [
+    {'key': 'confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle_outline_rounded},
+    {'key': 'preparing', 'label': 'Preparing', 'icon': Icons.restaurant_rounded},
+    {'key': 'ready_for_pickup', 'label': 'Ready for Pickup', 'icon': Icons.inventory_2_outlined},
+    {'key': 'out_for_delivery', 'label': 'Out for Delivery', 'icon': Icons.delivery_dining_rounded},
+    {'key': 'delivered', 'label': 'Delivered', 'icon': Icons.home_rounded},
   ];
 
   Timer? _pollingTimer;
@@ -39,9 +42,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   bool _reviewSubmitted = false;
   bool _reviewLoading = false;
 
+  late AnimationController _stepAnim;
+
   @override
   void initState() {
     super.initState();
+    _stepAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _load();
     _pollingTimer = Timer.periodic(
       const Duration(seconds: 12),
@@ -52,6 +61,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _stepAnim.dispose();
     super.dispose();
   }
 
@@ -59,8 +69,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     try {
       var order = await _orderService.getOrder(widget.orderId);
 
-      if (order.paymentMethod == 'online' &&
-          order.paymentStatus == 'pending') {
+      if (order.paymentMethod == 'online' && order.paymentStatus == 'pending') {
         try {
           order = await _orderService.verifyPayment(orderId: widget.orderId);
         } catch (_) {}
@@ -72,9 +81,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         _loading = false;
         _error = null;
       });
+      _stepAnim.forward(from: 0);
 
-      // Show the modified-order popup once when the chef has changed the order
-      // and it is now confirmed.
       if (order.isModifiedByStaff &&
           order.status == 'confirmed' &&
           !_modifiedDialogShown) {
@@ -84,7 +92,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         });
       }
 
-      // Fetch queue position when pending
       if (order.status == 'pending_confirmation') {
         try {
           final q = await _orderService.getQueuePosition(widget.orderId);
@@ -94,7 +101,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         if (mounted) setState(() => _queuePosition = null);
       }
 
-      // Check if review already submitted
       if (order.status == 'delivered' && !_reviewSubmitted) {
         try {
           final reviewed = await _orderService.hasReview(widget.orderId);
@@ -102,9 +108,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         } catch (_) {}
       }
 
-      if (order.status == 'delivered' ||
-          order.status == 'cancelled' ||
-          order.status == 'rejected') {
+      if (['delivered', 'cancelled', 'rejected'].contains(order.status)) {
         _pollingTimer?.cancel();
       }
     } catch (e) {
@@ -122,46 +126,34 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       barrierDismissible: false,
       builder: (_) => _ModifiedOrderDialog(order: order),
     );
-
     if (accepted == null || !mounted) return;
-
     try {
-      await _orderService.acknowledgeChanges(
-        orderId: order.id,
-        accepted: accepted,
-      );
-      if (accepted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Order accepted! Tracking updated.')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Order cancelled. If you already paid, '
-                'a refund will be processed in 3–5 business days.',
-              ),
-              duration: Duration(seconds: 6),
-            ),
-          );
-        }
+      await _orderService.acknowledgeChanges(orderId: order.id, accepted: accepted);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(accepted
+              ? 'Order accepted! Tracking updated.'
+              : 'Order cancelled. Refund in 3–5 business days.'),
+          duration: Duration(seconds: accepted ? 3 : 6),
+        ));
       }
       _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-      _modifiedDialogShown = false; // allow retry
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      _modifiedDialogShown = false;
     }
   }
 
-  int _currentStepIndex(String status) {
-    final idx = _steps.indexWhere((s) => s['key'] == status);
-    return idx;
+  void _showHelpSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _panelAlt,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _NeedHelpSheet(order: _order!),
+    );
   }
 
   @override
@@ -183,182 +175,62 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget _buildBody(Order order) {
     final isCancelled =
         order.status == 'cancelled' || order.status == 'rejected';
-    final currentIdx = _currentStepIndex(order.status);
 
     return RefreshIndicator(
       onRefresh: _load,
+      color: _brandRed,
+      backgroundColor: _panel,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _panel,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _stroke),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Order #${order.orderNumber}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Text(
-                  'Payment: ${order.paymentMethod.toUpperCase()} '
-                  '(${order.paymentStatus})',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 6),
-                if (order.originalTotal != null &&
-                    order.originalTotal != order.totalAmount) ...[
-                  Text(
-                    '₹${order.originalTotal!.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                ],
-                Text('Total: ₹${order.totalAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-                if (order.discountAmount > 0)
-                  Text(
-                    'Discount: -₹${order.discountAmount.toStringAsFixed(0)}'
-                    '${order.discountReason.isNotEmpty ? " (${order.discountReason})" : ""}',
-                    style: const TextStyle(
-                        color: Colors.greenAccent, fontSize: 12),
-                  ),
-              ],
-            ),
-          ),
-          // Queue position banner
+          // ── Header card ────────────────────────────────────────────────
+          _OrderHeaderCard(order: order),
+
+          // ── Queue banner ───────────────────────────────────────────────
           if (_queuePosition != null && order.status == 'pending_confirmation') ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.queue, color: Colors.blueAccent, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(
-                      _queuePosition == 1
-                          ? "You're next! 🎉"
-                          : "You're #$_queuePosition in queue",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
-                    ),
-                    if (_queuePosition != null && _queuePosition! > 1)
-                      Text(
-                        '${_queuePosition! - 1} order${_queuePosition! - 1 > 1 ? "s" : ""} ahead of you',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                  ]),
-                ),
-              ]),
-            ),
+            const SizedBox(height: 12),
+            _QueueBanner(position: _queuePosition!),
           ],
-          // Late warning
+
+          // ── Late warning ───────────────────────────────────────────────
           if (order.estimatedDeliveryTime != null &&
               DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
-              order.status != 'delivered' &&
-              order.status != 'cancelled' &&
-              order.status != 'rejected') ...[
+              !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade900.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.5)),
-              ),
-              child: const Row(children: [
-                Icon(Icons.access_time, color: Colors.orangeAccent, size: 20),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Your order is taking longer than expected. Sorry for the wait! 🙏',
-                    style: TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ]),
-            ),
+            _LateBanner(),
           ],
-          const SizedBox(height: 24),
-          if (isCancelled)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _panel,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.redAccent),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.cancel, color: Colors.redAccent),
-                      const SizedBox(width: 12),
-                      Text(
-                        order.status == 'rejected'
-                            ? 'Order rejected by restaurant.'
-                            : 'Order was cancelled.',
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
-                    ],
-                  ),
-                  if (order.paymentMethod == 'online' &&
-                      order.paymentStatus == 'paid') ...[
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Refund will be processed in 3–5 business days.',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ],
-                ],
-              ),
-            )
-          else
-            _buildStepper(currentIdx),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 20),
+
+          // ── Status stepper or cancelled state ─────────────────────────
+          isCancelled
+              ? _CancelledCard(order: order)
+              : _AnimatedStepper(
+                  steps: _steps,
+                  currentStatus: order.status,
+                  animation: _stepAnim,
+                ),
+
+          const SizedBox(height: 20),
+
+          // ── Delivery address ───────────────────────────────────────────
+          if (order.address != null) ...[
+            _AddressCard(address: order.address!),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Items ──────────────────────────────────────────────────────
           if (order.items.isNotEmpty) ...[
-            const Text('Items',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ...order.items.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text('${item.quantity}x ${item.productName}',
-                          style: const TextStyle(color: Colors.grey),
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('₹${(item.price * item.quantity).toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
+            _ItemsCard(order: order),
+            const SizedBox(height: 16),
           ],
-          // Review card for delivered orders
+
+          // ── Need Help ──────────────────────────────────────────────────
+          _NeedHelpButton(onTap: _showHelpSheet),
+
+          // ── Review card ────────────────────────────────────────────────
           if (order.status == 'delivered') ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _ReviewCard(
               orderId: order.id,
               submitted: _reviewSubmitted,
@@ -368,79 +240,776 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 try {
                   await _orderService.submitReview(
                       orderId: order.id, rating: rating, comment: comment);
-                  if (mounted) setState(() { _reviewSubmitted = true; _reviewLoading = false; });
+                  if (mounted) {
+                    setState(() {
+                      _reviewSubmitted = true;
+                      _reviewLoading = false;
+                    });
+                  }
                 } catch (e) {
                   if (mounted) {
                     setState(() => _reviewLoading = false);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$e')));
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('$e')));
                   }
                 }
               },
             ),
           ],
-          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Header card ───────────────────────────────────────────────────────────────
+class _OrderHeaderCard extends StatelessWidget {
+  final Order order;
+  const _OrderHeaderCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _stroke),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _brandRed.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _brandRed.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  '#${order.orderNumber}',
+                  style: const TextStyle(
+                    color: _brandRed,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (order.createdAt != null)
+                Text(
+                  _formatDate(order.createdAt!),
+                  style: const TextStyle(color: _mutedText, fontSize: 12),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Total Amount',
+                      style: TextStyle(color: _mutedText, fontSize: 12)),
+                  const SizedBox(height: 2),
+                  if (order.originalTotal != null &&
+                      order.originalTotal != order.totalAmount) ...[
+                    Text(
+                      '₹${order.originalTotal!.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: _mutedText,
+                        decoration: TextDecoration.lineThrough,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                  Text(
+                    '₹${order.totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                    ),
+                  ),
+                  if (order.discountAmount > 0)
+                    Text(
+                      'Saved ₹${order.discountAmount.toStringAsFixed(0)}'
+                      '${order.discountReason.isNotEmpty ? " · ${order.discountReason}" : ""}',
+                      style: const TextStyle(
+                          color: Colors.greenAccent, fontSize: 11),
+                    ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _PaymentBadge(method: order.paymentMethod, status: order.paymentStatus),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStepper(int currentIdx) {
-    return Column(
-      children: List.generate(_steps.length, (i) {
-        final reached = currentIdx >= i && currentIdx != -1;
-        final isLast = i == _steps.length - 1;
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: reached ? _brandRed : _panel,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: reached ? _brandRed : _stroke, width: 2),
-                    ),
-                    child: reached
-                        ? const Icon(Icons.check, size: 14, color: Colors.white)
-                        : null,
-                  ),
-                  if (!isLast)
-                    Expanded(
-                      child: Container(
-                        width: 2,
-                        color: reached ? _brandRed : _stroke,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24, top: 2),
-                child: Text(
-                  _steps[i]['label']!,
-                  style: TextStyle(
-                    color: reached ? Colors.white : Colors.grey,
-                    fontSize: 16,
-                    fontWeight:
-                        reached ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
+  String _formatDate(DateTime d) {
+    const months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
+    final h = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
+    final m = d.minute.toString().padLeft(2, '0');
+    final period = d.hour >= 12 ? 'PM' : 'AM';
+    return '${d.day} ${months[d.month - 1]}, $h:$m $period';
+  }
+}
+
+class _PaymentBadge extends StatelessWidget {
+  final String method;
+  final String status;
+  const _PaymentBadge({required this.method, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    switch (status) {
+      case 'paid':
+        color = Colors.greenAccent;
+        break;
+      case 'failed':
+        color = Colors.redAccent;
+        break;
+      default:
+        color = Colors.grey;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            method.toUpperCase(),
+            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11),
           ),
-        );
-      }),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 10),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ─── Modified Order Popup ─────────────────────────────────────────────────────
+// ── Queue banner ──────────────────────────────────────────────────────────────
+class _QueueBanner extends StatelessWidget {
+  final int position;
+  const _QueueBanner({required this.position});
 
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.queue_rounded, color: Colors.blueAccent, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              position == 1 ? "You're next! 🎉" : "You're #$position in queue",
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+            if (position > 1)
+              Text(
+                '${position - 1} order${position - 1 > 1 ? "s" : ""} ahead of you',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Late banner ───────────────────────────────────────────────────────────────
+class _LateBanner extends StatelessWidget {
+  const _LateBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade900.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.5)),
+      ),
+      child: const Row(children: [
+        Icon(Icons.access_time_rounded, color: Colors.orangeAccent, size: 20),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Your order is taking longer than expected. Sorry for the wait! 🙏',
+            style: TextStyle(
+                color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Animated stepper ──────────────────────────────────────────────────────────
+class _AnimatedStepper extends StatelessWidget {
+  final List<Map<String, dynamic>> steps;
+  final String currentStatus;
+  final Animation<double> animation;
+
+  const _AnimatedStepper({
+    required this.steps,
+    required this.currentStatus,
+    required this.animation,
+  });
+
+  int get _currentIdx =>
+      steps.indexWhere((s) => s['key'] == currentStatus);
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIdx = _currentIdx;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _stroke),
+      ),
+      child: Column(
+        children: List.generate(steps.length, (i) {
+          final reached = currentIdx >= i && currentIdx != -1;
+          final isActive = i == currentIdx;
+          final isLast = i == steps.length - 1;
+
+          final stepInterval = Interval(
+            i / steps.length,
+            (i + 1) / steps.length,
+            curve: Curves.easeOut,
+          );
+
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              final t = stepInterval.transform(animation.value);
+              return Opacity(
+                opacity: reached ? (0.4 + 0.6 * t).clamp(0.0, 1.0) : 0.35,
+                child: Transform.translate(
+                  offset: Offset(reached ? (1 - t) * 12 : 0, 0),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Icon + connector line
+                        Column(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 400),
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? _brandRed
+                                    : reached
+                                        ? _brandRed.withValues(alpha: 0.7)
+                                        : _stroke,
+                                shape: BoxShape.circle,
+                                boxShadow: isActive
+                                    ? [
+                                        BoxShadow(
+                                          color: _brandRed.withValues(alpha: 0.4),
+                                          blurRadius: 12,
+                                          spreadRadius: 1,
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              child: Icon(
+                                reached
+                                    ? (isActive
+                                        ? steps[i]['icon'] as IconData
+                                        : Icons.check_rounded)
+                                    : steps[i]['icon'] as IconData,
+                                size: 18,
+                                color: reached ? Colors.white : Colors.grey,
+                              ),
+                            ),
+                            if (!isLast)
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  width: 2,
+                                  color: reached ? _brandRed.withValues(alpha: 0.6) : _stroke,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(width: 14),
+                        // Label
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: 7,
+                              bottom: isLast ? 0 : 22,
+                            ),
+                            child: Text(
+                              steps[i]['label'] as String,
+                              style: TextStyle(
+                                color: isActive
+                                    ? Colors.white
+                                    : reached
+                                        ? Colors.white70
+                                        : Colors.grey,
+                                fontSize: isActive ? 16 : 14,
+                                fontWeight: isActive
+                                    ? FontWeight.w900
+                                    : reached
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (isActive)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 9),
+                            child: _PulseDot(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.7, end: 1.3).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          color: _brandRed,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Cancelled card ────────────────────────────────────────────────────────────
+class _CancelledCard extends StatelessWidget {
+  final Order order;
+  const _CancelledCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.cancel_rounded, color: Colors.redAccent, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                order.status == 'rejected'
+                    ? 'Order Rejected by Kitchen'
+                    : 'Order Cancelled',
+                style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15),
+              ),
+            ],
+          ),
+          if (order.paymentMethod == 'online' &&
+              order.paymentStatus == 'paid') ...[
+            const SizedBox(height: 10),
+            const Text(
+              'A refund will be processed to your original payment method in 3–5 business days.',
+              style: TextStyle(color: _mutedText, fontSize: 13),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Address card ──────────────────────────────────────────────────────────────
+class _AddressCard extends StatelessWidget {
+  final OrderAddress address;
+  const _AddressCard({required this.address});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _stroke),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _brandRed.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.location_on_rounded,
+                color: _brandRed, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Delivering to ${address.label.isNotEmpty ? address.label : "your address"}',
+                  style: const TextStyle(
+                    color: _mutedText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (address.lineOne.isNotEmpty)
+                  Text(
+                    address.lineOne,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (address.lineTwo.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    address.lineTwo,
+                    style: const TextStyle(color: _mutedText, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Items card ────────────────────────────────────────────────────────────────
+class _ItemsCard extends StatelessWidget {
+  final Order order;
+  const _ItemsCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Order Items',
+            style: TextStyle(
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          ...order.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${item.quantity}×  ${item.productName}',
+                      style: const TextStyle(color: _mutedText, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '₹${(item.price * item.quantity).toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(color: _stroke, height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Total',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14)),
+              Text(
+                '₹${order.totalAmount.toStringAsFixed(0)}',
+                style: const TextStyle(
+                    color: _brandRed,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Need Help button ──────────────────────────────────────────────────────────
+class _NeedHelpButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _NeedHelpButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: _stroke),
+        backgroundColor: _panel,
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      icon: const Icon(Icons.support_agent_rounded, color: _brandRed),
+      label: const Text(
+        'Need Help With This Order?',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+// ── Need Help bottom sheet ────────────────────────────────────────────────────
+class _NeedHelpSheet extends StatelessWidget {
+  final Order order;
+  const _NeedHelpSheet({required this.order});
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) launchUrl(uri);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _stroke,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Help with Order #${order.orderNumber}',
+            style: const TextStyle(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "We're here to help. Reach us via:",
+            style: TextStyle(color: _mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          _HelpOption(
+            icon: Icons.call_rounded,
+            color: Colors.greenAccent,
+            label: 'Call us',
+            subtitle: 'Speak with support directly',
+            onTap: () => _launch('tel:+919876543210'),
+          ),
+          const SizedBox(height: 12),
+          _HelpOption(
+            icon: Icons.chat_rounded,
+            color: const Color(0xFF25D366),
+            label: 'WhatsApp',
+            subtitle: 'Chat on WhatsApp',
+            onTap: () => _launch(
+                'https://wa.me/919876543210?text=Hi%2C%20I%20need%20help%20with%20order%20%23${order.orderNumber}'),
+          ),
+          const SizedBox(height: 12),
+          _HelpOption(
+            icon: Icons.mail_outline_rounded,
+            color: Colors.blueAccent,
+            label: 'Email us',
+            subtitle: 'support@hdkfoods.com',
+            onTap: () => _launch(
+                'mailto:support@hdkfoods.com?subject=Help%20with%20Order%20%23${order.orderNumber}'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HelpOption extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _HelpOption({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _panel,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _stroke),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14)),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            color: _mutedText, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: _mutedText),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Modified Order Dialog ─────────────────────────────────────────────────────
 class _ModifiedOrderDialog extends StatelessWidget {
   final Order order;
   const _ModifiedOrderDialog({required this.order});
@@ -460,27 +1029,21 @@ class _ModifiedOrderDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: const [
-                Icon(Icons.info_outline, color: Colors.orangeAccent, size: 22),
-                SizedBox(width: 8),
-                Text('Order Updated',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
+            Row(children: const [
+              Icon(Icons.info_outline_rounded, color: Colors.orangeAccent, size: 22),
+              SizedBox(width: 8),
+              Text('Order Updated',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+            ]),
             const SizedBox(height: 10),
             const Text(
-              'The restaurant has modified your order.\n'
-              'Please review the changes below.',
+              'The kitchen modified your order.\nReview the changes below.',
               style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const SizedBox(height: 16),
-
-            // Items list
             const Text('Items',
                 style: TextStyle(
                     color: Colors.white,
@@ -497,10 +1060,8 @@ class _ModifiedOrderDialog extends StatelessWidget {
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    '${item.quantity}× ${item.productName}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
+                                  child: Text('${item.quantity}× ${item.productName}',
+                                      style: const TextStyle(color: Colors.white)),
                                 ),
                                 Text(
                                   '₹${(item.price * item.quantity).toStringAsFixed(0)}',
@@ -514,8 +1075,6 @@ class _ModifiedOrderDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Totals box
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -529,16 +1088,14 @@ class _ModifiedOrderDialog extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Original Total',
+                        const Text('Original',
                             style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        Text(
-                          '₹${order.originalTotal!.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
+                        Text('₹${order.originalTotal!.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                              decoration: TextDecoration.lineThrough,
+                            )),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -552,14 +1109,12 @@ class _ModifiedOrderDialog extends StatelessWidget {
                           style: const TextStyle(
                               color: Colors.greenAccent, fontSize: 12),
                         ),
-                        Text(
-                          '-₹${order.discountAmount.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              color: Colors.greenAccent, fontSize: 12),
-                        ),
+                        Text('-₹${order.discountAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                color: Colors.greenAccent, fontSize: 12)),
                       ],
                     ),
-                    const Divider(color: Color(0xFF2A2A2A), height: 16),
+                    const Divider(color: _stroke, height: 16),
                   ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -569,21 +1124,17 @@ class _ModifiedOrderDialog extends StatelessWidget {
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 15)),
-                      Text(
-                        '₹${order.totalAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            color: _brandRed,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16),
-                      ),
+                      Text('₹${order.totalAmount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              color: _brandRed,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-
-            // Accept button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -600,8 +1151,6 @@ class _ModifiedOrderDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-
-            // Cancel button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -623,6 +1172,7 @@ class _ModifiedOrderDialog extends StatelessWidget {
   }
 }
 
+// ── Review card ───────────────────────────────────────────────────────────────
 class _ReviewCard extends StatefulWidget {
   final int orderId;
   final bool submitted;
@@ -656,32 +1206,41 @@ class _ReviewCardState extends State<_ReviewCard> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _panel,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
       child: widget.submitted
           ? const Row(children: [
-              Icon(Icons.star, color: Colors.amber, size: 20),
+              Icon(Icons.star_rounded, color: Colors.amber, size: 20),
               SizedBox(width: 10),
               Text('Thanks for your review! ⭐',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
             ])
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('How was your order? 🍽️',
-                  style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               Row(
-                children: List.generate(5, (i) => GestureDetector(
-                  onTap: () => setState(() => _rating = i + 1),
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Icon(
-                      i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: Colors.amber,
-                      size: 32,
+                children: List.generate(
+                  5,
+                  (i) => GestureDetector(
+                    onTap: () => setState(() => _rating = i + 1),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        i < _rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
                     ),
                   ),
-                )),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -693,9 +1252,12 @@ class _ReviewCardState extends State<_ReviewCard> {
                   hintStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Color(0xFF1A1A1A),
-                  border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2A2A2A))),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2A2A2A))),
-                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: _brandRed)),
+                  border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF2A2A2A))),
+                  enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF2A2A2A))),
+                  focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: _brandRed)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -707,9 +1269,13 @@ class _ReviewCardState extends State<_ReviewCard> {
                       : () => widget.onSubmit(_rating, _commentCtrl.text.trim()),
                   style: FilledButton.styleFrom(backgroundColor: _brandRed),
                   child: widget.loading
-                      ? const SizedBox(width: 18, height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.w800)),
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Submit Review',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ),
             ]),

@@ -23,5 +23,5 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         fields = [
             "id", "category", "name", "description",
             "price", "image", "is_available", "is_featured",
-            "preparation_time",
+            "is_addon", "preparation_time",
         ]
