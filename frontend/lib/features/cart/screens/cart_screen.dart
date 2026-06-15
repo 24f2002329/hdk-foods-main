@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/storage/token_storage.dart';
+import '../../auth/screens/login_screen.dart';
 import '../services/cart_provider.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -204,8 +206,17 @@ class CartScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/checkout');
+                      onPressed: () async {
+                        final loggedIn = await TokenStorage.isLoggedIn();
+                        if (!context.mounted) return;
+                        if (loggedIn) {
+                          Navigator.pushNamed(context, '/checkout');
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
+                        }
                       },
                       child: const Text(
                         "Proceed to Checkout",

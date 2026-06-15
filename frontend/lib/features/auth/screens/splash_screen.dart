@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../accounts/services/user_service.dart';
 import '../../home/screens/home_screen.dart';
-import 'login_screen.dart';
 import 'name_collection_screen.dart';
 import 'onboarding_screen.dart';
 
@@ -43,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } else if (!hasCompletedOnboarding) {
       nextScreen = const OnboardingScreen();
     } else {
-      nextScreen = const LoginScreen();
+      nextScreen = const HomeScreen();
     }
 
     Navigator.pushReplacement(
@@ -99,12 +98,8 @@ class _SplashLogo extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 112,
-          height: 88,
-          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFFFF1E1E),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFFFF1E1E).withValues(alpha: 0.30),
@@ -113,12 +108,13 @@ class _SplashLogo extends StatelessWidget {
               ),
             ],
           ),
-          child: const Text(
-            'HDK',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 34,
-              fontWeight: FontWeight.w900,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/images/hdk-logo.png',
+              width: 112,
+              height: 88,
+              fit: BoxFit.contain,
             ),
           ),
         ),

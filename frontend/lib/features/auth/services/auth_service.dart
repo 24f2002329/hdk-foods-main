@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,26 +7,31 @@ import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
 
 class AuthService {
-  Future<bool> sendOtp({
-    required String phoneNumber,
-    required Function(String) onCodeSent,
-  }) async {
+  /// Returns the verificationId on success, null on failure.
+  Future<String?> sendOtp({required String phoneNumber}) async {
+    final completer = Completer<String?>();
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {},
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verified by Firebase — codeSent will still fire, so don't
+          // complete here; let codeSent handle it.
+        },
         verificationFailed: (FirebaseAuthException e) {
-          throw Exception(e.message);
+          if (!completer.isCompleted) completer.complete(null);
         },
         codeSent: (String verificationId, int? resendToken) {
-          onCodeSent(verificationId);
+          if (!completer.isCompleted) completer.complete(verificationId);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {},
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (!completer.isCompleted) completer.complete(verificationId);
+        },
       );
 
-      return true;
+      return await completer.future;
     } catch (_) {
-      return false;
+      return null;
     }
   }
 

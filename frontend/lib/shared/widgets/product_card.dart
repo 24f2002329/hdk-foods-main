@@ -112,24 +112,6 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                     dark: true,
                   ),
                 ),
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.62),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: const Icon(
-                    Icons.favorite_border_rounded,
-                    color: Colors.white,
-                    size: 17,
-                  ),
-                ),
-              ),
             ],
           ),
           Expanded(

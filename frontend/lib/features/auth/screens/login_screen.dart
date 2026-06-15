@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:smart_auth/smart_auth.dart';
 
-import '../../../core/storage/token_storage.dart';
-import '../../accounts/services/user_service.dart';
-import '../screens/name_collection_screen.dart';
 import '../services/auth_service.dart';
+import 'otp_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -19,92 +18,74 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final phoneController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _phoneFocus = FocusNode();
+  final _authService = AuthService();
+  final _smartAuth = SmartAuth.instance;
+  bool _loading = false;
 
-  final otpController = TextEditingController();
-
-  final authService = AuthService();
-
-  String? verificationId;
-
-  bool otpSent = false;
-  bool loading = false;
-
-  Future<void> sendOtp() async {
-    setState(() {
-      loading = true;
+  @override
+  void initState() {
+    super.initState();
+    _phoneFocus.addListener(() {
+      if (_phoneFocus.hasFocus && _phoneController.text.isEmpty) {
+        _fillPhoneFromGoogle();
+      }
     });
-
-    final success = await authService.sendOtp(
-      phoneNumber: "+91${phoneController.text.trim()}",
-      onCodeSent: (id) {
-        verificationId = id;
-      },
-    );
-
-    setState(() {
-      loading = false;
-      otpSent = success;
-    });
-
-    if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("OTP Sent")));
-    }
   }
 
-  Future<void> verifyOtp() async {
-    if (verificationId == null) {
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _phoneFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fillPhoneFromGoogle() async {
+    try {
+      final result = await _smartAuth.requestPhoneNumberHint();
+      if (result.hasData) {
+        final digits = result.requireData.replaceAll(RegExp(r'\D'), '');
+        _phoneController.text =
+            digits.length >= 10 ? digits.substring(digits.length - 10) : digits;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _sendOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid 10-digit mobile number")),
+      );
       return;
     }
 
-    setState(() {
-      loading = true;
-    });
+    setState(() => _loading = true);
 
-    final result = await authService.verifyOtp(
-      verificationId: verificationId!,
-      otp: otpController.text.trim(),
+    final verificationId = await _authService.sendOtp(
+      phoneNumber: "+91$phone",
     );
 
-    setState(() {
-      loading = false;
-    });
-
-    if (result == null) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login Failed")));
-
-      return;
-    }
-
-    await TokenStorage.saveTokens(
-      access: result["access"],
-      refresh: result["refresh"],
-    );
-
+    setState(() => _loading = false);
     if (!mounted) return;
 
-    // Check if the user already has a name; if not, collect it first.
-    try {
-      final user = await UserService().getCurrentUser();
-      if (!mounted) return;
-      if (user.name.trim().isEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NameCollectionScreen()),
-        );
-        return;
-      }
-    } catch (_) {
-      // If profile fetch fails, just go home — name can be set later.
+    if (verificationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to send OTP. Please try again.")),
+      );
+      return;
     }
 
-    Navigator.pushReplacementNamed(context, "/home");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OtpScreen(
+          verificationId: verificationId,
+          phoneNumber: phone,
+        ),
+      ),
+    );
   }
 
   @override
@@ -112,110 +93,100 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: _surface,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-          children: [
-            const _LoginBrand(),
-            const SizedBox(height: 28),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: _panel,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _stroke),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Large centered logo with red glow
+              Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _brandRed.withValues(alpha: 0.35),
+                        blurRadius: 56,
+                        spreadRadius: 4,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Welcome Back!",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/hdk-logo.png',
+                      width: 130,
+                      height: 120,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Login to continue",
-                    style: TextStyle(
-                      color: _mutedText,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.phone_rounded, color: _brandRed),
-                prefixText: "+91  ",
-                prefixStyle: const TextStyle(
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  "HDK FOODS",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.8,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Center(
+                child: Text(
+                  "Fresh. Fast. Homemade.",
+                  style: TextStyle(
+                    color: _mutedText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 60),
+              // Heading
+              const Text(
+                "Login / Sign Up",
+                style: TextStyle(
                   color: Colors.white,
+                  fontSize: 28,
                   fontWeight: FontWeight.w900,
                 ),
-                labelText: "Mobile number",
-                filled: true,
-                fillColor: _panel,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: _stroke),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: _stroke),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: _brandRed),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Enter your mobile number to continue",
+                style: TextStyle(
+                  color: _mutedText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: loading ? null : sendOtp,
-              style: FilledButton.styleFrom(
-                backgroundColor: _brandRed,
-                minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: loading && !otpSent
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      "Continue",
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-            ),
-            if (otpSent) ...[
-              const SizedBox(height: 26),
+              const SizedBox(height: 28),
+              // Phone field — Google hint fires automatically on focus
               TextField(
-                controller: otpController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
+                controller: _phoneController,
+                focusNode: _phoneFocus,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_rounded, color: _brandRed),
-                  labelText: "OTP",
+                  counterText: '',
+                  prefixIcon:
+                      const Icon(Icons.phone_rounded, color: _brandRed),
+                  prefixText: "+91  ",
+                  prefixStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  labelText: "Mobile number",
+                  labelStyle: const TextStyle(color: _mutedText),
                   filled: true,
                   fillColor: _panel,
                   border: OutlineInputBorder(
@@ -228,114 +199,76 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: _brandRed),
+                    borderSide: const BorderSide(color: _brandRed, width: 1.5),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
+              // Continue button
               FilledButton(
-                onPressed: loading ? null : verifyOtp,
+                onPressed: _loading ? null : _sendOtp,
                 style: FilledButton.styleFrom(
                   backgroundColor: _brandRed,
                   minimumSize: const Size.fromHeight(54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
+                  disabledBackgroundColor: _brandRed.withValues(alpha: 0.4),
                 ),
-                child: loading
+                child: _loading
                     ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white,
                         ),
                       )
                     : const Text(
-                        "Verify OTP",
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                        "Continue",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
                       ),
               ),
-            ],
-            const SizedBox(height: 30),
-            const Divider(color: _stroke),
-            const SizedBox(height: 18),
-            TextButton(
-              onPressed: loading
-                  ? null
-                  : () {
-                      Navigator.pushReplacementNamed(context, "/home");
-                    },
-              child: const Text(
-                "Skip for now",
-                style: TextStyle(
-                  color: _mutedText,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(height: 36),
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: _stroke)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      "or",
+                      style: TextStyle(
+                        color: _mutedText.withValues(alpha: 0.7),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: _stroke)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () => Navigator.pushReplacementNamed(context, "/home"),
+                  child: const Text(
+                    "Skip for now",
+                    style: TextStyle(
+                      color: _mutedText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LoginBrand extends StatelessWidget {
-  const _LoginBrand();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 62,
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _brandRed,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: _brandRed.withValues(alpha: 0.24),
-                blurRadius: 24,
-                offset: const Offset(0, 14),
-              ),
             ],
           ),
-          child: const Text(
-            "HDK",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
         ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "HDK FOODS",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              "Fresh. Fast. Homemade.",
-              style: TextStyle(
-                color: _mutedText,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }

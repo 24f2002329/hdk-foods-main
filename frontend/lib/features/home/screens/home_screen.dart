@@ -1,9 +1,12 @@
 import 'dart:async';
 import '../../address/screens/address_screen.dart';
+import '../../auth/screens/login_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+
+import '../../../core/storage/token_storage.dart';
 
 import '../../cart/screens/cart_screen.dart';
 import '../../cart/services/cart_provider.dart';
@@ -278,8 +281,26 @@ class _HomeTabState extends State<HomeTab> {
   }
 }
 
-class _HomeHeader extends StatelessWidget {
+class _HomeHeader extends StatefulWidget {
   const _HomeHeader();
+
+  @override
+  State<_HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends State<_HomeHeader> {
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final loggedIn = await TokenStorage.isLoggedIn();
+    if (mounted) setState(() => _isLoggedIn = loggedIn);
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -296,7 +317,6 @@ class _HomeHeader extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: _brandRed,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -306,14 +326,13 @@ class _HomeHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: const Center(
-            child: Text(
-              'HDK',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/images/hdk-logo.png',
+              width: 52,
+              height: 52,
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -330,56 +349,59 @@ class _HomeHeader extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 5),
-              const Row(
+              const SizedBox(height: 4),
+              Row(
                 children: [
-                  Text(
-                    'Delivering to',
+                  const Icon(Icons.storefront_rounded, color: _brandRed, size: 13),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'HDK Cloud Kitchen',
                     style: TextStyle(
                       color: _mutedText,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'Current Location',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _deepText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 20, color: _deepText),
                 ],
               ),
             ],
           ),
         ),
-        IconButton.filled(
-          onPressed: () {},
-          style: IconButton.styleFrom(
-            backgroundColor: _panel,
-            foregroundColor: Colors.white,
-            side: const BorderSide(color: _stroke),
+        if (_isLoggedIn)
+          IconButton.filled(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Notifications coming soon')),
+              );
+            },
+            style: IconButton.styleFrom(
+              backgroundColor: _panel,
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: _stroke),
+            ),
+            icon: const Icon(Icons.notifications_none),
+          )
+        else
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: _brandRed,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              minimumSize: const Size(0, 38),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Login',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            ),
           ),
-          icon: const Icon(Icons.notifications_none),
-        ),
-        const SizedBox(width: 8),
-        IconButton.filled(
-          onPressed: () {},
-          style: IconButton.styleFrom(
-            backgroundColor: _panel,
-            foregroundColor: _brandRed,
-            side: const BorderSide(color: _stroke),
-          ),
-          icon: const Icon(Icons.favorite_border_rounded),
-        ),
       ],
     );
   }
@@ -428,10 +450,15 @@ class _SearchBar extends StatelessWidget {
           width: 54,
           height: 54,
           child: IconButton.filled(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const MenuScreen()),
+              );
+            },
             style: IconButton.styleFrom(
-              backgroundColor: _deepText,
-              foregroundColor: Colors.white,
+              backgroundColor: _panel,
+              foregroundColor: _brandRed,
+              side: const BorderSide(color: _stroke),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -505,7 +532,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
                   Image.network(
                     b.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, e, s) => Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFFFF1E1E), Color(0xFF120000)],
@@ -689,7 +716,7 @@ class _ProductsGrid extends StatelessWidget {
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
               ),
-              itemBuilder: (_, __) => Shimmer.fromColors(
+              itemBuilder: (_, i) => Shimmer.fromColors(
                 baseColor: const Color(0xFF1A1A1A),
                 highlightColor: const Color(0xFF2A2A2A),
                 child: Container(
