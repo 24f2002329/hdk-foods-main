@@ -1142,15 +1142,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late TextEditingController _price;
   late TextEditingController _image;
   late TextEditingController _prepTime;
+  late List<Category> _categories;
   int? _categoryId;
   bool _isAvailable = true;
   bool _isFeatured = false;
   bool _isAddon = false;
   bool _saving = false;
+  bool _creatingCategory = false;
 
   @override
   void initState() {
     super.initState();
+    _categories = List<Category>.from(widget.categories);
     final p = widget.product;
     _name = TextEditingController(text: p?.name ?? '');
     _description = TextEditingController(text: p?.description ?? '');
@@ -1165,6 +1168,76 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _isAddon = p?.isAddon ?? false;
   }
 
+  Future<void> _createCategory() async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _card,
+        title: const Text('New Category',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: TextFormField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Category name',
+            labelStyle: const TextStyle(color: Colors.grey),
+            filled: true,
+            fillColor: _surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: _stroke),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: _stroke),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: _red),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: _red),
+            child: const Text('Create',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (name == null || name.isEmpty) return;
+
+    setState(() => _creatingCategory = true);
+    try {
+      final created = await _svc.createCategory(name);
+      if (mounted) {
+        setState(() {
+          _categories.add(created);
+          _categoryId = created.id;
+          _creatingCategory = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Category "${created.name}" created')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _creatingCategory = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -1177,11 +1250,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_categoryId == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a category')));
-      return;
-    }
     setState(() => _saving = true);
     final data = {
       'category': _categoryId,
@@ -1251,15 +1319,53 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             _field('Prep Time (mins)', _prepTime,
                 keyboardType: TextInputType.number),
             const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              value: _categoryId,
-              decoration: _inputDec('Category'),
-              dropdownColor: _card,
-              style: const TextStyle(color: Colors.white),
-              items: widget.categories
-                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                  .toList(),
-              onChanged: (v) => setState(() => _categoryId = v),
+            // Category selector + inline create button
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _categoryId,
+                    decoration: _inputDec('Category'),
+                    dropdownColor: _card,
+                    style: const TextStyle(color: Colors.white),
+                    items: _categories
+                        .map((c) => DropdownMenuItem(
+                            value: c.id, child: Text(c.name)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _categoryId = v),
+                    validator: (v) => v == null ? 'Select a category' : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Create new category',
+                  child: SizedBox(
+                    height: 54,
+                    child: _creatingCategory
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: _red),
+                            ),
+                          )
+                        : IconButton.filled(
+                            onPressed: _createCategory,
+                            style: IconButton.styleFrom(
+                              backgroundColor: _red,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add_rounded),
+                          ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Row(children: [

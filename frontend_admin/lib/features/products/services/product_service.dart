@@ -30,6 +30,28 @@ class ProductService {
     throw Exception('Failed to load categories');
   }
 
+  Future<Category> createCategory(String name) async {
+    final response = await http.post(
+      Uri.parse('$_base/categories/'),
+      headers: await _headers(),
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode == 201) {
+      return Category.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    }
+    throw Exception('Failed to create category: ${response.body}');
+  }
+
+  Future<void> deleteCategory(int id) async {
+    final response = await http.delete(
+      Uri.parse('$_base/categories/$id/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete category: ${response.body}');
+    }
+  }
+
   Future<List<Product>> getProducts() async {
     final response = await http.get(
       Uri.parse('$_base/products/?all=1'),

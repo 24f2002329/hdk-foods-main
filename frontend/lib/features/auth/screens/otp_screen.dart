@@ -55,20 +55,48 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  /// Auto-read the incoming OTP SMS via Google's SMS User Consent API.
-  /// Shows a one-tap system prompt, then fills the code and verifies.
-  Future<void> _listenForOtpSms() async {
+  // ── OTP auto-read ──────────────────────────────────────────────────────────
+  // Run both APIs simultaneously: getSmsWithRetrieverApi (silent, needs app
+  // hash in SMS — works when SHA-1 is registered in Firebase) and
+  // getSmsWithUserConsentApi (shows a one-tap system prompt, works without
+  // hash). Whichever delivers a code first wins.
+  void _listenForOtpSms() {
+    _trySmsRetriever();
+    _trySmsUserConsent();
+  }
+
+  Future<void> _trySmsRetriever() async {
+    try {
+      final res = await _smartAuth.getSmsWithRetrieverApi();
+      _handleSmsResult(res);
+    } catch (_) {}
+  }
+
+  Future<void> _trySmsUserConsent() async {
     try {
       final res = await _smartAuth.getSmsWithUserConsentApi();
-      if (!mounted) return;
-      final code = res.data?.code;
-      if (code != null && code.length == 6) {
-        _otpController.text = code;
-        _verifyOtp();
-      }
-    } catch (_) {
-      // User dismissed the prompt or no SMS arrived — manual entry still works.
+      _handleSmsResult(res);
+    } catch (_) {}
+  }
+
+  void _handleSmsResult(SmartAuthResult<SmartAuthSms> res) {
+    if (!mounted) return;
+    // Ignore if the user already typed the OTP manually.
+    if (_otpController.text.length == 6) return;
+    if (!res.hasData) return;
+    final sms = res.requireData;
+    // Use the code extracted by smart_auth's built-in regex (\d{4,8}).
+    // Fall back to a strict 6-digit word-boundary search on the raw SMS text.
+    final code = sms.code ?? _extractSixDigits(sms.sms);
+    if (code != null && code.length == 6) {
+      _otpController.text = code;
+      _verifyOtp();
     }
+  }
+
+  String? _extractSixDigits(String sms) {
+    // Match exactly 6 consecutive digits, not adjacent to other digits.
+    return RegExp(r'(?<!\d)(\d{6})(?!\d)').firstMatch(sms)?.group(1);
   }
 
   void _startResendTimer() {

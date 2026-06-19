@@ -11,9 +11,53 @@ from .serializers import (
 )
 
 
-class CategoryListView(generics.ListAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+class CategoryListView(APIView):
+    """Public GET of all categories. Admin POST to create a new one."""
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return []
+        return [IsAdmin()]
+
+    def get(self, request):
+        categories = Category.objects.all()
+        return Response(CategorySerializer(categories, many=True).data)
+
+    def post(self, request):
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CategoryDetailView(APIView):
+    """Admin PATCH / DELETE for a single category."""
+
+    permission_classes = [IsAdmin]
+
+    def _get(self, pk):
+        try:
+            return Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        category = self._get(pk)
+        if not category:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CategorySerializer(category, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        category = self._get(pk)
+        if not category:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        category.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProductListView(generics.ListAPIView):
