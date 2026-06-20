@@ -10,6 +10,7 @@ from .views import (
     CreateOrderView,
     DeliveryOrdersView,
     EditOrderItemsView,
+    GetDeliveryLocationView,
     MyOrdersView,
     OrderDetailView,
     OrderListView,
@@ -18,6 +19,7 @@ from .views import (
     QueuePositionView,
     RejectOrderView,
     SelectPaymentView,
+    UpdateDeliveryLocationView,
     UpdateOrderStatusView,
     VerifyPaymentView
 )
@@ -38,6 +40,8 @@ urlpatterns = [
     path("<int:pk>/acknowledge-changes/", AcknowledgeChangesView.as_view()),
     path("<int:pk>/review/", OrderReviewView.as_view()),
     path("<int:pk>/queue-position/", QueuePositionView.as_view()),
+    path("<int:pk>/delivery-location/", UpdateDeliveryLocationView.as_view()),
+    path("<int:pk>/delivery-location/get/", GetDeliveryLocationView.as_view()),
     path("delivery/", DeliveryOrdersView.as_view()),
     path("pending/", PendingOrdersView.as_view()),
     path("admin/dashboard/", AdminDashboardView.as_view()),

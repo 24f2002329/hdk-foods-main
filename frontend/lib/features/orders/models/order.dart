@@ -28,6 +28,8 @@ class OrderAddress {
   final String landmark;
   final String city;
   final String pincode;
+  final double? latitude;
+  final double? longitude;
 
   OrderAddress({
     this.label = '',
@@ -36,6 +38,8 @@ class OrderAddress {
     this.landmark = '',
     this.city = '',
     this.pincode = '',
+    this.latitude,
+    this.longitude,
   });
 
   factory OrderAddress.fromJson(Map<String, dynamic> json) {
@@ -46,6 +50,12 @@ class OrderAddress {
       landmark: json['landmark'] ?? '',
       city: json['city'] ?? '',
       pincode: json['pincode'] ?? '',
+      latitude: json['latitude'] != null
+          ? double.tryParse('${json['latitude']}')
+          : null,
+      longitude: json['longitude'] != null
+          ? double.tryParse('${json['longitude']}')
+          : null,
     );
   }
 

@@ -44,6 +44,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _isSearching = false;
   bool _isResolving = false;
   bool _hasLocationPermission = false;
+  bool _missingApiKey = false;
 
   static const LatLng _fallbackLocation = LatLng(22.5726, 88.3639);
 
@@ -61,6 +62,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     super.initState();
     _selectedLocation = _startLocation;
     _searchController.text = widget.initialAddress;
+    _missingApiKey = !_placesService.hasApiKey;
     _checkLocationPermission();
   }
 
@@ -283,32 +285,50 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       backgroundColor: _surface,
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: selectedLocation,
-              zoom: 15,
-            ),
-            myLocationEnabled: _hasLocationPermission,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            markers: {
-              Marker(
-                markerId: const MarkerId('selected-location'),
-                position: selectedLocation,
-                draggable: true,
-                onDragEnd: (location) {
-                  _resolveLocation(location);
-                },
+          if (_missingApiKey)
+            Container(
+              color: const Color(0xFFB71C1C),
+              alignment: Alignment.center,
+              child: const SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Google Maps API key is missing.\n'
+                    'Run the app with:\n'
+                    '--dart-define=GOOGLE_MAPS_API_KEY=your_key',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
               ),
-            },
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
-            onTap: (location) {
-              _resolveLocation(location);
-            },
-          ),
+            )
+          else
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: selectedLocation,
+                zoom: 15,
+              ),
+              myLocationEnabled: _hasLocationPermission,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              markers: {
+                Marker(
+                  markerId: const MarkerId('selected-location'),
+                  position: selectedLocation,
+                  draggable: true,
+                  onDragEnd: (location) {
+                    _resolveLocation(location);
+                  },
+                ),
+              },
+              onMapCreated: (controller) {
+                _mapController = controller;
+              },
+              onTap: (location) {
+                _resolveLocation(location);
+              },
+            ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

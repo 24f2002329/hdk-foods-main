@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
 import '../models/order.dart';
+import '../services/delivery_location_service.dart';
 import '../services/order_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -24,6 +26,8 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     with SingleTickerProviderStateMixin {
   final OrderService _orderService = OrderService();
+  final DeliveryLocationService _deliveryLocationService =
+      DeliveryLocationService();
 
   static const List<Map<String, dynamic>> _steps = [
     {'key': 'confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle_outline_rounded},
@@ -41,6 +45,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   int? _queuePosition;
   bool _reviewSubmitted = false;
   bool _reviewLoading = false;
+  DeliveryLocation? _deliveryLocation;
 
   late AnimationController _stepAnim;
 
@@ -106,6 +111,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           final reviewed = await _orderService.hasReview(widget.orderId);
           if (mounted) setState(() => _reviewSubmitted = reviewed);
         } catch (_) {}
+      }
+
+      if (order.status == 'out_for_delivery') {
+        try {
+          final loc = await _deliveryLocationService
+              .getDeliveryLocation(widget.orderId);
+          if (mounted) setState(() => _deliveryLocation = loc);
+        } catch (_) {}
+      } else {
+        if (mounted) setState(() => _deliveryLocation = null);
       }
 
       if (['delivered', 'cancelled', 'rejected'].contains(order.status)) {
@@ -213,9 +228,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
           const SizedBox(height: 20),
 
-          // ── Delivery address ───────────────────────────────────────────
+          // ── Delivery address + map ─────────────────────────────────────
           if (order.address != null) ...[
-            _AddressCard(address: order.address!),
+            _AddressMapCard(
+              address: order.address!,
+              deliveryLocation: _deliveryLocation,
+              isOutForDelivery: order.status == 'out_for_delivery',
+            ),
             const SizedBox(height: 16),
           ],
 
@@ -711,66 +730,146 @@ class _CancelledCard extends StatelessWidget {
   }
 }
 
-// ── Address card ──────────────────────────────────────────────────────────────
-class _AddressCard extends StatelessWidget {
+// ── Address + map card ────────────────────────────────────────────────────────
+class _AddressMapCard extends StatelessWidget {
   final OrderAddress address;
-  const _AddressCard({required this.address});
+  final DeliveryLocation? deliveryLocation;
+  final bool isOutForDelivery;
+
+  const _AddressMapCard({
+    required this.address,
+    this.deliveryLocation,
+    this.isOutForDelivery = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hasAddressCoords =
+        address.latitude != null && address.longitude != null;
+    final hasDeliveryPin =
+        isOutForDelivery && deliveryLocation != null;
+    final showMap = hasAddressCoords || hasDeliveryPin;
+
+    final Set<Marker> markers = {};
+    if (hasAddressCoords) {
+      markers.add(Marker(
+        markerId: const MarkerId('destination'),
+        position: LatLng(address.latitude!, address.longitude!),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      ));
+    }
+    if (hasDeliveryPin) {
+      markers.add(Marker(
+        markerId: const MarkerId('delivery_person'),
+        position: LatLng(
+            deliveryLocation!.latitude, deliveryLocation!.longitude),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        infoWindow: const InfoWindow(title: 'Delivery Partner'),
+      ));
+    }
+
+    final cameraTarget = hasAddressCoords
+        ? LatLng(address.latitude!, address.longitude!)
+        : hasDeliveryPin
+            ? LatLng(deliveryLocation!.latitude, deliveryLocation!.longitude)
+            : const LatLng(0, 0);
+
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _stroke),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: _brandRed.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.location_on_rounded,
-                color: _brandRed, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Delivering to ${address.label.isNotEmpty ? address.label : "your address"}',
-                  style: const TextStyle(
-                    color: _mutedText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: _brandRed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.location_on_rounded,
+                      color: _brandRed, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Delivering to ${address.label.isNotEmpty ? address.label : "your address"}',
+                        style: const TextStyle(
+                          color: _mutedText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (address.lineOne.isNotEmpty)
+                        Text(
+                          address.lineOne,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      if (address.lineTwo.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          address.lineTwo,
+                          style:
+                              const TextStyle(color: _mutedText, fontSize: 13),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                if (address.lineOne.isNotEmpty)
-                  Text(
-                    address.lineOne,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                if (address.lineTwo.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    address.lineTwo,
-                    style: const TextStyle(color: _mutedText, fontSize: 13),
-                  ),
-                ],
               ],
             ),
           ),
+          if (showMap)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16)),
+              child: SizedBox(
+                height: 200,
+                child: GoogleMap(
+                  initialCameraPosition:
+                      CameraPosition(target: cameraTarget, zoom: 15),
+                  markers: markers,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  scrollGesturesEnabled: false,
+                  zoomGesturesEnabled: false,
+                  rotateGesturesEnabled: false,
+                  tiltGesturesEnabled: false,
+                ),
+              ),
+            ),
+          if (isOutForDelivery && !hasDeliveryPin)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        color: _brandRed, strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Waiting for delivery partner location…',
+                      style: TextStyle(color: _mutedText, fontSize: 12)),
+                ],
+              ),
+            ),
         ],
       ),
     );

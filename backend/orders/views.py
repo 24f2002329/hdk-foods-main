@@ -26,6 +26,7 @@ from .serializers import (
     OrderSerializer,
     RejectOrderSerializer,
     SelectPaymentSerializer,
+    UpdateDeliveryLocationSerializer,
     UpdateStatusSerializer
 )
 
@@ -1337,3 +1338,56 @@ class QueuePositionView(APIView):
         ).count()
 
         return Response({"position": ahead + 1, "ahead": ahead})
+
+
+class UpdateDeliveryLocationView(APIView):
+    """Delivery person posts their current GPS coordinates for an active order."""
+
+    permission_classes = [IsDelivery]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, assigned_delivery=request.user)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status != "out_for_delivery":
+            return Response(
+                {"detail": "Location updates only allowed when out for delivery."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = UpdateDeliveryLocationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        order.delivery_latitude = serializer.validated_data["latitude"]
+        order.delivery_longitude = serializer.validated_data["longitude"]
+        order.delivery_location_updated_at = timezone.now()
+        order.save(update_fields=[
+            "delivery_latitude", "delivery_longitude",
+            "delivery_location_updated_at"
+        ])
+
+        return Response({"detail": "Location updated."})
+
+
+class GetDeliveryLocationView(APIView):
+    """Customer polls for the delivery person's current GPS location."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.delivery_latitude is None:
+            return Response({"available": False})
+
+        return Response({
+            "available": True,
+            "latitude": str(order.delivery_latitude),
+            "longitude": str(order.delivery_longitude),
+            "updated_at": order.delivery_location_updated_at,
+        })

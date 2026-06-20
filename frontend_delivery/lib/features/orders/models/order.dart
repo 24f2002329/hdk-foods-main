@@ -1,3 +1,44 @@
+class OrderAddress {
+  final String label;
+  final String house;
+  final String street;
+  final String landmark;
+  final String city;
+  final String pincode;
+  final double? latitude;
+  final double? longitude;
+
+  OrderAddress({
+    required this.label,
+    required this.house,
+    required this.street,
+    required this.landmark,
+    required this.city,
+    required this.pincode,
+    this.latitude,
+    this.longitude,
+  });
+
+  factory OrderAddress.fromJson(Map<String, dynamic> json) => OrderAddress(
+        label: json['label'] ?? '',
+        house: json['house'] ?? '',
+        street: json['street'] ?? '',
+        landmark: json['landmark'] ?? '',
+        city: json['city'] ?? '',
+        pincode: json['pincode'] ?? '',
+        latitude: json['latitude'] != null
+            ? double.tryParse('${json['latitude']}')
+            : null,
+        longitude: json['longitude'] != null
+            ? double.tryParse('${json['longitude']}')
+            : null,
+      );
+
+  String get lineOne => [house, street].where((s) => s.isNotEmpty).join(', ');
+  String get lineTwo =>
+      [if (landmark.isNotEmpty) landmark, city, pincode].join(', ');
+}
+
 class OrderItem {
   final int? productId;
   final String productName;
@@ -41,6 +82,7 @@ class Order {
   final double discountAmount;
   final double? originalTotal;
   final String discountReason;
+  final OrderAddress? address;
 
   Order({
     required this.id,
@@ -64,6 +106,7 @@ class Order {
     this.discountAmount = 0,
     this.originalTotal,
     this.discountReason = '',
+    this.address,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -100,6 +143,10 @@ class Order {
           ? double.tryParse('${json['original_total']}')
           : null,
       discountReason: json['discount_reason'] ?? '',
+      address: json['address_detail'] != null
+          ? OrderAddress.fromJson(
+              json['address_detail'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

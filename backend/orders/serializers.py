@@ -108,6 +108,13 @@ class OrderAddressSerializer(serializers.Serializer):
     landmark = serializers.CharField()
     city = serializers.CharField()
     pincode = serializers.CharField()
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+
+
+class UpdateDeliveryLocationSerializer(serializers.Serializer):
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
 
 
 class OrderSerializer(serializers.ModelSerializer):

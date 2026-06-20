@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../services/location_tracking_service.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../delivery_staff/models/delivery_staff.dart';
@@ -31,11 +34,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final OrderService _orderService = OrderService();
   final DeliveryStaffService _deliveryService = DeliveryStaffService();
   bool _busy = false;
+  LocationTrackingService? _locationTracker;
 
   @override
   void initState() {
     super.initState();
     _order = widget.order;
+    _startTrackingIfNeeded();
+  }
+
+  void _startTrackingIfNeeded() {
+    if (widget.role == 'delivery' &&
+        _order.status == 'out_for_delivery') {
+      _locationTracker =
+          LocationTrackingService(orderId: _order.id);
+      _locationTracker!.start();
+    }
+  }
+
+  @override
+  void dispose() {
+    _locationTracker?.stop();
+    super.dispose();
   }
 
   void _snack(String msg) {
@@ -92,6 +112,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     try {
       final updated = await _orderService.updateStatus(_order.id, s);
       setState(() => _order = updated);
+      if (s == 'out_for_delivery' && widget.role == 'delivery') {
+        _locationTracker?.stop();
+        _locationTracker = LocationTrackingService(orderId: _order.id);
+        _locationTracker!.start();
+      } else if (s == 'delivered') {
+        _locationTracker?.stop();
+      }
       _snack('Status updated.');
     } catch (e) {
       _snack(e.toString());
@@ -316,6 +343,113 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return buttons;
   }
 
+  Future<void> _openNavigation(double lat, double lng) async {
+    final uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _buildDeliveryMap() {
+    final addr = _order.address;
+    if (addr == null) return const SizedBox.shrink();
+
+    final hasCoords = addr.latitude != null && addr.longitude != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Delivery Address',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: _panel,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _stroke),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(addr.label.isNotEmpty ? addr.label : 'Address',
+                        style: const TextStyle(
+                            color: _red, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    if (addr.lineOne.isNotEmpty)
+                      Text(addr.lineOne,
+                          style: const TextStyle(color: Colors.white)),
+                    if (addr.lineTwo.isNotEmpty)
+                      Text(addr.lineTwo,
+                          style: const TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
+              if (hasCoords) ...[
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12)),
+                  child: SizedBox(
+                    height: 200,
+                    child: GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: LatLng(addr.latitude!, addr.longitude!),
+                        zoom: 15,
+                      ),
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('delivery'),
+                          position:
+                              LatLng(addr.latitude!, addr.longitude!),
+                        ),
+                      },
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: false,
+                      scrollGesturesEnabled: false,
+                      zoomGesturesEnabled: false,
+                      rotateGesturesEnabled: false,
+                      tiltGesturesEnabled: false,
+                    ),
+                  ),
+                ),
+              ],
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: hasCoords ? Colors.blueAccent : Colors.grey,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.navigation),
+                    label: const Text('Navigate'),
+                    onPressed: hasCoords
+                        ? () => _openNavigation(
+                            addr.latitude!, addr.longitude!)
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -447,7 +581,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
           ]),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          _buildDeliveryMap(),
           ..._actionButtons(),
           const SizedBox(height: 24),
         ],
