@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from rest_framework import generics, status
 from rest_framework.permissions import (
     IsAuthenticated
@@ -178,3 +179,115 @@ class CreateDeliveryStaffView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ── Customer management ────────────────────────────────────────────────────────
+
+def _customer_to_dict(user, order_count=None):
+    if order_count is None:
+        from orders.models import Order
+        order_count = Order.objects.filter(user=user).count()
+    return {
+        "id": user.id,
+        "name": user.name,
+        "phone_number": user.phone_number,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "order_count": order_count,
+    }
+
+
+class CustomerListView(APIView):
+    """List all customers. Admin only. Supports ?search="""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        search = request.query_params.get("search", "").strip()
+        qs = User.objects.filter(role="customer").order_by("-created_at")
+        if search:
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(phone_number__icontains=search)
+            )
+        qs = qs.annotate(order_count=Count("order"))
+        data = [
+            {
+                "id": u.id,
+                "name": u.name,
+                "phone_number": u.phone_number,
+                "is_active": u.is_active,
+                "created_at": u.created_at,
+                "order_count": u.order_count,
+            }
+            for u in qs
+        ]
+        return Response(data)
+
+
+class CustomerDetailView(APIView):
+    """Customer detail with recent orders and addresses. Admin only."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk, role="customer")
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Customer not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from orders.models import Order
+        from orders.serializers import OrderSerializer
+
+        recent_orders = Order.objects.filter(user=user).order_by("-created_at")[:10]
+        addresses = Address.objects.filter(user=user)
+
+        return Response({
+            "id": user.id,
+            "name": user.name,
+            "phone_number": user.phone_number,
+            "is_active": user.is_active,
+            "created_at": user.created_at,
+            "order_count": Order.objects.filter(user=user).count(),
+            "recent_orders": OrderSerializer(recent_orders, many=True).data,
+            "addresses": AddressSerializer(addresses, many=True).data,
+        })
+
+
+class ToggleCustomerStatusView(APIView):
+    """Block or unblock a customer. Admin only."""
+
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk, role="customer")
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Customer not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user.is_active = not user.is_active
+        user.save(update_fields=["is_active"])
+        return Response(_customer_to_dict(user))
+
+
+class DeleteCustomerView(APIView):
+    """Permanently delete a customer account. Admin only."""
+
+    permission_classes = [IsAdmin]
+
+    def delete(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk, role="customer")
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Customer not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/order.dart';
 import '../services/order_service.dart';
@@ -150,6 +151,58 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                       style: const TextStyle(
                                           color: Colors.grey),
                                     )),
+                                if (o.customerName.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person_outline,
+                                          size: 13, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          o.customerName,
+                                          style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12),
+                                        ),
+                                      ),
+                                      if (o.customerPhone.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () => launchUrl(Uri.parse(
+                                              'tel:${o.customerPhone}')),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.greenAccent
+                                                  .withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                  color: Colors.greenAccent
+                                                      .withValues(alpha: 0.4)),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.call_rounded,
+                                                    color: Colors.greenAccent,
+                                                    size: 12),
+                                                SizedBox(width: 3),
+                                                Text('Call',
+                                                    style: TextStyle(
+                                                        color:
+                                                            Colors.greenAccent,
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w600)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                                 const SizedBox(height: 10),
                                 Row(
                                   mainAxisAlignment:

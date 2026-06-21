@@ -125,6 +125,8 @@ class OrderSerializer(serializers.ModelSerializer):
     )
 
     address_detail = serializers.SerializerMethodField()
+    customer_name = serializers.SerializerMethodField()
+    customer_phone = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -134,6 +136,12 @@ class OrderSerializer(serializers.ModelSerializer):
         if not obj.address_id:
             return None
         return OrderAddressSerializer(obj.address).data
+
+    def get_customer_name(self, obj):
+        return obj.user.name if obj.user_id else ''
+
+    def get_customer_phone(self, obj):
+        return obj.user.phone_number if obj.user_id else ''
 
 
 

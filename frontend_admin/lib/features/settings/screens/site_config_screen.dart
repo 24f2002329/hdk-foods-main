@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../orders/screens/admin_home.dart';
 import '../../orders/services/order_service.dart';
+import '../../users/screens/customer_management_screen.dart';
 import '../services/config_service.dart';
 import 'banners_screen.dart';
 import 'send_notification_screen.dart';
@@ -20,7 +22,10 @@ class SiteConfigScreen extends StatefulWidget {
   State<SiteConfigScreen> createState() => _SiteConfigScreenState();
 }
 
-class _SiteConfigScreenState extends State<SiteConfigScreen> {
+class _SiteConfigScreenState extends State<SiteConfigScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final AdminConfigService _svc = AdminConfigService();
   bool _loading = true;
   bool _saving = false;
@@ -119,6 +124,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
@@ -166,6 +172,29 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
                         ),
                       ),
                     ]),
+                    const SizedBox(height: 10),
+                    _actionCard(
+                      icon: Icons.delivery_dining_outlined,
+                      label: 'Delivery Staff',
+                      subtitle: 'Manage drivers & set default',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(
+                              builder: (_) => const DeliveryStaffManagementScreen())),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Users
+                    _sectionHeader('Users'),
+                    _actionCard(
+                      icon: Icons.people_outline,
+                      label: 'Customer Management',
+                      subtitle: 'View, block & manage customers',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const CustomerManagementScreen())),
+                    ),
                     const SizedBox(height: 24),
 
                     // Store status
@@ -325,7 +354,12 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
         ),
       );
 
-  Widget _actionCard({required IconData icon, required String label, required VoidCallback onTap}) =>
+  Widget _actionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    String? subtitle,
+  }) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
@@ -335,13 +369,39 @@ class _SiteConfigScreenState extends State<SiteConfigScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: _stroke),
           ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, color: _red, size: 28),
-            const SizedBox(height: 8),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-          ]),
+          child: subtitle != null
+              ? Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: _red, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(label,
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                      Text(subtitle,
+                          style: GoogleFonts.poppins(
+                              color: Colors.grey, fontSize: 11)),
+                    ]),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                ])
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon, color: _red, size: 28),
+                  const SizedBox(height: 8),
+                  Text(label,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
         ),
       );
 }

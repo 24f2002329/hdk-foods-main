@@ -121,11 +121,10 @@ class OrderService {
     throw Exception('Failed to load profile');
   }
 
-  Future<Map<String, dynamic>> getDashboard() async {
-    final response = await http.get(
-      Uri.parse('$_base/admin/dashboard/'),
-      headers: await _headers(),
-    );
+  Future<Map<String, dynamic>> getDashboard({String period = 'today'}) async {
+    final uri = Uri.parse('$_base/admin/dashboard/')
+        .replace(queryParameters: {'period': period});
+    final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }

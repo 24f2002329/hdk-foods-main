@@ -754,67 +754,61 @@ class AdminDashboardView(APIView):
 
     permission_classes = [IsAdmin]
 
-    def get(
-        self,
-        request
-    ):
+    def get(self, request):
+        period = request.query_params.get("period", "today")
+        today = timezone.now().date()
 
-        today = (
-            timezone.now()
-            .date()
+        if period == "7d":
+            start_date = today - timedelta(days=6)
+        elif period == "30d":
+            start_date = today - timedelta(days=29)
+        elif period == "3m":
+            start_date = today - timedelta(days=89)
+        elif period == "year":
+            start_date = today.replace(month=1, day=1)
+        else:  # "today"
+            period = "today"
+            start_date = today
+
+        period_qs = Order.objects.filter(
+            created_at__date__gte=start_date
         )
 
-        today_orders = (
-            Order.objects.filter(
-                created_at__date=today
-            )
-            .count()
-        )
+        total_orders = period_qs.count()
 
-        pending_orders = (
-            Order.objects.filter(
-                status=
-                "pending_confirmation"
-            )
-            .count()
-        )
-
-        active_deliveries = (
-            Order.objects.filter(
-                status=
-                "out_for_delivery"
-            )
-            .count()
-        )
-
-        today_revenue = (
-            Order.objects.filter(
-                created_at__date=today,
-                payment_status="paid"
-            )
+        revenue = (
+            period_qs.filter(payment_status="paid")
             .aggregate(total=Sum("total_amount"))["total"]
             or 0
         )
+
+        delivered_count = period_qs.filter(
+            status="delivered"
+        ).count()
+
+        # Always-live counts — current queue state, not date-filtered
+        pending_orders = Order.objects.filter(
+            status="pending_confirmation"
+        ).count()
+
+        active_deliveries = Order.objects.filter(
+            status="out_for_delivery"
+        ).count()
 
         in_progress = Order.objects.filter(
             status__in=["confirmed", "preparing", "ready_for_pickup"]
         ).count()
 
-        delivered_today = Order.objects.filter(
-            created_at__date=today,
-            status="delivered"
-        ).count()
-
-        return Response(
-            {
-                "today_orders": today_orders,
-                "pending_orders": pending_orders,
-                "in_progress": in_progress,
-                "active_deliveries": active_deliveries,
-                "delivered_today": delivered_today,
-                "today_revenue": today_revenue,
-            }
-        )
+        return Response({
+            "period": period,
+            "start_date": str(start_date),
+            "total_orders": total_orders,
+            "revenue": revenue,
+            "delivered_count": delivered_count,
+            "pending_orders": pending_orders,
+            "active_deliveries": active_deliveries,
+            "in_progress": in_progress,
+        })
 
 
 # @method_decorator(csrf_exempt, name="dispatch")

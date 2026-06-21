@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
@@ -31,30 +32,58 @@ class AdminHome extends StatefulWidget {
 
 class _AdminHomeState extends State<AdminHome> {
   int _index = 0;
+  late final PageController _pageController;
 
-  // Profile is merged into Settings — 5 tabs instead of 6.
-  static const _tabs = [
-    _DashboardTab(),
-    _OrdersTab(),
-    _ProductsTab(),
-    _StaffTab(),
-    SiteConfigScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onNavTap(int i) {
+    setState(() => _index = i);
+    _pageController.animateToPage(
+      i,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: PageView(
+        controller: _pageController,
+        physics: const ClampingScrollPhysics(),
+        onPageChanged: (i) => setState(() => _index = i),
+        children: const [
+          _DashboardTab(),
+          _ActiveOrdersTab(),
+          _OrdersTab(),
+          _ProductsTab(),
+          SiteConfigScreen(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         backgroundColor: _card,
         indicatorColor: _red.withValues(alpha: 0.15),
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _onNavTap,
         destinations: const [
           NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),
               selectedIcon: Icon(Icons.dashboard, color: _red),
               label: 'Dashboard'),
+          NavigationDestination(
+              icon: Icon(Icons.bolt_outlined),
+              selectedIcon: Icon(Icons.bolt, color: _red),
+              label: 'Active'),
           NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long, color: _red),
@@ -63,10 +92,6 @@ class _AdminHomeState extends State<AdminHome> {
               icon: Icon(Icons.fastfood_outlined),
               selectedIcon: Icon(Icons.fastfood, color: _red),
               label: 'Products'),
-          NavigationDestination(
-              icon: Icon(Icons.delivery_dining_outlined),
-              selectedIcon: Icon(Icons.delivery_dining, color: _red),
-              label: 'Staff'),
           NavigationDestination(
               icon: Icon(Icons.tune_outlined),
               selectedIcon: Icon(Icons.tune, color: _red),
@@ -79,6 +104,18 @@ class _AdminHomeState extends State<AdminHome> {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
+// ─── Period filter definition ─────────────────────────────────────────────────
+
+const _periods = [
+  ('today', 'Today'),
+  ('7d', '7 Days'),
+  ('30d', '30 Days'),
+  ('3m', '3 Months'),
+  ('year', 'This Year'),
+];
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 class _DashboardTab extends StatefulWidget {
   const _DashboardTab();
 
@@ -86,10 +123,14 @@ class _DashboardTab extends StatefulWidget {
   State<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab> {
+class _DashboardTabState extends State<_DashboardTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   Map<String, dynamic>? _data;
   bool _loading = true;
   String? _error;
+  String _period = 'today';
   final OrderService _svc = OrderService();
   Timer? _timer;
 
@@ -97,7 +138,8 @@ class _DashboardTabState extends State<_DashboardTab> {
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _load(silent: true));
+    _timer = Timer.periodic(
+        const Duration(seconds: 30), (_) => _load(silent: true));
   }
 
   @override
@@ -109,60 +151,98 @@ class _DashboardTabState extends State<_DashboardTab> {
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() { _loading = true; _error = null; });
     try {
-      final data = await _svc.getDashboard();
+      final data = await _svc.getDashboard(period: _period);
       if (mounted) setState(() { _data = data; _loading = false; });
     } catch (e) {
-      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted && !silent) {
+        setState(() { _error = e.toString(); _loading = false; });
+      }
     }
   }
 
-  Widget _stat(String label, String value, IconData icon, Color color) =>
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+  void _setPeriod(String p) {
+    if (_period == p) return;
+    setState(() { _period = p; _loading = true; _error = null; });
+    _load();
+  }
+
+  String get _periodLabel =>
+      _periods.firstWhere((p) => p.$1 == _period).$2;
+
+  String _fmt(String key) {
+    final v = _data?[key];
+    if (v == null) return '0';
+    final n = double.tryParse('$v') ?? 0;
+    return n.toStringAsFixed(0);
+  }
+
+  void _drill({
+    required String title,
+    required List<String> statuses,
+    bool periodScoped = true,
+  }) {
+    final startDate = _data?['start_date'] as String?;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DashboardOrdersScreen(
+          title: title,
+          statuses: statuses,
+          startDate: periodScoped ? startDate : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value,
-                    style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700)),
-                Text(label,
-                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
-              ],
-            ),
-          ],
-        ),
-      );
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text('Dashboard',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+            style: GoogleFonts.poppins(
+                color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+          IconButton(
+              icon: const Icon(Icons.refresh, color: _red),
+              onPressed: _load),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              children: _periods.map((p) {
+                final selected = _period == p.$1;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(p.$2),
+                    selected: selected,
+                    onSelected: (_) => _setPeriod(p.$1),
+                    selectedColor: _red.withValues(alpha: 0.2),
+                    checkmarkColor: _red,
+                    labelStyle: TextStyle(
+                      color: selected ? _red : Colors.grey,
+                      fontSize: 12,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    backgroundColor: _card,
+                    side: BorderSide(
+                        color: selected ? _red : _stroke),
+                    showCheckmark: false,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
@@ -170,17 +250,23 @@ class _DashboardTabState extends State<_DashboardTab> {
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
                   onRefresh: _load,
+                  color: _red,
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
                       const SizedBox(height: 4),
-                      Text("Today's Overview",
+                      Text('$_periodLabel Overview',
                           style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700)),
-                      Text(DateFormat('EEEE, MMM d').format(DateTime.now()),
-                          style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12)),
+                      Text(
+                        _period == 'today'
+                            ? DateFormat('EEEE, MMM d').format(DateTime.now())
+                            : 'Tap a card to view orders',
+                        style: GoogleFonts.poppins(
+                            color: Colors.grey, fontSize: 12),
+                      ),
                       const SizedBox(height: 20),
                       GridView.count(
                         crossAxisCount: 2,
@@ -190,30 +276,289 @@ class _DashboardTabState extends State<_DashboardTab> {
                         mainAxisSpacing: 10,
                         childAspectRatio: 1.25,
                         children: [
-                          _stat('Orders Today',
-                              '${_data?['today_orders'] ?? 0}',
-                              Icons.receipt_long, Colors.blueAccent),
-                          _stat('Needs Action',
-                              '${_data?['pending_orders'] ?? 0}',
-                              Icons.notification_important_outlined,
-                              Colors.orangeAccent),
-                          _stat('In Progress',
-                              '${_data?['in_progress'] ?? 0}',
-                              Icons.restaurant, Colors.amberAccent),
-                          _stat('Out for Delivery',
-                              '${_data?['active_deliveries'] ?? 0}',
-                              Icons.delivery_dining, Colors.purpleAccent),
-                          _stat('Delivered Today',
-                              '${_data?['delivered_today'] ?? 0}',
-                              Icons.check_circle_outline, Colors.tealAccent),
-                          _stat('Revenue Today',
-                              '₹${double.tryParse('${_data?['today_revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
-                              Icons.currency_rupee, Colors.greenAccent),
+                          _StatCard(
+                            label: 'Total Orders',
+                            value: _fmt('total_orders'),
+                            icon: Icons.receipt_long,
+                            color: Colors.blueAccent,
+                            onTap: () => _drill(
+                              title: 'Orders — $_periodLabel',
+                              statuses: const [
+                                'pending_confirmation', 'confirmed',
+                                'preparing', 'ready_for_pickup',
+                                'out_for_delivery', 'delivered',
+                                'cancelled', 'rejected',
+                              ],
+                            ),
+                          ),
+                          _StatCard(
+                            label: 'Needs Action',
+                            value: _fmt('pending_orders'),
+                            icon: Icons.notification_important_outlined,
+                            color: Colors.orangeAccent,
+                            subtitle: 'Live',
+                            onTap: () => _drill(
+                              title: 'Needs Action',
+                              statuses: const ['pending_confirmation'],
+                              periodScoped: false,
+                            ),
+                          ),
+                          _StatCard(
+                            label: 'In Progress',
+                            value: _fmt('in_progress'),
+                            icon: Icons.restaurant,
+                            color: Colors.amberAccent,
+                            subtitle: 'Live',
+                            onTap: () => _drill(
+                              title: 'In Progress',
+                              statuses: const [
+                                'confirmed', 'preparing', 'ready_for_pickup'
+                              ],
+                              periodScoped: false,
+                            ),
+                          ),
+                          _StatCard(
+                            label: 'Out for Delivery',
+                            value: _fmt('active_deliveries'),
+                            icon: Icons.delivery_dining,
+                            color: Colors.purpleAccent,
+                            subtitle: 'Live',
+                            onTap: () => _drill(
+                              title: 'Out for Delivery',
+                              statuses: const ['out_for_delivery'],
+                              periodScoped: false,
+                            ),
+                          ),
+                          _StatCard(
+                            label: 'Delivered',
+                            value: _fmt('delivered_count'),
+                            icon: Icons.check_circle_outline,
+                            color: Colors.tealAccent,
+                            onTap: () => _drill(
+                              title: 'Delivered — $_periodLabel',
+                              statuses: const ['delivered'],
+                            ),
+                          ),
+                          _StatCard(
+                            label: 'Revenue',
+                            value:
+                                '₹${double.tryParse('${_data?['revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
+                            icon: Icons.currency_rupee,
+                            color: Colors.greenAccent,
+                            onTap: () => _drill(
+                              title: 'Paid Orders — $_periodLabel',
+                              statuses: const ['delivered'],
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
+    );
+  }
+}
+
+// ── Tappable stat card ────────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 18),
+                  ),
+                  const Icon(Icons.chevron_right,
+                      color: Colors.grey, size: 14),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value,
+                      style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700)),
+                  Row(children: [
+                    Expanded(
+                      child: Text(label,
+                          style: GoogleFonts.poppins(
+                              color: Colors.grey, fontSize: 10)),
+                    ),
+                    if (subtitle != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.greenAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(subtitle!,
+                            style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                  ]),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dashboard drill-down orders screen ───────────────────────────────────────
+
+class DashboardOrdersScreen extends StatefulWidget {
+  final String title;
+  final List<String> statuses;
+  final String? startDate;
+
+  const DashboardOrdersScreen({
+    super.key,
+    required this.title,
+    required this.statuses,
+    this.startDate,
+  });
+
+  @override
+  State<DashboardOrdersScreen> createState() =>
+      _DashboardOrdersScreenState();
+}
+
+class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
+  final OrderService _svc = OrderService();
+  List<Order> _orders = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final all = await _svc.getAllOrders();
+      DateTime? since;
+      if (widget.startDate != null) {
+        since = DateTime.tryParse(widget.startDate!);
+      }
+      final filtered = all.where((o) {
+        if (!widget.statuses.contains(o.status)) return false;
+        if (since != null && o.createdAt != null) {
+          return !o.createdAt!.isBefore(since);
+        }
+        return true;
+      }).toList();
+      if (mounted) setState(() { _orders = filtered; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        title: Text(widget.title,
+            style: GoogleFonts.poppins(
+                color: Colors.white, fontWeight: FontWeight.w600)),
+        actions: [
+          if (!_loading)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('${_orders.length}',
+                    style: const TextStyle(
+                        color: _red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13)),
+              ),
+            ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _red))
+          : _error != null
+              ? ErrorRetryWidget(error: _error!, onRetry: _load)
+              : _orders.isEmpty
+                  ? Center(
+                      child: Text('No orders',
+                          style: GoogleFonts.poppins(color: Colors.grey)))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      color: _red,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _orders.length,
+                        itemBuilder: (_, i) => _OrderCard(
+                          order: _orders[i],
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AdminOrderDetailScreen(
+                                    orderId: _orders[i].id),
+                              ),
+                            );
+                            _load();
+                          },
+                        ),
+                      ),
+                    ),
     );
   }
 }
@@ -227,7 +572,10 @@ class _OrdersTab extends StatefulWidget {
   State<_OrdersTab> createState() => _OrdersTabState();
 }
 
-class _OrdersTabState extends State<_OrdersTab> {
+class _OrdersTabState extends State<_OrdersTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final OrderService _svc = OrderService();
   List<Order> _all = [];
   bool _loading = true;
@@ -321,6 +669,7 @@ class _OrdersTabState extends State<_OrdersTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final filtered = _filtered;
     return Scaffold(
       backgroundColor: _surface,
@@ -420,6 +769,280 @@ class _OrdersTabState extends State<_OrdersTab> {
   }
 }
 
+// ─── Active Orders ────────────────────────────────────────────────────────────
+
+class _ActiveOrdersTab extends StatefulWidget {
+  const _ActiveOrdersTab();
+
+  @override
+  State<_ActiveOrdersTab> createState() => _ActiveOrdersTabState();
+}
+
+class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  final OrderService _svc = OrderService();
+  List<Order> _orders = [];
+  bool _loading = true;
+  String? _error;
+  Timer? _timer;
+
+  static const _activeStatuses = [
+    'pending_confirmation', 'confirmed', 'preparing',
+    'ready_for_pickup', 'out_for_delivery',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _load(silent: true));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) setState(() { _loading = true; _error = null; });
+    try {
+      final all = await _svc.getAllOrders();
+      if (mounted) {
+        setState(() {
+          _orders = all.where((o) => _activeStatuses.contains(o.status)).toList();
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _quickConfirm(Order order) async {
+    final prepTime = await showDialog<int>(context: context, builder: (_) => _PrepTimeDialog());
+    if (prepTime == null) return;
+    try {
+      await _svc.confirmOrder(order.id, prepTime);
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _quickReject(Order order) async {
+    final reason = await showDialog<String>(context: context, builder: (_) => _RejectDialog());
+    if (reason == null) return;
+    try {
+      await _svc.rejectOrder(order.id, reason);
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  List<Order> _group(List<String> statuses) =>
+      _orders.where((o) => statuses.contains(o.status)).toList();
+
+  Future<void> _openDetail(Order order) async {
+    await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => AdminOrderDetailScreen(orderId: order.id)));
+    _load(silent: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final pending   = _group(['pending_confirmation']);
+    final inKitchen = _group(['confirmed', 'preparing']);
+    final ready     = _group(['ready_for_pickup']);
+    final onWay     = _group(['out_for_delivery']);
+    final total = _orders.length;
+
+    return Scaffold(
+      backgroundColor: _surface,
+      appBar: AppBar(
+        backgroundColor: _surface,
+        title: Row(
+          children: [
+            Text('Active Orders',
+                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+            if (total > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _red, borderRadius: BorderRadius.circular(12)),
+                child: Text('$total',
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _red))
+          : _error != null
+              ? ErrorRetryWidget(error: _error!, onRetry: _load)
+              : total == 0
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.grey, size: 64),
+                        const SizedBox(height: 12),
+                        Text('All caught up!',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text('No active orders right now.',
+                            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13)),
+                      ]),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      color: _red,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                        children: [
+                          if (pending.isNotEmpty)
+                            _Section(
+                              title: 'Needs Action',
+                              count: pending.length,
+                              color: Colors.orangeAccent,
+                              children: pending.map((o) => _OrderCard(
+                                order: o,
+                                showQuickActions: true,
+                                onConfirm: () => _quickConfirm(o),
+                                onReject: () => _quickReject(o),
+                                onTap: () => _openDetail(o),
+                              )).toList(),
+                            ),
+                          if (inKitchen.isNotEmpty)
+                            _Section(
+                              title: 'In Kitchen',
+                              count: inKitchen.length,
+                              color: Colors.amberAccent,
+                              children: inKitchen.map((o) => _OrderCard(
+                                order: o,
+                                onTap: () => _openDetail(o),
+                              )).toList(),
+                            ),
+                          if (ready.isNotEmpty)
+                            _Section(
+                              title: 'Ready for Pickup',
+                              count: ready.length,
+                              color: Colors.purpleAccent,
+                              children: ready.map((o) => _OrderCard(
+                                order: o,
+                                onTap: () => _openDetail(o),
+                              )).toList(),
+                            ),
+                          if (onWay.isNotEmpty)
+                            _Section(
+                              title: 'Out for Delivery',
+                              count: onWay.length,
+                              color: Colors.blueAccent,
+                              isLive: true,
+                              children: onWay.map((o) => _OrderCard(
+                                order: o,
+                                onTap: () => _openDetail(o),
+                              )).toList(),
+                            ),
+                        ],
+                      ),
+                    ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  final String title;
+  final int count;
+  final Color color;
+  final bool isLive;
+  final List<Widget> children;
+
+  const _Section({
+    required this.title,
+    required this.count,
+    required this.color,
+    required this.children,
+    this.isLive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                    color: color, borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(width: 10),
+              Text(title,
+                  style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: color.withValues(alpha: 0.4))),
+                child: Text('$count',
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ),
+              if (isLive) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: Colors.blueAccent.withValues(alpha: 0.5))),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.radio_button_checked,
+                          color: Colors.blueAccent, size: 9),
+                      SizedBox(width: 4),
+                      Text('LIVE',
+                          style: TextStyle(
+                              color: Colors.blueAccent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        ...children,
+      ],
+    );
+  }
+}
+
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 class _ProductsTab extends StatefulWidget {
@@ -429,7 +1052,10 @@ class _ProductsTab extends StatefulWidget {
   State<_ProductsTab> createState() => _ProductsTabState();
 }
 
-class _ProductsTabState extends State<_ProductsTab> {
+class _ProductsTabState extends State<_ProductsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final ProductService _svc = ProductService();
   List<Product> _products = [];
   List<Category> _categories = [];
@@ -527,6 +1153,7 @@ class _ProductsTabState extends State<_ProductsTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
@@ -619,16 +1246,16 @@ class _ProductsTabState extends State<_ProductsTab> {
   }
 }
 
-// ─── Staff ────────────────────────────────────────────────────────────────────
+// ─── Delivery Staff (used from Settings) ─────────────────────────────────────
 
-class _StaffTab extends StatefulWidget {
-  const _StaffTab();
+class DeliveryStaffManagementScreen extends StatefulWidget {
+  const DeliveryStaffManagementScreen({super.key});
 
   @override
-  State<_StaffTab> createState() => _StaffTabState();
+  State<DeliveryStaffManagementScreen> createState() => _DeliveryStaffManagementScreenState();
 }
 
-class _StaffTabState extends State<_StaffTab> {
+class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementScreen> {
   final DeliveryStaffService _svc = DeliveryStaffService();
   List<DeliveryStaff> _staff = [];
   bool _loading = true;
@@ -942,6 +1569,15 @@ class _OrderCard extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               fontSize: 15)),
                       const SizedBox(height: 2),
+                      if (order.customerName.isNotEmpty)
+                        Row(children: [
+                          const Icon(Icons.person_outline,
+                              size: 12, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(order.customerName,
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 12)),
+                        ]),
                       Text(
                         order.createdAt != null
                             ? DateFormat('MMM d, h:mm a').format(order.createdAt!)
@@ -955,7 +1591,15 @@ class _OrderCard extends StatelessWidget {
                   Text('₹${order.totalAmount.toStringAsFixed(0)}',
                       style: GoogleFonts.poppins(
                           color: _red, fontWeight: FontWeight.w700, fontSize: 16)),
-                  const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                  if (order.customerPhone.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => launchUrl(
+                          Uri.parse('tel:${order.customerPhone}')),
+                      child: const Icon(Icons.call_rounded,
+                          color: Colors.greenAccent, size: 18),
+                    )
+                  else
+                    const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
                 ]),
               ]),
               const SizedBox(height: 8),

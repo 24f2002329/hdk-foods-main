@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
 import '../../../services/location_tracking_service.dart';
@@ -284,6 +285,51 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       );
 
+  Widget _customerRow(String name, String phone) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 120,
+              child: Text('Customer',
+                  style: TextStyle(color: Colors.grey, fontSize: 13)),
+            ),
+            Expanded(
+              child: Text(name,
+                  style: const TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+            if (phone.isNotEmpty)
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse('tel:$phone')),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Colors.greenAccent.withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.call_rounded,
+                          color: Colors.greenAccent, size: 13),
+                      SizedBox(width: 3),
+                      Text('Call',
+                          style: TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+
   Widget _card(List<Widget> children) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -507,6 +553,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _card([
             _infoRow('Order #', o.orderNumber),
             _infoRow('Created', created),
+            if (o.customerName.isNotEmpty)
+              _customerRow(o.customerName, o.customerPhone),
             _infoRow('Payment',
                 '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}'),
             if (o.estimatedPreparationTime != null)

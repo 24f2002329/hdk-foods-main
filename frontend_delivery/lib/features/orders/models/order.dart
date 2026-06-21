@@ -83,6 +83,8 @@ class Order {
   final double? originalTotal;
   final String discountReason;
   final OrderAddress? address;
+  final String customerName;
+  final String customerPhone;
 
   Order({
     required this.id,
@@ -107,6 +109,8 @@ class Order {
     this.originalTotal,
     this.discountReason = '',
     this.address,
+    this.customerName = '',
+    this.customerPhone = '',
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -147,6 +151,8 @@ class Order {
           ? OrderAddress.fromJson(
               json['address_detail'] as Map<String, dynamic>)
           : null,
+      customerName: json['customer_name'] ?? '',
+      customerPhone: json['customer_phone'] ?? '',
     );
   }
 }

@@ -1,0 +1,110 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import '../../../core/config/api_config.dart';
+import '../../../core/storage/token_storage.dart';
+import '../../orders/models/order.dart';
+
+class Customer {
+  final int id;
+  final String name;
+  final String phone;
+  final bool isActive;
+  final DateTime? createdAt;
+  final int orderCount;
+
+  const Customer({
+    required this.id,
+    required this.name,
+    required this.phone,
+    required this.isActive,
+    this.createdAt,
+    required this.orderCount,
+  });
+
+  factory Customer.fromJson(Map<String, dynamic> json) => Customer(
+        id: json['id'] as int,
+        name: json['name'] ?? '',
+        phone: json['phone_number'] ?? '',
+        isActive: json['is_active'] ?? true,
+        createdAt: json['created_at'] != null
+            ? DateTime.tryParse(json['created_at'])
+            : null,
+        orderCount: json['order_count'] ?? 0,
+      );
+
+  String get displayName =>
+      name.isNotEmpty ? name : phone;
+  String get initials =>
+      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+}
+
+class CustomerDetail {
+  final Customer customer;
+  final List<Order> recentOrders;
+
+  const CustomerDetail({
+    required this.customer,
+    required this.recentOrders,
+  });
+}
+
+class CustomerService {
+  static final String _base = '${ApiConfig.baseUrl}/accounts/customers';
+
+  Future<Map<String, String>> _headers() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Not logged in');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<List<Customer>> getCustomers({String? search}) async {
+    final uri = Uri.parse('$_base/').replace(
+      queryParameters: search != null && search.isNotEmpty
+          ? {'search': search}
+          : null,
+    );
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) throw Exception('Failed to load customers');
+    final list = jsonDecode(res.body) as List;
+    return list
+        .map((e) => Customer.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<CustomerDetail> getCustomerDetail(int id) async {
+    final res = await http.get(
+      Uri.parse('$_base/$id/'),
+      headers: await _headers(),
+    );
+    if (res.statusCode != 200) throw Exception('Failed to load customer');
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final rawOrders = data['recent_orders'] as List? ?? [];
+    return CustomerDetail(
+      customer: Customer.fromJson(data),
+      recentOrders: rawOrders
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<Customer> toggleStatus(int id) async {
+    final res = await http.patch(
+      Uri.parse('$_base/$id/toggle-status/'),
+      headers: await _headers(),
+    );
+    if (res.statusCode != 200) throw Exception('Failed to update status');
+    return Customer.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCustomer(int id) async {
+    final res = await http.delete(
+      Uri.parse('$_base/$id/delete/'),
+      headers: await _headers(),
+    );
+    if (res.statusCode != 204) throw Exception('Failed to delete customer');
+  }
+}
