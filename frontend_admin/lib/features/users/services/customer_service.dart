@@ -50,7 +50,7 @@ class CustomerDetail {
 }
 
 class CustomerService {
-  static final String _base = '${ApiConfig.baseUrl}/accounts/customers';
+  static final String _base = '${ApiConfig.baseUrl}/customers';
 
   Future<Map<String, String>> _headers() async {
     final token = await TokenStorage.getAccessToken();
