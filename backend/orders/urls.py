@@ -7,7 +7,11 @@ from .views import (
     AssignDeliveryView,
     CashfreeWebhookView,
     ConfirmOrderView,
+    CouponDetailView,
+    CouponListCreateView,
+    CouponToggleView,
     CreateOrderView,
+    DailyAnalyticsView,
     DeliveryOrdersView,
     EditOrderItemsView,
     GetDeliveryLocationView,
@@ -21,6 +25,7 @@ from .views import (
     SelectPaymentView,
     UpdateDeliveryLocationView,
     UpdateOrderStatusView,
+    ValidateCouponView,
     VerifyPaymentView
 )
 
@@ -45,5 +50,10 @@ urlpatterns = [
     path("delivery/", DeliveryOrdersView.as_view()),
     path("pending/", PendingOrdersView.as_view()),
     path("admin/dashboard/", AdminDashboardView.as_view()),
+    path("admin/analytics/", DailyAnalyticsView.as_view()),
+    path("coupons/", CouponListCreateView.as_view()),
+    path("coupons/<int:pk>/", CouponDetailView.as_view()),
+    path("coupons/<int:pk>/toggle/", CouponToggleView.as_view()),
+    path("coupons/validate/", ValidateCouponView.as_view()),
     path("webhook/cashfree/", CashfreeWebhookView.as_view()),
 ]

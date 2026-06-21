@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/api_config.dart';
@@ -108,5 +109,25 @@ class ProductService {
     if (response.statusCode != 204) {
       throw Exception('Failed to delete product: ${response.body}');
     }
+  }
+
+  Future<Product> uploadImage(int productId, File imageFile) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Not logged in');
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_base/products/$productId/image/'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return Product.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to upload image: ${response.body}');
   }
 }

@@ -20,83 +20,93 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   final OrderService _orderService = OrderService();
-  late Future<List<Order>> _ordersFuture;
+  final _scrollController = ScrollController();
 
   bool _isLoggedIn = true;
+  final List<Order> _orders = [];
+  int _page = 1;
+  bool _loading = false;
+  bool _hasMore = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _init();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
   }
 
   Future<void> _init() async {
     final loggedIn = await TokenStorage.isLoggedIn();
     if (!mounted) return;
     setState(() => _isLoggedIn = loggedIn);
-    if (loggedIn) _ordersFuture = _orderService.getMyOrders();
+    if (loggedIn) _loadMore();
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading || !_hasMore) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final data = await _orderService.getMyOrdersPaged(page: _page);
+      final results = (data['results'] as List)
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _orders.addAll(results);
+        _page++;
+        _hasMore = data['next'] != null;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _ordersFuture = _orderService.getMyOrders();
-    });
-    await _ordersFuture;
+    setState(() { _orders.clear(); _page = 1; _hasMore = true; _error = null; });
+    await _loadMore();
   }
 
-  String _statusLabel(String status) {
-    return status
-        .split('_')
-        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' ');
-  }
+  String _statusLabel(String s) => s
+      .split('_')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'delivered':
-        return Colors.greenAccent;
-      case 'rejected':
-      case 'cancelled':
-        return Colors.redAccent;
-      case 'pending_confirmation':
-        return Colors.orangeAccent;
-      default:
-        return _brandRed;
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'delivered': return Colors.greenAccent;
+      case 'rejected': case 'cancelled': return Colors.redAccent;
+      case 'pending_confirmation': return Colors.orangeAccent;
+      default: return _brandRed;
     }
   }
 
-  Color _paymentStatusColor(String paymentStatus) {
-    switch (paymentStatus) {
-      case 'paid':
-        return Colors.greenAccent;
-      case 'failed':
-        return Colors.redAccent;
-      default:
-        return Colors.grey;
+  Color _paymentStatusColor(String s) {
+    switch (s) {
+      case 'paid': return Colors.greenAccent;
+      case 'failed': return Colors.redAccent;
+      default: return Colors.grey;
     }
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    return '${date.day} ${_getMonth(date.month)} ${date.year}';
-  }
-
-  String _getMonth(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return months[month - 1];
+  String _fmtDate(DateTime? d) {
+    if (d == null) return '';
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${d.day} ${m[d.month - 1]} ${d.year}';
   }
 
   @override
@@ -104,8 +114,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('Orders',
-            style: TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: _surface,
+        foregroundColor: Colors.white,
+        title: const Text('Orders', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: !_isLoggedIn
           ? const LoginPromptWidget(
@@ -113,134 +124,96 @@ class _OrdersScreenState extends State<OrdersScreen> {
               title: 'Your Orders',
               subtitle: 'Login to view your order history and track deliveries.',
             )
-          : FutureBuilder<List<Order>>(
-        future: _ordersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: _brandRed));
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Could not load orders.\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.redAccent)),
-            );
-          }
-
-          final orders = snapshot.data ?? [];
-
-          if (orders.isEmpty) {
-            return const Center(
-              child: Text('No orders yet',
-                  style: TextStyle(color: Colors.grey, fontSize: 16)),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: orders.length,
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            OrderTrackingScreen(orderId: order.id),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _panel,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _stroke),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Order #${order.orderNumber}',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatDate(order.createdAt),
-                                    style: const TextStyle(
-                                        color: Colors.grey, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color:
-                                    _statusColor(order.status).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                _statusLabel(order.status),
-                                style: TextStyle(
-                                    color: _statusColor(order.status),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
+          : _orders.isEmpty && _loading
+              ? const Center(child: CircularProgressIndicator(color: _brandRed))
+              : _orders.isEmpty && _error != null
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_error!, style: const TextStyle(color: Colors.redAccent),
+                            textAlign: TextAlign.center),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '₹${order.totalAmount.toStringAsFixed(0)} · '
-                              '${order.items.length} item(s)',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _paymentStatusColor(order.paymentStatus)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
-                                style: TextStyle(
-                                    color: _paymentStatusColor(
-                                        order.paymentStatus),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
+                        TextButton(onPressed: _refresh,
+                            child: const Text('Retry', style: TextStyle(color: _brandRed))),
+                      ]))
+                  : _orders.isEmpty
+                      ? const Center(child: Text('No orders yet',
+                          style: TextStyle(color: Colors.grey, fontSize: 16)))
+                      : RefreshIndicator(
+                          onRefresh: _refresh,
+                          color: _brandRed,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _orders.length + (_hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _orders.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(child: CircularProgressIndicator(color: _brandRed)),
+                                );
+                              }
+                              final order = _orders[index];
+                              return GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => OrderTrackingScreen(orderId: order.id)),
+                                ),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                      color: _panel,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: _stroke)),
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Row(children: [
+                                      Expanded(
+                                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                          Text('Order #${order.orderNumber}',
+                                              style: const TextStyle(
+                                                  color: Colors.white, fontWeight: FontWeight.bold)),
+                                          const SizedBox(height: 4),
+                                          Text(_fmtDate(order.createdAt),
+                                              style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                        ]),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                            color: _statusColor(order.status).withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(20)),
+                                        child: Text(_statusLabel(order.status),
+                                            style: TextStyle(
+                                                color: _statusColor(order.status),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold)),
+                                      ),
+                                    ]),
+                                    const SizedBox(height: 12),
+                                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                      Text('₹${order.totalAmount.toStringAsFixed(0)} · ${order.items.length} item(s)',
+                                          style: const TextStyle(color: Colors.grey)),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                            color: _paymentStatusColor(order.paymentStatus)
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(12)),
+                                        child: Text(
+                                            '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
+                                            style: TextStyle(
+                                                color: _paymentStatusColor(order.paymentStatus),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600)),
+                                      ),
+                                    ]),
+                                  ]),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
     );
   }
 }
-

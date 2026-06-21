@@ -27,45 +27,77 @@ class _CustomerManagementScreenState
     extends State<CustomerManagementScreen> {
   final CustomerService _svc = CustomerService();
   final TextEditingController _search = TextEditingController();
+  final _scrollController = ScrollController();
 
-  List<Customer> _all = [];
-  bool _loading = true;
+  final List<Customer> _all = [];
+  bool _loading = false;
+  bool _hasMore = true;
+  int _page = 1;
   String? _error;
+  String _lastSearch = '';
 
   @override
   void initState() {
     super.initState();
     _load();
     _search.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _search.removeListener(_onSearchChanged);
     _search.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged() => setState(() {});
-
-  List<Customer> get _filtered {
-    final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _all;
-    return _all
-        .where((c) =>
-            c.name.toLowerCase().contains(q) ||
-            c.phone.contains(q))
-        .toList();
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _load();
+    }
   }
 
+  Timer? _debounce;
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _reset();
+    });
+  }
+
+  void _reset() {
+    setState(() { _all.clear(); _page = 1; _hasMore = true; _error = null; });
+    _load();
+  }
+
+  List<Customer> get _filtered => _all;
+
   Future<void> _load() async {
+    if (_loading || !_hasMore) return;
+    final q = _search.text.trim();
     setState(() { _loading = true; _error = null; });
     try {
-      final list = await _svc.getCustomers();
-      if (mounted) setState(() { _all = list; _loading = false; });
+      final data = await _svc.getCustomersPaged(page: _page, search: q.isEmpty ? null : q);
+      final results = (data['results'] as List)
+          .map((e) => Customer.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _all.addAll(results);
+        _page++;
+        _hasMore = data['next'] != null;
+        _loading = false;
+        _lastSearch = q;
+      });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  Future<void> _refresh() async {
+    _reset();
   }
 
   Future<void> _toggle(Customer c) async {
@@ -142,7 +174,7 @@ class _CustomerManagementScreenState
         actions: [
           IconButton(
               icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+              onPressed: _refresh),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
@@ -181,10 +213,10 @@ class _CustomerManagementScreenState
           ),
         ),
       ),
-      body: _loading
+      body: _loading && _all.isEmpty
           ? const Center(child: CircularProgressIndicator(color: _red))
-          : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : _error != null && _all.isEmpty
+              ? ErrorRetryWidget(error: _error!, onRetry: _refresh)
               : filtered.isEmpty
                   ? Center(
                       child: Column(
@@ -204,24 +236,32 @@ class _CustomerManagementScreenState
                       ),
                     )
                   : RefreshIndicator(
-                      onRefresh: _load,
+                      onRefresh: _refresh,
                       color: _red,
                       child: ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.all(12),
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) =>
-                            _CustomerCard(
-                          customer: filtered[i],
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CustomerDetailScreen(
-                                  customerId: filtered[i].id),
-                            ),
-                          ).then((_) => _load()),
-                          onToggle: () => _toggle(filtered[i]),
-                          onDelete: () => _delete(filtered[i]),
-                        ),
+                        itemCount: filtered.length + (_hasMore ? 1 : 0),
+                        itemBuilder: (_, i) {
+                          if (i == filtered.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(child: CircularProgressIndicator(color: _red)),
+                            );
+                          }
+                          return _CustomerCard(
+                            customer: filtered[i],
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CustomerDetailScreen(
+                                    customerId: filtered[i].id),
+                              ),
+                            ).then((_) => _refresh()),
+                            onToggle: () => _toggle(filtered[i]),
+                            onDelete: () => _delete(filtered[i]),
+                          );
+                        },
                       ),
                     ),
     );
@@ -492,7 +532,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           IconButton(
               icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+              onPressed: _refresh),
         ],
       ),
       body: _loading

@@ -16,12 +16,14 @@ from products.models import Product
 
 from authentication.permissions import IsCustomer
 from authentication.firebase import send_push, send_push_to_role
-from .models import Order, OrderItem, OrderReview
+from .models import Coupon, Order, OrderItem, OrderReview
 from .serializers import (
     AcknowledgeChangesSerializer,
     ApplyDiscountSerializer,
     AssignDeliverySerializer,
     ConfirmOrderSerializer,
+    CouponSerializer,
+    CouponWriteSerializer,
     OrderCreateSerializer,
     OrderSerializer,
     RejectOrderSerializer,
@@ -33,13 +35,19 @@ from .serializers import (
 from django.utils import timezone
 from datetime import timedelta
 
-from django.db.models import Sum
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import MultiPartParser
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 import uuid
 import requests
@@ -48,6 +56,28 @@ import hmac
 import hashlib
 
 logger = logging.getLogger(__name__)
+
+
+def _broadcast_order(order, event_type="order_update"):
+    """Send a real-time update to all WebSocket clients watching this order."""
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return
+    data = OrderSerializer(order).data
+    payload = {"type": event_type, "data": {"type": event_type, **data}}
+    # Notify the per-order group (customer/delivery/admin watching this order)
+    async_to_sync(channel_layer.group_send)(f"order_{order.id}", payload)
+    # Notify the admin dashboard group
+    async_to_sync(channel_layer.group_send)(
+        "admin_orders",
+        {"type": "order_update", "data": {"type": "order_update", **data}},
+    )
+    # Notify the assigned delivery partner if any
+    if order.assigned_delivery_id:
+        async_to_sync(channel_layer.group_send)(
+            f"delivery_{order.assigned_delivery_id}",
+            {"type": "delivery_update", "data": {"type": "delivery_update", **data}},
+        )
 
 
 
@@ -75,6 +105,18 @@ class CreateOrderView(APIView):
         )
 
         total_amount = Decimal("0.00")
+
+        # Validate coupon early so we don't create an order if it's invalid
+        coupon_code = data.get("coupon_code", "").strip()
+        coupon = None
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
+            except Coupon.DoesNotExist:
+                return Response(
+                    {"detail": "Invalid or expired coupon code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         order = Order.objects.create(
             user=address.user,
@@ -111,6 +153,41 @@ class CreateOrderView(APIView):
             )
 
         order.total_amount = total_amount
+
+        # Apply coupon discount
+        if coupon:
+            now = timezone.now()
+            if coupon.valid_from and now < coupon.valid_from:
+                order.delete()
+                return Response(
+                    {"detail": "Coupon is not yet valid."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if coupon.valid_until and now > coupon.valid_until:
+                order.delete()
+                return Response(
+                    {"detail": "Coupon has expired."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+                order.delete()
+                return Response(
+                    {"detail": "Coupon usage limit reached."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if total_amount < coupon.min_order_amount:
+                order.delete()
+                return Response(
+                    {"detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            discount = coupon.compute_discount(total_amount)
+            order.discount_amount = discount
+            order.discount_reason = f"Coupon: {coupon.code}"
+            order.original_total = total_amount
+            order.total_amount = total_amount - discount
+            Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
+
         order.save()
 
         send_push_to_role(
@@ -119,6 +196,8 @@ class CreateOrderView(APIView):
             f'Order #{order.order_number} is waiting for review.',
             {'order_id': str(order.id)},
         )
+
+        _broadcast_order(order, "new_order")
 
         return Response(
             OrderSerializer(order).data,
@@ -438,6 +517,12 @@ class VerifyPaymentView(APIView):
 
 
 
+class OrderPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class OrderListView(generics.ListAPIView):
 
     queryset = Order.objects.all().order_by(
@@ -446,12 +531,14 @@ class OrderListView(generics.ListAPIView):
 
     serializer_class = OrderSerializer
     permission_classes = [IsAdmin]
+    pagination_class = OrderPagination
 
 
 
 class MyOrdersView(generics.ListAPIView):
     serializer_class = OrderSerializer
-    
+    pagination_class = OrderPagination
+
     permission_classes = [
         IsAuthenticated
     ]
@@ -535,6 +622,8 @@ class ConfirmOrderView(APIView):
             {"order_id": str(order.id)},
         )
 
+        _broadcast_order(order)
+
         return Response(
             OrderSerializer(order).data
         )
@@ -584,6 +673,8 @@ class RejectOrderView(APIView):
             f"Order #{order.order_number} was rejected. Sorry for the inconvenience.",
             {"order_id": str(order.id)},
         )
+
+        _broadcast_order(order)
 
         return Response(
             OrderSerializer(order).data
@@ -643,6 +734,8 @@ class UpdateOrderStatusView(APIView):
         if new_status in _push_map:
             title, body = _push_map[new_status]
             send_push(order.user, title, body, {"order_id": str(order.id)})
+
+        _broadcast_order(order)
 
         return Response(
             OrderSerializer(order).data
@@ -818,6 +911,148 @@ class AdminDashboardView(APIView):
         })
 
 
+class DailyAnalyticsView(APIView):
+    """Return per-day order count and revenue for the last N days (default 30)."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        days = int(request.query_params.get("days", 30))
+        days = max(1, min(days, 365))
+        start_date = timezone.now().date() - timedelta(days=days - 1)
+
+        rows = (
+            Order.objects
+            .filter(created_at__date__gte=start_date)
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(
+                order_count=Count("id"),
+                revenue=Sum("total_amount"),
+            )
+            .order_by("day")
+        )
+
+        data = [
+            {
+                "date": str(r["day"]),
+                "order_count": r["order_count"],
+                "revenue": float(r["revenue"] or 0),
+            }
+            for r in rows
+        ]
+
+        return Response({"days": days, "data": data})
+
+
+# ─── Coupon views ─────────────────────────────────────────────────────────────
+
+class CouponListCreateView(APIView):
+    """Admin: list all coupons (GET) or create a new one (POST)."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        coupons = Coupon.objects.all().order_by("-created_at")
+        return Response(CouponSerializer(coupons, many=True).data)
+
+    def post(self, request):
+        serializer = CouponWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            coupon = serializer.save()
+            return Response(CouponSerializer(coupon).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CouponDetailView(APIView):
+    """Admin: update (PATCH) or delete a coupon."""
+
+    permission_classes = [IsAdmin]
+
+    def _get(self, pk):
+        try:
+            return Coupon.objects.get(pk=pk)
+        except Coupon.DoesNotExist:
+            return None
+
+    def patch(self, request, pk):
+        coupon = self._get(pk)
+        if not coupon:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = CouponWriteSerializer(coupon, data=request.data, partial=True)
+        if serializer.is_valid():
+            coupon = serializer.save()
+            return Response(CouponSerializer(coupon).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        coupon = self._get(pk)
+        if not coupon:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        coupon.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CouponToggleView(APIView):
+    """Admin: toggle a coupon's is_active flag."""
+
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, pk):
+        try:
+            coupon = Coupon.objects.get(pk=pk)
+        except Coupon.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        coupon.is_active = not coupon.is_active
+        coupon.save(update_fields=["is_active"])
+        return Response(CouponSerializer(coupon).data)
+
+
+class ValidateCouponView(APIView):
+    """Customer: validate a coupon code and preview the discount."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        code = request.data.get("code", "").strip()
+        order_total = request.data.get("order_total")
+
+        if not code:
+            return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
+        if order_total is None:
+            return Response({"detail": "order_total required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order_total = Decimal(str(order_total))
+        except Exception:
+            return Response({"detail": "Invalid order_total."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            coupon = Coupon.objects.get(code__iexact=code, is_active=True)
+        except Coupon.DoesNotExist:
+            return Response({"valid": False, "detail": "Invalid or inactive coupon."}, status=status.HTTP_200_OK)
+
+        now = timezone.now()
+        if coupon.valid_from and now < coupon.valid_from:
+            return Response({"valid": False, "detail": "Coupon is not yet valid."})
+        if coupon.valid_until and now > coupon.valid_until:
+            return Response({"valid": False, "detail": "Coupon has expired."})
+        if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+            return Response({"valid": False, "detail": "Coupon usage limit reached."})
+        if order_total < coupon.min_order_amount:
+            return Response({
+                "valid": False,
+                "detail": f"Minimum order amount is ₹{coupon.min_order_amount}.",
+            })
+
+        discount = coupon.compute_discount(order_total)
+
+        return Response({
+            "valid": True,
+            "coupon": CouponSerializer(coupon).data,
+            "discount_amount": str(discount),
+            "final_total": str(order_total - discount),
+        })
 
 
 

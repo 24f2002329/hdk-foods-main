@@ -26,6 +26,7 @@ class OrderService {
     required List<Map<String, dynamic>> items,
     String paymentMethod = 'cod',
     String deliveryNotes = '',
+    String couponCode = '',
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/create/'),
@@ -35,6 +36,7 @@ class OrderService {
         'items': items,
         'payment_method': paymentMethod,
         'delivery_notes': deliveryNotes,
+        if (couponCode.isNotEmpty) 'coupon_code': couponCode,
       }),
     );
 
@@ -43,6 +45,33 @@ class OrderService {
     }
 
     throw Exception('Failed to create order: ${response.body}');
+  }
+
+  Future<Map<String, dynamic>?> validateCoupon({
+    required String code,
+    required double orderTotal,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/coupons/validate/'),
+      headers: await _headers(),
+      body: jsonEncode({'code': code, 'order_total': orderTotal.toString()}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  /// Paginated my-orders. Returns {results, count, next, previous}.
+  Future<Map<String, dynamic>> getMyOrdersPaged({int page = 1}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/my-orders/?page=$page'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load orders');
   }
 
   Future<Order> getOrder(int orderId) async {

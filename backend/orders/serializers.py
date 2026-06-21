@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Coupon, Order, OrderItem
 
 
 
@@ -20,6 +20,12 @@ class OrderCreateSerializer(serializers.Serializer):
     delivery_notes = serializers.CharField(
         required=False,
         allow_blank=True
+    )
+
+    coupon_code = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default=""
     )
 
     items = OrderItemCreateSerializer(
@@ -144,4 +150,24 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.user.phone_number if obj.user_id else ''
 
 
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = [
+            'id', 'code', 'discount_type', 'discount_value',
+            'min_order_amount', 'max_discount_amount',
+            'is_active', 'valid_from', 'valid_until',
+            'usage_limit', 'usage_count', 'created_at',
+        ]
+        read_only_fields = ['usage_count', 'created_at']
 
+
+class CouponWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = [
+            'code', 'discount_type', 'discount_value',
+            'min_order_amount', 'max_discount_amount',
+            'is_active', 'valid_from', 'valid_until',
+            'usage_limit',
+        ]

@@ -4,6 +4,7 @@ from .views import (
     CategoryDetailView,
     CategoryListView,
     FeaturedProductsView,
+    ProductImageUploadView,
     ProductListView,
     ProductToggleAvailabilityView,
     ProductCreateView,
@@ -21,4 +22,5 @@ urlpatterns = [
     path("products/<int:pk>/toggle/", ProductToggleAvailabilityView.as_view()),
     path("products/<int:pk>/update/", ProductUpdateView.as_view()),
     path("products/<int:pk>/delete/", ProductDeleteView.as_view()),
+    path("products/<int:pk>/image/", ProductImageUploadView.as_view()),
 ]

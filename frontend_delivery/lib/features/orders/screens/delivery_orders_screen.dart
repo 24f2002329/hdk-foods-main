@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/services/order_websocket_service.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../navigation/screens/delivery_navigation_screen.dart';
@@ -24,18 +25,28 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   List<Order> _orders = [];
   bool _loading = true;
   Timer? _timer;
+  AdminOrderWebSocketService? _ws;
 
   @override
   void initState() {
     super.initState();
     _load();
     _timer = Timer.periodic(
-        const Duration(seconds: 20), (_) => _load(silent: true));
+        const Duration(seconds: 25), (_) => _load(silent: true));
+
+    _ws = AdminOrderWebSocketService();
+    _ws!.connect();
+    _ws!.stream.listen((msg) {
+      if (msg['type'] == 'delivery_update' || msg['type'] == 'order_update') {
+        _load(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _ws?.dispose();
     super.dispose();
   }
 

@@ -9,10 +9,7 @@ python manage.py migrate --noinput
 echo "==> Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "==> Starting gunicorn..."
-gunicorn config.wsgi:application \
-  --bind 0.0.0.0:8000 \
-  --workers 2 \
-  --timeout 120 \
-  --access-logfile - \
-  --error-logfile -
+echo "==> Starting daphne (ASGI)..."
+daphne -b 0.0.0.0 -p 8000 \
+  --access-log - \
+  config.asgi:application

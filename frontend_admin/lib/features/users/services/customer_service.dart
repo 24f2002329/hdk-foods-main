@@ -69,10 +69,20 @@ class CustomerService {
     );
     final res = await http.get(uri, headers: await _headers());
     if (res.statusCode != 200) throw Exception('Failed to load customers');
-    final list = jsonDecode(res.body) as List;
+    final body = jsonDecode(res.body);
+    final list = body is List ? body : body['results'] as List;
     return list
         .map((e) => Customer.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<Map<String, dynamic>> getCustomersPaged({int page = 1, String? search}) async {
+    final params = <String, String>{'page': page.toString()};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    final uri = Uri.parse('$_base/').replace(queryParameters: params);
+    final res = await http.get(uri, headers: await _headers());
+    if (res.statusCode != 200) throw Exception('Failed to load customers');
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   Future<CustomerDetail> getCustomerDetail(int id) async {

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../coupons/screens/coupon_management_screen.dart';
 import '../../orders/screens/admin_home.dart';
 import '../../orders/services/order_service.dart';
 import '../../users/screens/customer_management_screen.dart';
@@ -194,6 +195,17 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                           MaterialPageRoute(
                               builder: (_) =>
                                   const CustomerManagementScreen())),
+                    ),
+                    const SizedBox(height: 10),
+                    _actionCard(
+                      icon: Icons.local_offer_outlined,
+                      label: 'Coupon Management',
+                      subtitle: 'Create and manage promo codes',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const CouponManagementScreen())),
                     ),
                     const SizedBox(height: 24),
 

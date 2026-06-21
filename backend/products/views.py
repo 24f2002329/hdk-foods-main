@@ -1,7 +1,10 @@
+import os
 from rest_framework import generics, status
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from authentication.permissions import IsAdmin
+from django.conf import settings
 
 from .models import Category, Product
 from .serializers import (
@@ -163,3 +166,45 @@ class ProductDeleteView(APIView):
 
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageUploadView(APIView):
+    """Admin uploads a product image from the device camera/gallery.
+
+    Accepts multipart/form-data with an 'image' file field.
+    Saves the file under MEDIA_ROOT/products/ and updates product.image
+    with the public MEDIA_URL path.
+    """
+
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate content type
+        if not image_file.content_type.startswith("image/"):
+            return Response({"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST)
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "products")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        ext = os.path.splitext(image_file.name)[1].lower() or ".jpg"
+        filename = f"product_{pk}{ext}"
+        filepath = os.path.join(upload_dir, filename)
+
+        with open(filepath, "wb") as f:
+            for chunk in image_file.chunks():
+                f.write(chunk)
+
+        product.image = f"{settings.MEDIA_URL}products/{filename}"
+        product.save(update_fields=["image"])
+
+        return Response(ProductSerializer(product).data)

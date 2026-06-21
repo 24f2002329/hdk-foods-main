@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/services/order_websocket_service.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
@@ -128,23 +133,35 @@ class _DashboardTabState extends State<_DashboardTab>
   @override
   bool get wantKeepAlive => true;
   Map<String, dynamic>? _data;
+  List<Map<String, dynamic>> _chartData = [];
   bool _loading = true;
   String? _error;
   String _period = 'today';
   final OrderService _svc = OrderService();
   Timer? _timer;
+  AdminOrderWebSocketService? _ws;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadChart();
     _timer = Timer.periodic(
         const Duration(seconds: 30), (_) => _load(silent: true));
+
+    _ws = AdminOrderWebSocketService();
+    _ws!.connect();
+    _ws!.stream.listen((msg) {
+      if (msg['type'] == 'new_order' || msg['type'] == 'order_update') {
+        _load(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _ws?.dispose();
     super.dispose();
   }
 
@@ -158,6 +175,16 @@ class _DashboardTabState extends State<_DashboardTab>
         setState(() { _error = e.toString(); _loading = false; });
       }
     }
+  }
+
+  Future<void> _loadChart() async {
+    try {
+      final analytics = await _svc.getAnalytics(days: 30);
+      final rows = (analytics['data'] as List)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+      if (mounted) setState(() => _chartData = rows);
+    } catch (_) {}
   }
 
   void _setPeriod(String p) {
@@ -352,6 +379,148 @@ class _DashboardTabState extends State<_DashboardTab>
                           ),
                         ],
                       ),
+                      if (_chartData.isNotEmpty) ...[
+                        const SizedBox(height: 28),
+                        Text('30-Day Trend',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text('Orders per day',
+                            style: GoogleFonts.poppins(
+                                color: Colors.grey, fontSize: 11)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 160,
+                          child: LineChart(
+                            LineChartData(
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                getDrawingHorizontalLine: (_) => FlLine(
+                                  color: const Color(0xFF2A2A2A),
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                show: true,
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 28,
+                                    getTitlesWidget: (v, _) => Text(
+                                      v.toInt().toString(),
+                                      style: const TextStyle(
+                                          color: Colors.grey, fontSize: 9),
+                                    ),
+                                  ),
+                                ),
+                                rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 20,
+                                    interval: (_chartData.length / 5).ceilToDouble(),
+                                    getTitlesWidget: (v, _) {
+                                      final i = v.toInt();
+                                      if (i < 0 || i >= _chartData.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final date = _chartData[i]['date'] as String;
+                                      return Text(date.substring(5),
+                                          style: const TextStyle(
+                                              color: Colors.grey, fontSize: 8));
+                                    },
+                                  ),
+                                ),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: List.generate(
+                                    _chartData.length,
+                                    (i) => FlSpot(
+                                      i.toDouble(),
+                                      (_chartData[i]['order_count'] as num).toDouble(),
+                                    ),
+                                  ),
+                                  isCurved: true,
+                                  color: _red,
+                                  barWidth: 2,
+                                  dotData: const FlDotData(show: false),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    color: _red.withValues(alpha: 0.08),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text('Revenue (₹)',
+                            style: GoogleFonts.poppins(
+                                color: Colors.grey, fontSize: 11)),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 160,
+                          child: LineChart(
+                            LineChartData(
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                getDrawingHorizontalLine: (_) => FlLine(
+                                  color: const Color(0xFF2A2A2A),
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 40,
+                                    getTitlesWidget: (v, _) => Text(
+                                      '₹${(v / 1000).toStringAsFixed(0)}k',
+                                      style: const TextStyle(
+                                          color: Colors.grey, fontSize: 9),
+                                    ),
+                                  ),
+                                ),
+                                rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                bottomTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: List.generate(
+                                    _chartData.length,
+                                    (i) => FlSpot(
+                                      i.toDouble(),
+                                      (_chartData[i]['revenue'] as num).toDouble(),
+                                    ),
+                                  ),
+                                  isCurved: true,
+                                  color: Colors.greenAccent,
+                                  barWidth: 2,
+                                  dotData: const FlDotData(show: false),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    color: Colors.greenAccent.withValues(alpha: 0.07),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -787,6 +956,7 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   bool _loading = true;
   String? _error;
   Timer? _timer;
+  AdminOrderWebSocketService? _ws;
 
   static const _activeStatuses = [
     'pending_confirmation', 'confirmed', 'preparing',
@@ -797,12 +967,21 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _load(silent: true));
+    _timer = Timer.periodic(const Duration(seconds: 25), (_) => _load(silent: true));
+
+    _ws = AdminOrderWebSocketService();
+    _ws!.connect();
+    _ws!.stream.listen((msg) {
+      if (msg['type'] == 'new_order' || msg['type'] == 'order_update') {
+        _load(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _ws?.dispose();
     super.dispose();
   }
 
@@ -1780,6 +1959,7 @@ class ProductFormScreen extends StatefulWidget {
 class _ProductFormScreenState extends State<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final ProductService _svc = ProductService();
+  final _picker = ImagePicker();
 
   late TextEditingController _name;
   late TextEditingController _description;
@@ -1793,6 +1973,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   bool _isAddon = false;
   bool _saving = false;
   bool _creatingCategory = false;
+  File? _pickedImageFile;
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -1892,6 +2074,58 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final xfile = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1024,
+      );
+      if (xfile == null) return;
+      setState(() {
+        _pickedImageFile = File(xfile.path);
+        _image.clear();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
+      }
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: _red),
+            title: const Text('Camera', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library, color: _red),
+            title: const Text('Gallery', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
+          ),
+          if (_pickedImageFile != null || _image.text.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.clear, color: Colors.grey),
+              title: const Text('Remove image', style: TextStyle(color: Colors.grey)),
+              onTap: () {
+                setState(() { _pickedImageFile = null; _image.clear(); });
+                Navigator.pop(context);
+              },
+            ),
+        ]),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -1907,11 +2141,19 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       'is_addon': _isAddon,
     };
     try {
+      Product saved;
       if (widget.product == null) {
-        await _svc.createProduct(data);
+        saved = await _svc.createProduct(data);
       } else {
-        await _svc.updateProduct(widget.product!.id, data);
+        saved = await _svc.updateProduct(widget.product!.id, data);
       }
+
+      // Upload image file if one was picked
+      if (_pickedImageFile != null) {
+        setState(() { _uploadingImage = true; });
+        await _svc.uploadImage(saved.id, _pickedImageFile!);
+      }
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -1919,7 +2161,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() { _saving = false; _uploadingImage = false; });
     }
   }
 
@@ -1933,12 +2175,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         title: Text(isEdit ? 'Edit Product' : 'Add Product',
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          _saving
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _red)))
+          _saving || _uploadingImage
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: _red)),
+                      if (_uploadingImage)
+                        const Text('Uploading...', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    ],
+                  ))
               : TextButton(
                   onPressed: _save,
                   child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
@@ -1958,7 +2208,58 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 required: true,
                 keyboardType: TextInputType.numberWithOptions(decimal: true)),
             const SizedBox(height: 12),
-            _field('Image URL', _image),
+            // Image — URL field OR picked file preview
+            if (_pickedImageFile != null)
+              GestureDetector(
+                onTap: _showImageSourceDialog,
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _red),
+                    image: DecorationImage(
+                      image: FileImage(_pickedImageFile!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Container(
+                        decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Row(children: [
+                Expanded(child: _field('Image URL (optional)', _image)),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: _showImageSourceDialog,
+                    icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                    label: const Text('Upload'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _red,
+                      side: const BorderSide(color: _red),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ]),
+            if (_uploadingImage)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: LinearProgressIndicator(color: _red),
+              ),
             const SizedBox(height: 12),
             _field('Prep Time (mins)', _prepTime,
                 keyboardType: TextInputType.number),

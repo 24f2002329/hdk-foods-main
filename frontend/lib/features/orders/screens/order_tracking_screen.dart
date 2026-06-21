@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/services/order_websocket_service.dart';
 import '../../../core/widgets/error_retry.dart';
 import '../models/order.dart';
 import '../services/delivery_location_service.dart';
@@ -38,6 +39,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   ];
 
   Timer? _pollingTimer;
+  OrderWebSocketService? _wsService;
   Order? _order;
   String? _error;
   bool _loading = true;
@@ -57,20 +59,53 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       duration: const Duration(milliseconds: 700),
     );
     _load();
+
+    // Prefer WebSocket for real-time updates; fall back to 25-second polling
+    // if the WebSocket cannot connect (e.g. no server support yet).
+    _wsService = OrderWebSocketService(widget.orderId);
+    _wsService!.connect();
+    _wsService!.stream.listen((data) {
+      try {
+        final order = Order.fromJson(data);
+        if (mounted) _applyOrder(order);
+      } catch (_) {}
+    });
+
     _pollingTimer = Timer.periodic(
-      const Duration(seconds: 12),
-      (_) => _load(),
+      const Duration(seconds: 25),
+      (_) => _load(silent: true),
     );
   }
 
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _wsService?.dispose();
     _stepAnim.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  void _applyOrder(Order order) {
+    if (!mounted) return;
+    setState(() {
+      _order = order;
+      _loading = false;
+      _error = null;
+    });
+    _stepAnim.forward(from: 0);
+
+    if (order.isModifiedByStaff &&
+        order.status == 'confirmed' &&
+        !_modifiedDialogShown) {
+      _modifiedDialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showModifiedOrderDialog(order);
+      });
+    }
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && mounted) setState(() { _loading = true; _error = null; });
     try {
       var order = await _orderService.getOrder(widget.orderId);
 

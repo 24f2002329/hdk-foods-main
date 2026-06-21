@@ -1,5 +1,6 @@
 from django.db.models import Count, Q
 from rest_framework import generics, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
     IsAuthenticated
 )
@@ -14,6 +15,12 @@ from .serializers import (
     DeliveryStaffSerializer,
     UserSerializer,
 )
+
+
+class CustomerPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 
 class AddressListCreateView(generics.ListCreateAPIView):
@@ -198,9 +205,10 @@ def _customer_to_dict(user, order_count=None):
 
 
 class CustomerListView(APIView):
-    """List all customers. Admin only. Supports ?search="""
+    """List all customers. Admin only. Supports ?search= and ?page="""
 
     permission_classes = [IsAdmin]
+    pagination_class = CustomerPagination
 
     def get(self, request):
         search = request.query_params.get("search", "").strip()
@@ -210,6 +218,9 @@ class CustomerListView(APIView):
                 Q(name__icontains=search) | Q(phone_number__icontains=search)
             )
         qs = qs.annotate(order_count=Count("order"))
+
+        paginator = CustomerPagination()
+        page = paginator.paginate_queryset(qs, request)
         data = [
             {
                 "id": u.id,
@@ -219,9 +230,9 @@ class CustomerListView(APIView):
                 "created_at": u.created_at,
                 "order_count": u.order_count,
             }
-            for u in qs
+            for u in page
         ]
-        return Response(data)
+        return paginator.get_paginated_response(data)
 
 
 class CustomerDetailView(APIView):

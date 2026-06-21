@@ -21,7 +21,10 @@ class OrderService {
     final response =
         await http.get(Uri.parse(url), headers: await _headers());
     if (response.statusCode == 200) {
-      return (jsonDecode(response.body) as List)
+      final body = jsonDecode(response.body);
+      // Handle paginated response {count, results, ...} and plain list
+      final list = body is List ? body : body['results'] as List;
+      return list
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();
     }
@@ -33,6 +36,68 @@ class OrderService {
   Future<List<Order>> getAllOrders() => _getList('$_base/');
 
   Future<List<Order>> getDeliveryOrders() => _getList('$_base/delivery/');
+
+  /// Paginated all-orders. Returns raw {count, results, next, previous}.
+  Future<Map<String, dynamic>> getAllOrdersPaged({int page = 1}) async {
+    final response = await http.get(
+        Uri.parse('$_base/?page=$page'), headers: await _headers());
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load orders (${response.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> getAnalytics({int days = 30}) async {
+    final uri = Uri.parse('$_base/admin/analytics/')
+        .replace(queryParameters: {'days': days.toString()});
+    final response = await http.get(uri, headers: await _headers());
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load analytics');
+  }
+
+  // ── Coupon management ──────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getCoupons() async {
+    final response = await http.get(
+        Uri.parse('$_base/coupons/'), headers: await _headers());
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body) as List)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+    }
+    throw Exception('Failed to load coupons');
+  }
+
+  Future<Map<String, dynamic>> createCoupon(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$_base/coupons/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to create coupon: ${response.body}');
+  }
+
+  Future<Map<String, dynamic>> toggleCoupon(int id) async {
+    final response = await http.patch(
+        Uri.parse('$_base/coupons/$id/toggle/'), headers: await _headers());
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to toggle coupon');
+  }
+
+  Future<void> deleteCoupon(int id) async {
+    final response = await http.delete(
+        Uri.parse('$_base/coupons/$id/'), headers: await _headers());
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete coupon');
+    }
+  }
 
   Future<Order> getOrder(int id) async {
     final response = await http.get(
