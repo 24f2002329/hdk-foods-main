@@ -588,32 +588,43 @@ class RejectOrderView(APIView):
 class UpdateOrderStatusView(APIView):
 
     permission_classes = [
-        IsAdmin
+        IsAuthenticated
     ]
 
     def patch(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk
-            )
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
                 {"detail": "Order not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = (
-            UpdateStatusSerializer(
-                data=request.data
-            )
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
+        serializer = UpdateStatusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         new_status = serializer.validated_data["status"]
+
+        user = request.user
+
+        # Delivery staff: may only mark their own assigned order as delivered
+        if hasattr(user, 'role') and user.role == 'delivery':
+            if new_status != 'delivered':
+                return Response(
+                    {"detail": "Delivery staff can only mark orders as delivered."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            if order.assigned_delivery_id != user.id:
+                return Response(
+                    {"detail": "You are not assigned to this order."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        elif not (hasattr(user, 'role') and user.role == 'admin'):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         order.status = new_status
         order.save()
 
