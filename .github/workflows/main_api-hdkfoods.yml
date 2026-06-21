@@ -30,12 +30,11 @@ jobs:
         run: |
           python -m venv antenv
           source antenv/bin/activate
-          pip install -r requirements.txt
-        working-directory: backend
+          pip install -r backend/requirements.txt
 
       - name: Run tests
         run: |
-          source antenv/bin/activate
+          source ../antenv/bin/activate
           python manage.py test --verbosity=2
         working-directory: backend
         env:
@@ -43,7 +42,7 @@ jobs:
           SECRET_KEY: ci-test-secret-key-not-for-production
           DEBUG: "True"
 
-      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
+      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. Keeping antenv at the repo root (not under backend/) matters: Oryx looks for it at /home/site/wwwroot/antenv to determine the app root, and our startup.sh lives at the repo root too — moving antenv under backend/ makes Oryx run startup.sh from the wrong directory and fail with "No such file or directory".
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
