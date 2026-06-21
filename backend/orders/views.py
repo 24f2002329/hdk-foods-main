@@ -15,7 +15,7 @@ from authentication.permissions import (
 from products.models import Product
 
 from authentication.permissions import IsCustomer
-from authentication.firebase import send_push
+from authentication.firebase import send_push, send_push_to_role
 from .models import Order, OrderItem, OrderReview
 from .serializers import (
     AcknowledgeChangesSerializer,
@@ -112,6 +112,13 @@ class CreateOrderView(APIView):
 
         order.total_amount = total_amount
         order.save()
+
+        send_push_to_role(
+            'admin',
+            'New Order 🛍️',
+            f'Order #{order.order_number} is waiting for review.',
+            {'order_id': str(order.id)},
+        )
 
         return Response(
             OrderSerializer(order).data,
@@ -811,134 +818,6 @@ class AdminDashboardView(APIView):
         })
 
 
-# @method_decorator(csrf_exempt, name="dispatch")
-# class CashfreeWebhookView(APIView):
-#     """
-#     Receive server-to-server payment notifications from Cashfree.
-
-#     Cashfree sends a POST with x-webhook-signature header (HMAC-SHA256).
-#     On PAYMENT_SUCCESS_WEBHOOK, mark the order as paid.
-#     """
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         # Get the signature from the header
-#         signature = request.META.get(
-#             "HTTP_X_WEBHOOK_SIGNATURE",
-#             ""
-#         )
-
-#         # Verify signature against webhook secret
-#         if not settings.CASHFREE_WEBHOOK_SECRET:
-#             logger.warning(
-#                 "Webhook received but CASHFREE_WEBHOOK_SECRET not configured"
-#             )
-#             return Response(
-#                 {"detail": "Webhook not configured."},
-#                 status=status.HTTP_503_SERVICE_UNAVAILABLE
-#             )
-
-#         # The payload body is what we sign
-#         raw_body = request.body
-
-#         expected_signature = hmac.new(
-#             settings.CASHFREE_WEBHOOK_SECRET.encode(),
-#             raw_body,
-#             hashlib.sha256
-#         ).hexdigest()
-
-#         if not hmac.compare_digest(
-#             signature,
-#             expected_signature
-#         ):
-#             logger.warning(
-#                 f"Webhook signature mismatch. "
-#                 f"Expected: {expected_signature}, Got: {signature}"
-#             )
-#             return Response(
-#                 {"detail": "Signature verification failed."},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-
-#         # Parse the payload
-#         try:
-#             data = request.data
-#         except Exception as e:
-#             logger.error(
-#                 f"Failed to parse webhook payload: {e}"
-#             )
-#             return Response(
-#                 {"detail": "Invalid payload."},
-#                 status=status.HTTP_400_BAD_REQUEST
-#             )
-
-#         event_type = data.get("event_type", "")
-#         event_data = data.get("data", {})
-
-#         logger.info(
-#             f"Webhook received: event_type={event_type}, "
-#             f"order_id={event_data.get('order', {}).get('order_id', '')}"
-#         )
-
-#         # Handle payment success
-#         if event_type == "PAYMENT_SUCCESS_WEBHOOK":
-#             order_id_str = event_data.get(
-#                 "order",
-#                 {}
-#             ).get("order_id", "")
-
-#             # order_id_str is the cf_order_id (e.g. "HDK1001_abc123")
-#             if not order_id_str:
-#                 logger.warning(
-#                     "PAYMENT_SUCCESS_WEBHOOK received without order_id"
-#                 )
-#                 return Response({}, status=status.HTTP_200_OK)
-
-#             try:
-#                 # The cf_order_id contains our order_number prefix, extract it
-#                 # Format: {order_number}_{uuid_suffix}
-#                 order_number = "_".join(
-#                     order_id_str.split("_")[:-1]
-#                 )
-
-#                 order = Order.objects.get(
-#                     order_number=order_number
-#                 )
-#             except Order.DoesNotExist:
-#                 logger.warning(
-#                     f"Webhook for non-existent order: {order_id_str}"
-#                 )
-#                 # Still return 200 so Cashfree doesn't retry
-#                 return Response({}, status=status.HTTP_200_OK)
-
-#             # Mark as paid
-#             cf_payment_id = event_data.get(
-#                 "payment",
-#                 {}
-#             ).get("cf_payment_id", "")
-
-#             order.payment_status = "paid"
-#             order.payment_id = cf_payment_id
-#             order.save(
-#                 update_fields=[
-#                     "payment_status",
-#                     "payment_id",
-#                     "updated_at"
-#                 ]
-#             )
-
-#             logger.info(
-#                 f"Order marked as paid via webhook: "
-#                 f"order_id={order.id}, cf_order_id={order_id_str}"
-#             )
-
-#         # Return 200 for all valid signatures (to prevent Cashfree retries)
-#         return Response({}, status=status.HTTP_200_OK)
-
-
-
-
-
 
 
 
@@ -1017,6 +896,13 @@ class CashfreeWebhookView(APIView):
                             "payment_id",
                             "updated_at"
                         ]
+                    )
+
+                    send_push_to_role(
+                        'admin',
+                        'Payment Received 💰',
+                        f'Order #{order.order_number} has been paid online.',
+                        {'order_id': str(order.id)},
                     )
 
                     logger.info(

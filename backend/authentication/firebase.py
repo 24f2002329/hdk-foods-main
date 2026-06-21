@@ -43,6 +43,15 @@ def send_push(user, title: str, body: str, data: dict = None):
         logger.warning("FCM send failed for user %s: %s", user.pk, e)
 
 
+def send_push_to_role(role: str, title: str, body: str, data: dict = None):
+    """Send push to all users of the given role who have an FCM token."""
+    if not firebase_admin._apps:
+        return
+    from accounts.models import User
+    for user in User.objects.filter(role=role).exclude(fcm_token=""):
+        send_push(user, title, body, data)
+
+
 def send_push_to_all(title: str, body: str, data: dict = None) -> int:
     """Broadcast a push notification to all users with an FCM token. Returns count sent."""
     if not firebase_admin._apps:

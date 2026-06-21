@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/home_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
         phoneNumber: _phoneController.text.trim(),
         password: _passwordController.text,
       );
+      NotificationService.uploadToken();
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

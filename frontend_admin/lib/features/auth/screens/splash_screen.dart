@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/storage/token_storage.dart';
+import '../../../core/notifications/notification_service.dart';
 import 'login_screen.dart';
 import '../../orders/screens/admin_home.dart';
 
@@ -26,6 +27,7 @@ class _AdminSplashScreenState extends State<AdminSplashScreen> {
     final role = await TokenStorage.getRole();
     if (!mounted) return;
     if (token != null && role == 'admin') {
+      NotificationService.uploadToken();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const AdminHome()),

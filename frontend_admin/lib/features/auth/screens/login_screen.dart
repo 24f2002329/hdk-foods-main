@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/admin_home.dart';
 
 class AdminLoginScreen extends StatefulWidget {
@@ -37,6 +38,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (data['role'] != 'admin') {
         throw Exception('This app is for admins only.');
       }
+      NotificationService.uploadToken();
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

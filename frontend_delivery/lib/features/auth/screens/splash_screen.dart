@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/storage/token_storage.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/home_router.dart';
 import 'login_screen.dart';
 
@@ -25,6 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final token = await TokenStorage.getAccessToken();
     if (!mounted) return;
     if (token != null) {
+      NotificationService.uploadToken();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeRouter()),
