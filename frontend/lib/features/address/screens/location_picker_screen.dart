@@ -14,7 +14,6 @@ const _mutedText = Color(0xFFB8B8B8);
 
 class LocationPickerResult {
   final ResolvedPlace place;
-
   const LocationPickerResult({required this.place});
 }
 
@@ -34,14 +33,11 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final GooglePlacesService _placesService = GooglePlacesService();
-  final TextEditingController _searchController = TextEditingController();
 
   GoogleMapController? _mapController;
-  Timer? _searchDebounce;
+  Timer? _resolveDebounce;
   LatLng? _selectedLocation;
   ResolvedPlace? _selectedPlace;
-  List<PlacePrediction> _predictions = [];
-  bool _isSearching = false;
   bool _isResolving = false;
   bool _hasLocationPermission = false;
   bool _missingApiKey = false;
@@ -53,7 +49,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         widget.initialLocation.longitude.abs() > 0.000001) {
       return widget.initialLocation;
     }
-
     return _fallbackLocation;
   }
 
@@ -61,15 +56,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   void initState() {
     super.initState();
     _selectedLocation = _startLocation;
-    _searchController.text = widget.initialAddress;
     _missingApiKey = !_placesService.hasApiKey;
     _checkLocationPermission();
+    if (!_missingApiKey) {
+      _resolveLocation(_startLocation);
+    }
   }
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.dispose();
+    _resolveDebounce?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -79,348 +75,181 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-
-    if (!mounted) {
-      return;
-    }
-
+    if (!mounted) return;
     setState(() {
-      _hasLocationPermission =
-          permission == LocationPermission.always ||
+      _hasLocationPermission = permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse;
     });
   }
 
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-
-    final query = value.trim();
-    if (query.length < 3) {
-      setState(() {
-        _predictions = [];
-      });
-      return;
-    }
-
-    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-      _searchPlaces(query);
+  void _onMarkerDragEnd(LatLng location) {
+    _resolveDebounce?.cancel();
+    _resolveDebounce = Timer(const Duration(milliseconds: 400), () {
+      _resolveLocation(location);
     });
   }
 
-  Future<void> _searchPlaces(String query) async {
+  Future<void> _resolveLocation(LatLng location, {bool moveCamera = false}) async {
     setState(() {
-      _isSearching = true;
-    });
-
-    try {
-      final predictions = await _placesService.autocomplete(
-        query,
-        locationBias: _selectedLocation,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _predictions = predictions;
-      });
-    } catch (error) {
-      _showMessage(error.toString());
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _selectPrediction(PlacePrediction prediction) async {
-    FocusScope.of(context).unfocus();
-
-    setState(() {
+      _selectedLocation = location;
+      _selectedPlace = null;
       _isResolving = true;
-      _predictions = [];
-      _searchController.text = prediction.description;
     });
 
+    if (moveCamera) {
+      await _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: location, zoom: 17),
+        ),
+      );
+    }
+
     try {
-      final place = await _placesService.getPlaceDetails(prediction.placeId);
-      await _moveTo(place.location, zoom: 17);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _selectedLocation = place.location;
-        _selectedPlace = place;
-      });
-    } catch (error) {
-      _showMessage(error.toString());
+      final place = await _placesService.reverseGeocode(location);
+      if (!mounted) return;
+      setState(() => _selectedPlace = place);
+    } catch (e) {
+      _showMessage(e.toString());
     } finally {
-      if (mounted) {
-        setState(() {
-          _isResolving = false;
-        });
-      }
+      if (mounted) setState(() => _isResolving = false);
     }
   }
 
   Future<void> _useCurrentLocation() async {
-    setState(() {
-      _isResolving = true;
-    });
-
+    setState(() => _isResolving = true);
     try {
       await _checkLocationPermission();
-
-      if (!_hasLocationPermission) {
-        throw Exception('Location permission is required');
-      }
-
+      if (!_hasLocationPermission) throw Exception('Location permission is required');
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final location = LatLng(position.latitude, position.longitude);
       await _resolveLocation(location, moveCamera: true);
-    } catch (error) {
-      _showMessage(error.toString());
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isResolving = false;
-        });
-      }
+    } catch (e) {
+      _showMessage(e.toString());
+      if (mounted) setState(() => _isResolving = false);
     }
-  }
-
-  Future<void> _resolveLocation(
-    LatLng location, {
-    bool moveCamera = false,
-  }) async {
-    if (moveCamera) {
-      await _moveTo(location, zoom: 17);
-    }
-
-    setState(() {
-      _selectedLocation = location;
-      _selectedPlace = null;
-    });
-
-    try {
-      final place = await _placesService.reverseGeocode(location);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _selectedPlace = place;
-        if (_searchController.text.trim().isEmpty) {
-          _searchController.text = place.formattedAddress;
-        }
-      });
-    } catch (error) {
-      _showMessage(error.toString());
-    }
-  }
-
-  Future<void> _moveTo(LatLng location, {double zoom = 16}) async {
-    await _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: location, zoom: zoom),
-      ),
-    );
   }
 
   Future<void> _confirmSelection() async {
     final location = _selectedLocation;
-    if (location == null) {
-      return;
-    }
+    if (location == null) return;
 
-    setState(() {
-      _isResolving = true;
-    });
-
+    setState(() => _isResolving = true);
     try {
-      final place =
-          _selectedPlace ?? await _placesService.reverseGeocode(location);
-
-      if (!mounted) {
-        return;
-      }
-
+      final place = _selectedPlace ?? await _placesService.reverseGeocode(location);
+      if (!mounted) return;
       Navigator.pop(context, LocationPickerResult(place: place));
-    } catch (error) {
-      _showMessage(error.toString());
+    } catch (e) {
+      _showMessage(e.toString());
     } finally {
-      if (mounted) {
-        setState(() {
-          _isResolving = false;
-        });
-      }
+      if (mounted) setState(() => _isResolving = false);
     }
   }
 
   void _showMessage(String message) {
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final selectedLocation = _selectedLocation ?? _startLocation;
 
+    if (_missingApiKey) {
+      return Scaffold(
+        backgroundColor: _surface,
+        appBar: AppBar(
+          title: const Text('Pick Location'),
+          backgroundColor: _surface,
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Google Maps API key is missing.\n\nRun the app with:\n--dart-define=GOOGLE_MAPS_API_KEY=your_key',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: _surface,
       body: Stack(
         children: [
-          if (_missingApiKey)
-            Container(
-              color: const Color(0xFFB71C1C),
-              alignment: Alignment.center,
-              child: const SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Google Maps API key is missing.\n'
-                    'Run the app with:\n'
-                    '--dart-define=GOOGLE_MAPS_API_KEY=your_key',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-            )
-          else
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: selectedLocation,
-                zoom: 15,
-              ),
-              myLocationEnabled: _hasLocationPermission,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              mapToolbarEnabled: false,
-              markers: {
-                Marker(
-                  markerId: const MarkerId('selected-location'),
-                  position: selectedLocation,
-                  draggable: true,
-                  onDragEnd: (location) {
-                    _resolveLocation(location);
-                  },
-                ),
-              },
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
-              onTap: (location) {
-                _resolveLocation(location);
-              },
+          // ── Map ──────────────────────────────────────────────────────
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: selectedLocation,
+              zoom: 15,
             ),
+            myLocationEnabled: _hasLocationPermission,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            markers: {
+              Marker(
+                markerId: const MarkerId('selected-location'),
+                position: selectedLocation,
+                draggable: true,
+                onDragEnd: _onMarkerDragEnd,
+              ),
+            },
+            onMapCreated: (c) => _mapController = c,
+            onTap: (location) => _resolveLocation(location),
+          ),
+
+          // ── Back + hint bar ──────────────────────────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      IconButton.filled(
-                        onPressed: () => Navigator.pop(context),
-                        style: IconButton.styleFrom(
-                          backgroundColor: _panel,
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: _stroke),
-                        ),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: _onSearchChanged,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Search delivery location',
-                            prefixIcon: const Icon(
-                              Icons.search_rounded,
-                              color: _mutedText,
-                            ),
-                            suffixIcon: _isSearching
-                                ? const Padding(
-                                    padding: EdgeInsets.all(14),
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: _brandRed,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: _panel,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: _stroke),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  IconButton.filled(
+                    onPressed: () => Navigator.pop(context),
+                    style: IconButton.styleFrom(
+                      backgroundColor: _panel,
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: _stroke),
+                    ),
+                    icon: const Icon(Icons.arrow_back_rounded),
                   ),
-                  if (_predictions.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 10, left: 58),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: _panel,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _stroke),
                       ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: _predictions.length,
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1, color: _stroke),
-                        itemBuilder: (context, index) {
-                          final prediction = _predictions[index];
-                          return ListTile(
-                            dense: true,
-                            leading: const Icon(
-                              Icons.place_rounded,
-                              color: _brandRed,
-                            ),
-                            title: Text(
-                              prediction.description,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            onTap: () => _selectPrediction(prediction),
-                          );
-                        },
+                      child: Row(
+                        children: [
+                          const Icon(Icons.touch_app_rounded,
+                              color: _mutedText, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isResolving
+                                ? 'Finding address…'
+                                : 'Tap or drag pin to set location',
+                            style: const TextStyle(
+                                color: _mutedText, fontSize: 13),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
           ),
+
+          // ── GPS button ───────────────────────────────────────────────
           Positioned(
             right: 16,
             bottom: 166,
@@ -429,9 +258,18 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               onPressed: _isResolving ? null : _useCurrentLocation,
               backgroundColor: _panel,
               foregroundColor: _brandRed,
-              child: const Icon(Icons.gps_fixed_rounded),
+              child: _isResolving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _brandRed),
+                    )
+                  : const Icon(Icons.gps_fixed_rounded),
             ),
           ),
+
+          // ── Bottom address panel ─────────────────────────────────────
           Positioned(
             left: 16,
             right: 16,
@@ -455,41 +293,53 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _selectedPlace?.formattedAddress ??
-                          'Move the pin to your delivery location',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                    if (_isResolving)
+                      const Row(
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: _brandRed),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Resolving address…',
+                              style:
+                                  TextStyle(color: _mutedText, fontSize: 14)),
+                        ],
+                      )
+                    else
+                      Text(
+                        _selectedPlace?.formattedAddress.isNotEmpty == true
+                            ? _selectedPlace!.formattedAddress
+                            : 'Move the pin to your delivery location',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 6),
                     Text(
                       '${selectedLocation.latitude.toStringAsFixed(6)}, '
                       '${selectedLocation.longitude.toStringAsFixed(6)}',
-                      style: const TextStyle(
-                        color: _mutedText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(color: _mutedText, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: _isResolving ? null : _confirmSelection,
-                      icon: _isResolving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check_circle_rounded),
-                      label: const Text('Confirm Location'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _brandRed,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded),
+                      label: const Text('Confirm Location',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

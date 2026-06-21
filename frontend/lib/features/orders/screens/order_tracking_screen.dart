@@ -730,8 +730,8 @@ class _CancelledCard extends StatelessWidget {
   }
 }
 
-// ── Address + map card ────────────────────────────────────────────────────────
-class _AddressMapCard extends StatelessWidget {
+// ── Address + live tracking map card ─────────────────────────────────────────
+class _AddressMapCard extends StatefulWidget {
   final OrderAddress address;
   final DeliveryLocation? deliveryLocation;
   final bool isOutForDelivery;
@@ -743,59 +743,283 @@ class _AddressMapCard extends StatelessWidget {
   });
 
   @override
+  State<_AddressMapCard> createState() => _AddressMapCardState();
+}
+
+class _AddressMapCardState extends State<_AddressMapCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseCtrl;
+  late Animation<double> _pulseAnim;
+  GoogleMapController? _mapCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_AddressMapCard old) {
+    super.didUpdateWidget(old);
+    final loc = widget.deliveryLocation;
+    if (loc != null && _mapCtrl != null) {
+      _mapCtrl!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(loc.latitude, loc.longitude)),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _mapCtrl?.dispose();
+    super.dispose();
+  }
+
+  String _timeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    return '${diff.inHours}h ago';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasAddressCoords =
-        address.latitude != null && address.longitude != null;
-    final hasDeliveryPin =
-        isOutForDelivery && deliveryLocation != null;
-    final showMap = hasAddressCoords || hasDeliveryPin;
+    final addr = widget.address;
+    final loc = widget.deliveryLocation;
+    final isOut = widget.isOutForDelivery;
+    final hasAddrCoords = addr.latitude != null && addr.longitude != null;
+    final hasLiveLoc = isOut && loc != null;
+    final showMap = hasAddrCoords || hasLiveLoc;
 
     final Set<Marker> markers = {};
-    if (hasAddressCoords) {
+    if (hasAddrCoords) {
       markers.add(Marker(
         markerId: const MarkerId('destination'),
-        position: LatLng(address.latitude!, address.longitude!),
+        position: LatLng(addr.latitude!, addr.longitude!),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: InfoWindow(
+          title: addr.label.isNotEmpty ? addr.label : 'Your Address',
+        ),
       ));
     }
-    if (hasDeliveryPin) {
+    if (hasLiveLoc) {
       markers.add(Marker(
         markerId: const MarkerId('delivery_person'),
-        position: LatLng(
-            deliveryLocation!.latitude, deliveryLocation!.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        position: LatLng(loc.latitude, loc.longitude),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         infoWindow: const InfoWindow(title: 'Delivery Partner'),
       ));
     }
 
-    final cameraTarget = hasAddressCoords
-        ? LatLng(address.latitude!, address.longitude!)
-        : hasDeliveryPin
-            ? LatLng(deliveryLocation!.latitude, deliveryLocation!.longitude)
+    final cameraTarget = hasLiveLoc
+        ? LatLng(loc.latitude, loc.longitude)
+        : hasAddrCoords
+            ? LatLng(addr.latitude!, addr.longitude!)
             : const LatLng(0, 0);
 
     return Container(
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _stroke),
+        border: Border.all(
+          color: isOut && hasLiveLoc
+              ? Colors.blueAccent.withValues(alpha: 0.5)
+              : _stroke,
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Map section ──────────────────────────────────────────────
+          if (showMap)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: SizedBox(
+                height: 240,
+                child: Stack(
+                  children: [
+                    GoogleMap(
+                      initialCameraPosition:
+                          CameraPosition(target: cameraTarget, zoom: 15),
+                      markers: markers,
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: false,
+                      scrollGesturesEnabled: true,
+                      zoomGesturesEnabled: true,
+                      rotateGesturesEnabled: false,
+                      tiltGesturesEnabled: false,
+                      onMapCreated: (c) => _mapCtrl = c,
+                    ),
+                    // LIVE badge
+                    if (hasLiveLoc)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: AnimatedBuilder(
+                          animation: _pulseAnim,
+                          builder: (context, child) => Opacity(
+                            opacity: _pulseAnim.value,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blueAccent
+                                        .withValues(alpha: 0.6),
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.radio_button_checked,
+                                      color: Colors.white, size: 10),
+                                  SizedBox(width: 4),
+                                  Text('LIVE',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.8)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // "Waiting" overlay when out_for_delivery but no location yet
+                    if (isOut && !hasLiveLoc)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _panel.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _stroke),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 10,
+                                height: 10,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: _brandRed),
+                              ),
+                              SizedBox(width: 6),
+                              Text('Locating partner…',
+                                  style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+          // ── Partner live status bar ───────────────────────────────────
+          if (isOut)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withValues(alpha: 0.08),
+                border: Border(
+                  top: BorderSide(color: _stroke),
+                  bottom: BorderSide(color: _stroke),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.delivery_dining_rounded,
+                        color: Colors.blueAccent, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Partner is on the way',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13),
+                        ),
+                        if (hasLiveLoc && loc.updatedAt != null)
+                          Text(
+                            'Location updated ${_timeAgo(loc.updatedAt)}',
+                            style: const TextStyle(
+                                color: _mutedText, fontSize: 11),
+                          )
+                        else
+                          const Text(
+                            'Tracking will appear shortly',
+                            style:
+                                TextStyle(color: _mutedText, fontSize: 11),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (hasLiveLoc)
+                    AnimatedBuilder(
+                      animation: _pulseAnim,
+                      builder: (context, child) => Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent
+                              .withValues(alpha: _pulseAnim.value),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+          // ── Address text section ──────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: _brandRed.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.location_on_rounded,
-                      color: _brandRed, size: 20),
+                      color: _brandRed, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -803,29 +1027,27 @@ class _AddressMapCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Delivering to ${address.label.isNotEmpty ? address.label : "your address"}',
+                        'Delivering to ${addr.label.isNotEmpty ? addr.label : "your address"}',
                         style: const TextStyle(
-                          color: _mutedText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                            color: _mutedText,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 4),
-                      if (address.lineOne.isNotEmpty)
+                      const SizedBox(height: 3),
+                      if (addr.lineOne.isNotEmpty)
                         Text(
-                          address.lineOne,
+                          addr.lineOne,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700),
                         ),
-                      if (address.lineTwo.isNotEmpty) ...[
+                      if (addr.lineTwo.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
-                          address.lineTwo,
-                          style:
-                              const TextStyle(color: _mutedText, fontSize: 13),
+                          addr.lineTwo,
+                          style: const TextStyle(
+                              color: _mutedText, fontSize: 13),
                         ),
                       ],
                     ],
@@ -834,42 +1056,6 @@ class _AddressMapCard extends StatelessWidget {
               ],
             ),
           ),
-          if (showMap)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16)),
-              child: SizedBox(
-                height: 200,
-                child: GoogleMap(
-                  initialCameraPosition:
-                      CameraPosition(target: cameraTarget, zoom: 15),
-                  markers: markers,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  scrollGesturesEnabled: false,
-                  zoomGesturesEnabled: false,
-                  rotateGesturesEnabled: false,
-                  tiltGesturesEnabled: false,
-                ),
-              ),
-            ),
-          if (isOutForDelivery && !hasDeliveryPin)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                        color: _brandRed, strokeWidth: 2),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Waiting for delivery partner location…',
-                      style: TextStyle(color: _mutedText, fontSize: 12)),
-                ],
-              ),
-            ),
         ],
       ),
     );

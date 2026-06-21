@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
 import '../../../services/location_tracking_service.dart';
+import '../../navigation/screens/delivery_navigation_screen.dart';
+import '../../navigation/screens/payment_collection_screen.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../delivery_staff/models/delivery_staff.dart';
@@ -337,18 +338,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           () => _updateStatus('out_for_delivery')));
     }
     if (s == 'out_for_delivery' && widget.role == 'delivery') {
-      buttons.add(_btn('Mark Delivered', Colors.greenAccent,
-          () => _updateStatus('delivered')));
+      buttons.add(_btn(
+        'Mark Delivered',
+        Colors.greenAccent,
+        () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentCollectionScreen(order: _order),
+          ),
+        ),
+      ));
     }
     return buttons;
   }
 
   Future<void> _openNavigation(double lat, double lng) async {
-    final uri = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeliveryNavigationScreen(order: _order),
+      ),
+    );
   }
 
   Widget _buildDeliveryMap() {

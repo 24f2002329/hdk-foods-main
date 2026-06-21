@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/order.dart';
 import '../services/order_service.dart';
+import '../../navigation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
@@ -35,6 +36,17 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _navigate(Order o) async {
+    if (o.address?.latitude == null || o.address?.longitude == null) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeliveryNavigationScreen(order: o),
+      ),
+    );
+    _load();
   }
 
   Future<void> _load({bool silent = false}) async {
@@ -176,6 +188,32 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                           color: Colors.orangeAccent,
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                                if (o.status == 'out_for_delivery' &&
+                                    o.address?.latitude != null) ...[
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Colors.blueAccent,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 10),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8)),
+                                      ),
+                                      icon: const Icon(Icons.navigation,
+                                          size: 18),
+                                      label: const Text('Navigate',
+                                          style: TextStyle(
+                                              fontWeight:
+                                                  FontWeight.bold)),
+                                      onPressed: () => _navigate(o),
                                     ),
                                   ),
                                 ],

@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>HDK Delivery needs your location for in-app navigation</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>HDK Delivery tracks your location during active deliveries</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>HDK Delivery tracks your location during active deliveries</string>
 </dict>
 </plist>
