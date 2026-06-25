@@ -994,28 +994,34 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
       backgroundColor: _panel,
       title: const Text('Assign Delivery Person',
           style: TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: widget.staff.map((s) {
-          final sel = _selected?.id == s.id;
-          return ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Radio<int>(
-              value: s.id,
-              groupValue: _selected?.id,
-              activeColor: _red,
-              onChanged: (_) => setState(() => _selected = s),
-            ),
-            title: Text(s.displayName,
-                style: const TextStyle(color: Colors.white)),
-            subtitle: s.isDefaultDelivery
-                ? const Text('Default',
-                    style: TextStyle(color: _red, fontSize: 11))
-                : null,
-            tileColor:
-                sel ? _red.withValues(alpha: 0.08) : null,
-          );
-        }).toList(),
+      content: RadioGroup<int>(
+        groupValue: _selected?.id,
+        onChanged: (value) {
+          if (value == null) return;
+          final selected = widget.staff.firstWhere((s) => s.id == value);
+          setState(() => _selected = selected);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: widget.staff.map((s) {
+            final sel = _selected?.id == s.id;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Radio<int>(
+                value: s.id,
+                activeColor: _red,
+              ),
+              title: Text(s.displayName,
+                  style: const TextStyle(color: Colors.white)),
+              subtitle: s.isDefaultDelivery
+                  ? const Text('Default',
+                      style: TextStyle(color: _red, fontSize: 11))
+                  : null,
+              tileColor: sel ? _red.withValues(alpha: 0.08) : null,
+              onTap: () => setState(() => _selected = s),
+            );
+          }).toList(),
+        ),
       ),
       actions: [
         TextButton(

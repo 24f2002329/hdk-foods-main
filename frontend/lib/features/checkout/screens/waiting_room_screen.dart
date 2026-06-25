@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../orders/models/order.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/screens/order_tracking_screen.dart';
+import '../../orders/widgets/modified_order_dialog.dart';
 import 'payment_screen.dart';
 
 const _surface = Color(0xFF050505);
@@ -105,12 +106,52 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
 
   Future<void> _proceedAfterConfirmation(Order order) async {
     if (!mounted) return;
+    var currentOrder = order;
+
+    if (currentOrder.isModifiedByStaff) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ModifiedOrderDialog(order: currentOrder),
+      );
+
+      if (accepted == null) {
+        _navigated = false;
+        return;
+      }
+
+      try {
+        currentOrder = await _orderService.acknowledgeChanges(
+          orderId: currentOrder.id,
+          accepted: accepted,
+        );
+      } catch (e) {
+        _navigated = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$e')),
+          );
+        }
+        return;
+      }
+
+      if (!accepted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled. Refund in 3–5 business days.'),
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
+    }
 
     if (widget.paymentMethod == 'cod') {
       // Register the COD choice, then go straight to tracking.
       try {
         await _orderService.selectPayment(
-          orderId: order.id,
+          orderId: currentOrder.id,
           method: 'cod',
         );
       } catch (e) {
@@ -120,20 +161,21 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderTrackingScreen(orderId: order.id),
+          builder: (_) => OrderTrackingScreen(orderId: currentOrder.id),
         ),
       );
       return;
     }
 
     // Online -> collect payment via Cashfree.
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentScreen(
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          totalAmount: order.totalAmount,
+          orderId: currentOrder.id,
+          orderNumber: currentOrder.orderNumber,
+          totalAmount: currentOrder.totalAmount,
           lockedMethod: 'online',
         ),
       ),

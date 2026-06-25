@@ -35,7 +35,6 @@ class _CustomerManagementScreenState
   bool _hasMore = true;
   int _page = 1;
   String? _error;
-  String _lastSearch = '';
 
   @override
   void initState() {
@@ -90,7 +89,6 @@ class _CustomerManagementScreenState
         _page++;
         _hasMore = data['next'] != null;
         _loading = false;
-        _lastSearch = q;
       });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });

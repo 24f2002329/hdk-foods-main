@@ -45,6 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
       nextScreen = const HomeScreen();
     }
 
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

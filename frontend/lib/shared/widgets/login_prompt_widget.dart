@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../features/auth/screens/login_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
-const _surface = Color(0xFF050505);
 const _panel = Color(0xFF111111);
 const _mutedText = Color(0xFFB8B8B8);
 

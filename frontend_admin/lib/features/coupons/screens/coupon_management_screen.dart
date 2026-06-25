@@ -304,7 +304,7 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
                               Column(children: [
                                 Switch(
                                   value: isActive,
-                                  activeColor: Colors.greenAccent,
+                                  activeThumbColor: Colors.greenAccent,
                                   onChanged: (_) => _toggle(c),
                                 ),
                                 IconButton(

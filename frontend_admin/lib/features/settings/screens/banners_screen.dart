@@ -105,7 +105,7 @@ class _BannersScreenState extends State<BannersScreen> {
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
                                 child: Image.network(b['image_url'], width: 52, height: 52,
-                                    fit: BoxFit.cover, errorBuilder: (_, __, ___) =>
+                                    fit: BoxFit.cover, errorBuilder: (_, _, _) =>
                                         const Icon(Icons.broken_image, color: Colors.grey)),
                               )
                             : const Icon(Icons.image, color: Colors.grey, size: 40),

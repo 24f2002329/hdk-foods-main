@@ -803,6 +803,14 @@ class _OrdersTabState extends State<_OrdersTab>
   }
 
   Future<void> _quickConfirm(Order order) async {
+    final reviewed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PendingOrderReviewDialog(order: order),
+    );
+    if (reviewed != true) return;
+    if (!mounted) return;
+
     final prepTime = await showDialog<int>(
       context: context,
       builder: (_) => _PrepTimeDialog(),
@@ -1001,6 +1009,14 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   }
 
   Future<void> _quickConfirm(Order order) async {
+    final reviewed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PendingOrderReviewDialog(order: order),
+    );
+    if (reviewed != true) return;
+    if (!mounted) return;
+
     final prepTime = await showDialog<int>(context: context, builder: (_) => _PrepTimeDialog());
     if (prepTime == null) return;
     try {
@@ -1412,7 +1428,7 @@ class _ProductsTabState extends State<_ProductsTab>
                                   : Switch(
                                       value: p.isAvailable,
                                       onChanged: (_) => _toggle(p),
-                                      activeColor: _red,
+                                      activeThumbColor: _red,
                                     ),
                             ],
                           ),
@@ -1855,6 +1871,328 @@ class _OrderCard extends StatelessWidget {
       );
 }
 
+class _PendingOrderReviewDialog extends StatefulWidget {
+  final Order order;
+
+  const _PendingOrderReviewDialog({required this.order});
+
+  @override
+  State<_PendingOrderReviewDialog> createState() =>
+      _PendingOrderReviewDialogState();
+}
+
+class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
+  final OrderService _svc = OrderService();
+  late Order _order = widget.order;
+  bool _loading = false;
+
+  Future<void> _refresh() async {
+    setState(() => _loading = true);
+    try {
+      final fresh = await _svc.getOrder(widget.order.id);
+      if (mounted) {
+        setState(() => _order = fresh);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _editOrder() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminOrderDetailScreen(orderId: widget.order.id),
+      ),
+    );
+    if (!mounted) return;
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = _order;
+    final hasDiscount = order.discountAmount > 0;
+    final priceChanged = order.originalTotal != null &&
+        order.originalTotal != order.totalAmount;
+
+    return Dialog(
+      backgroundColor: _card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 760),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.receipt_long_rounded,
+                      color: _red, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Review Order #${order.orderNumber}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ),
+                  if (_loading)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: _red,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                order.customerName.isNotEmpty
+                    ? order.customerName
+                    : 'Pending order confirmation',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (order.customerPhone.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  order.customerPhone,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+              if (order.createdAt != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat('MMM d, h:mm a').format(order.createdAt!),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: _stroke),
+                        ),
+                        child: Column(
+                          children: order.items
+                              .map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.quantity}x ${item.productName}',
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                      Text(
+                                        'Rs ${(
+                                          item.price * item.quantity
+                                        ).toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: _stroke),
+                        ),
+                        child: Column(
+                          children: [
+                            if (priceChanged) ...[
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Original Total',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  Text(
+                                    'Rs ${order.originalTotal!.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      decoration:
+                                          TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            if (hasDiscount) ...[
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    order.discountReason.isNotEmpty
+                                        ? 'Discount (${order.discountReason})'
+                                        : 'Discount',
+                                    style: const TextStyle(
+                                      color: Colors.greenAccent,
+                                    ),
+                                  ),
+                                  Text(
+                                    '-Rs ${order.discountAmount.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      color: Colors.greenAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Final Total',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'Rs ${order.totalAmount.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: _red,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (order.deliveryNotes.trim().isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: _stroke),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Delivery Notes',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                order.deliveryNotes,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _loading ? null : _editOrder,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: _stroke),
+                    minimumSize: const Size.fromHeight(46),
+                  ),
+                  child: const Text('Edit Order'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed:
+                          _loading ? null : () => Navigator.pop(context, false),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed:
+                          _loading ? null : () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _red,
+                        minimumSize: const Size.fromHeight(46),
+                      ),
+                      child: const Text(
+                        'Confirm',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Quick-action dialogs ─────────────────────────────────────────────────────
 
 class _PrepTimeDialog extends StatefulWidget {
@@ -2270,7 +2608,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: _categoryId,
+                    initialValue: _categoryId,
                     decoration: _inputDec('Category'),
                     dropdownColor: _card,
                     style: const TextStyle(color: Colors.white),
@@ -2363,7 +2701,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         child: Row(children: [
           Text(label, style: const TextStyle(color: Colors.white)),
           const Spacer(),
-          Switch(value: value, onChanged: onChanged, activeColor: _red),
+          Switch(value: value, onChanged: onChanged, activeThumbColor: _red),
         ]),
       );
 
