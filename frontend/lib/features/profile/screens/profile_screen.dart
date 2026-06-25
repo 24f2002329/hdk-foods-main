@@ -105,7 +105,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    ctrl.dispose();
+    // Defer dispose until after the dialog's closing animation has finished
+    // (one post-frame is enough). Calling dispose() synchronously here lets
+    // the still-animating TextField rebuild with an already-disposed controller
+    // which triggers "_dependents.isEmpty" assertion failures.
+    WidgetsBinding.instance.addPostFrameCallback((_) => ctrl.dispose());
     if (result == null || result.isEmpty || result == _user?.name) return;
     try {
       final updated = await _userService.updateName(result);

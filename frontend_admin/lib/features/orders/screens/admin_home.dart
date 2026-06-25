@@ -2039,7 +2039,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ],
       ),
     );
-    ctrl.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) => ctrl.dispose());
     if (name == null || name.isEmpty) return;
 
     setState(() => _creatingCategory = true);

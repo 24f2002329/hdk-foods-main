@@ -14,7 +14,11 @@ const _panelAlt = Color(0xFF1E1E1E);
 const _stroke = Color(0xFF2A2A2A);
 
 class AddressScreen extends StatefulWidget {
-  const AddressScreen({super.key});
+  /// When true the screen works as a picker: tapping an address card pops
+  /// with the selected [CustomerAddress] instead of managing addresses.
+  final bool selectionMode;
+
+  const AddressScreen({super.key, this.selectionMode = false});
 
   @override
   State<AddressScreen> createState() => _AddressScreenState();
@@ -149,6 +153,10 @@ class _AddressScreenState extends State<AddressScreen> {
                 final address = addresses[index];
                 return _AddressCard(
                   address: address,
+                  selectionMode: widget.selectionMode,
+                  onTap: widget.selectionMode
+                      ? () => Navigator.pop(context, address)
+                      : null,
                   onEdit: () => _openAddressForm(address),
                   onDelete: () => _deleteAddress(address),
                   onMakeDefault: address.isDefault
@@ -166,12 +174,16 @@ class _AddressScreenState extends State<AddressScreen> {
 
 class _AddressCard extends StatelessWidget {
   final CustomerAddress address;
+  final bool selectionMode;
+  final VoidCallback? onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onMakeDefault;
 
   const _AddressCard({
     required this.address,
+    required this.selectionMode,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
     required this.onMakeDefault,
@@ -179,12 +191,23 @@ class _AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: address.isDefault ? _brandOrange : _stroke),
+        border: Border.all(
+          color: selectionMode
+              ? (address.isDefault ? _brandOrange : _stroke)
+              : (address.isDefault ? _brandOrange : _stroke),
+          width: selectionMode ? 2 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.36),
@@ -315,6 +338,8 @@ class _AddressCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }

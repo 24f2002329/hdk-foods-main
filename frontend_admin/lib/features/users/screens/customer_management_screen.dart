@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -532,7 +533,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           IconButton(
               icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _refresh),
+              onPressed: _load),
         ],
       ),
       body: _loading

@@ -178,11 +178,15 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
         ),
       ),
     );
-    codeCtrl.dispose();
-    valueCtrl.dispose();
-    minCtrl.dispose();
-    maxCtrl.dispose();
-    limitCtrl.dispose();
+    // Defer dispose by one frame so the dialog's closing animation can finish
+    // before the controllers are invalidated (same fix as profile _editName).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      codeCtrl.dispose();
+      valueCtrl.dispose();
+      minCtrl.dispose();
+      maxCtrl.dispose();
+      limitCtrl.dispose();
+    });
     if (result == true) _load();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../address/models/customer_address.dart';
+import '../../address/screens/address_screen.dart';
 import '../../address/services/address_service.dart';
 import '../../cart/services/cart_provider.dart';
 import '../../orders/services/order_service.dart';
@@ -26,7 +27,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _couponCtrl = TextEditingController();
 
   CustomerAddress? _selectedAddress;
-  String _selectedPaymentMethod = 'cod';
+  String _selectedPaymentMethod = 'online';
   bool _isLoadingAddresses = true;
   bool _isCreatingOrder = false;
   String? _addressError;
@@ -46,6 +47,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void dispose() {
     _couponCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAddress() async {
+    final picked = await Navigator.push<CustomerAddress>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AddressScreen(selectionMode: true),
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedAddress = picked);
+    }
   }
 
   Future<void> _loadAddresses() async {
@@ -243,7 +256,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               child: Row(children: [
                                 const Expanded(child: Text('No address selected', style: TextStyle(color: Colors.white))),
                                 TextButton(
-                                  onPressed: () => Navigator.pushNamed(context, '/addresses').then((_) => _loadAddresses()),
+                                  onPressed: _pickAddress,
                                   child: const Text('Add Address', style: TextStyle(color: _brandRed)),
                                 ),
                               ]),
@@ -268,7 +281,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ]),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.pushNamed(context, '/addresses').then((_) => _loadAddresses()),
+                                  onPressed: _pickAddress,
                                   child: const Text('Change', style: TextStyle(color: _brandRed)),
                                 ),
                               ]),
@@ -393,11 +406,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           const SizedBox(width: 10),
                           SizedBox(
+                            width: 82,
                             height: 50,
                             child: ElevatedButton(
                               onPressed: _isValidatingCoupon ? null : () => _validateCoupon(cartTotal),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _brandRed,
+                                minimumSize: Size.zero,
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               child: _isValidatingCoupon
@@ -441,16 +458,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _brandRed,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: cart.items.isEmpty || _selectedAddress == null ? null : () => _placeOrder(cart),
-                  child: Text(
-                    'Place Order  ₹${finalTotal.toStringAsFixed(0)}',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _brandRed,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: cart.items.isEmpty || _selectedAddress == null ? null : () => _placeOrder(cart),
+                    child: Text(
+                      'Place Order  ₹${finalTotal.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),

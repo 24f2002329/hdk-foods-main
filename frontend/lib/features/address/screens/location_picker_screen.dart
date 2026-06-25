@@ -42,24 +42,27 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _hasLocationPermission = false;
   bool _missingApiKey = false;
 
-  static const LatLng _fallbackLocation = LatLng(22.5726, 88.3639);
+  // Used only while we wait for GPS on a fresh add (no prior location).
+  static const LatLng _worldCenter = LatLng(20.5937, 78.9629); // India centre
 
-  LatLng get _startLocation {
-    if (widget.initialLocation.latitude.abs() > 0.000001 ||
-        widget.initialLocation.longitude.abs() > 0.000001) {
-      return widget.initialLocation;
-    }
-    return _fallbackLocation;
-  }
+  bool get _hasValidInitialLocation =>
+      widget.initialLocation.latitude.abs() > 0.000001 ||
+      widget.initialLocation.longitude.abs() > 0.000001;
 
   @override
   void initState() {
     super.initState();
-    _selectedLocation = _startLocation;
     _missingApiKey = !_placesService.hasApiKey;
-    _checkLocationPermission();
-    if (!_missingApiKey) {
-      _resolveLocation(_startLocation);
+
+    if (_hasValidInitialLocation) {
+      // Editing an existing address — start at the saved pin.
+      _selectedLocation = widget.initialLocation;
+      _checkLocationPermission();
+      if (!_missingApiKey) _resolveLocation(widget.initialLocation);
+    } else {
+      // New address — centre on world temporarily, then jump to GPS.
+      _selectedLocation = _worldCenter;
+      _checkLocationPermission().then((_) => _useCurrentLocation());
     }
   }
 
@@ -80,6 +83,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _hasLocationPermission = permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse;
     });
+    // Return so callers can chain .then((_) => ...).
   }
 
   void _onMarkerDragEnd(LatLng location) {
@@ -155,7 +159,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedLocation = _selectedLocation ?? _startLocation;
+    final selectedLocation = _selectedLocation ??
+        (_hasValidInitialLocation ? widget.initialLocation : _worldCenter);
 
     if (_missingApiKey) {
       return Scaffold(

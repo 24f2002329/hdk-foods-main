@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,14 +27,19 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   bool _loading = true;
   Timer? _timer;
   AdminOrderWebSocketService? _ws;
+  StreamSubscription<RemoteMessage>? _fcmSub;
 
   @override
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(
-        const Duration(seconds: 25), (_) => _load(silent: true));
 
+    // Poll every 12 s as a guaranteed fallback (covers the window before
+    // the WebSocket / FCM listener kicks in after assignment).
+    _timer = Timer.periodic(
+        const Duration(seconds: 12), (_) => _load(silent: true));
+
+    // WebSocket — real-time when daphne backend is live.
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
     _ws!.stream.listen((msg) {
@@ -41,12 +47,20 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         _load(silent: true);
       }
     });
+
+    // FCM foreground listener — reload immediately when a push arrives
+    // while the app is open.  This is the primary trigger for assignment
+    // notifications before WebSocket is available.
+    _fcmSub = FirebaseMessaging.onMessage.listen((msg) {
+      _load(silent: true);
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _ws?.dispose();
+    _fcmSub?.cancel();
     super.dispose();
   }
 
@@ -66,7 +80,8 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     try {
       final orders = await _service.getDeliveryOrders();
       if (mounted) setState(() { _orders = orders; _loading = false; });
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('DeliveryOrdersScreen._load error: $e\n$st');
       if (mounted) setState(() => _loading = false);
     }
   }
