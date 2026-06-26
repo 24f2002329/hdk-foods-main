@@ -4,6 +4,8 @@ class Product {
   final String description;
   final String image;
   final double price;
+  final double? strikePrice;
+  final String promoTag;
 
   final bool isFeatured;
   final bool isAddon;
@@ -17,6 +19,8 @@ class Product {
     required this.description,
     required this.image,
     required this.price,
+    this.strikePrice,
+    this.promoTag = "",
     required this.isFeatured,
     this.isAddon = false,
     required this.preparationTime,
@@ -46,6 +50,12 @@ class Product {
       price: double.parse(
         json["price"].toString(),
       ),
+
+      strikePrice: json["strike_price"] != null
+          ? double.tryParse(json["strike_price"].toString())
+          : null,
+
+      promoTag: json["promo_tag"] ?? "",
 
       isFeatured:
           json["is_featured"] ?? false,

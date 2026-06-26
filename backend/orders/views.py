@@ -1008,6 +1008,26 @@ class CouponToggleView(APIView):
         return Response(CouponSerializer(coupon).data)
 
 
+class ActiveCouponListView(APIView):
+    """Customer: list all active coupons."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        now = timezone.now()
+        coupons = Coupon.objects.filter(is_active=True).order_by("-created_at")
+        valid_coupons = []
+        for c in coupons:
+            if c.valid_from and now < c.valid_from:
+                continue
+            if c.valid_until and now > c.valid_until:
+                continue
+            if c.usage_limit and c.usage_count >= c.usage_limit:
+                continue
+            valid_coupons.append(c)
+        return Response(CouponSerializer(valid_coupons, many=True).data)
+
+
 class ValidateCouponView(APIView):
     """Customer: validate a coupon code and preview the discount."""
 

@@ -62,6 +62,22 @@ class OrderService {
     return null;
   }
 
+  Future<List<Map<String, dynamic>>> getActiveCoupons() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/coupons/active/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final list = jsonDecode(response.body) as List;
+        return list.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Paginated my-orders. Returns {results, count, next, previous}.
   Future<Map<String, dynamic>> getMyOrdersPaged({int page = 1}) async {
     final response = await http.get(

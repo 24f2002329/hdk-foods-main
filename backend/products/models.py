@@ -55,6 +55,23 @@ class Product(models.Model):
         default=0
     )
 
+    # Custom promotional badge shown on product card (e.g., '15% OFF', 'Best Seller')
+    promo_tag = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Custom promo badge text (e.g. '15% OFF', 'BOGO', 'Chef Special')."
+    )
+
+    # Strike price (original price) shown as crossed-out in UI.
+    strike_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Original price before discount (slashed). Leave blank if no discount."
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )

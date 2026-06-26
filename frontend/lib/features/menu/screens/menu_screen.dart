@@ -15,7 +15,8 @@ const _panel = Color(0xFF111111);
 const _stroke = Color(0xFF2A2A2A);
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final int? initialCategoryId;
+  const MenuScreen({super.key, this.initialCategoryId});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -30,6 +31,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedCategoryId = widget.initialCategoryId;
     dataFuture = _load();
   }
 

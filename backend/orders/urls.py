@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AcknowledgeChangesView,
+    ActiveCouponListView,
     AdminDashboardView,
     ApplyDiscountView,
     AssignDeliveryView,
@@ -30,6 +31,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("coupons/active/", ActiveCouponListView.as_view()),
     path("", OrderListView.as_view()),
     path("create/", CreateOrderView.as_view()),
     path("my-orders/", MyOrdersView.as_view()),
