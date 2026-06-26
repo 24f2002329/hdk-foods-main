@@ -21,6 +21,18 @@ class BaseOrderTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+        # Ensure the kitchen/store is configured as open 24/7 during tests
+        from app_config.models import SiteConfig
+        from datetime import time
+        SiteConfig.objects.update_or_create(
+            pk=1,
+            defaults={
+                "is_store_open": True,
+                "store_open_time": time(0, 0),
+                "store_close_time": time(23, 59, 59),
+            }
+        )
+
         self.admin = User.objects.create_user(
             phone_number="9000000001", role="admin", is_staff=True
         )
