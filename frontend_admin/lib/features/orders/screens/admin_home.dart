@@ -2546,17 +2546,23 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 required: true,
                 keyboardType: TextInputType.numberWithOptions(decimal: true)),
             const SizedBox(height: 12),
-            // Image — URL field OR picked file preview
-            if (_pickedImageFile != null)
+            Text(
+              'Product Image',
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (_pickedImageFile != null || _image.text.trim().isNotEmpty) ...[
               GestureDetector(
                 onTap: _showImageSourceDialog,
                 child: Container(
                   height: 140,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _red),
+                    border: Border.all(color: _stroke),
                     image: DecorationImage(
-                      image: FileImage(_pickedImageFile!),
+                      image: _pickedImageFile != null
+                          ? FileImage(_pickedImageFile!) as ImageProvider
+                          : NetworkImage(_image.text.trim()),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -2565,6 +2571,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Container(
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                             color: Colors.black54,
                             borderRadius: BorderRadius.circular(8)),
@@ -2573,32 +2580,41 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     ),
                   ),
                 ),
-              )
-            else
-              Row(children: [
-                Expanded(child: _field('Image URL (optional)', _image)),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 54,
-                  child: OutlinedButton.icon(
-                    onPressed: _showImageSourceDialog,
-                    icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                    label: const Text('Upload'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _red,
-                      side: const BorderSide(color: _red),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Row(children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _image,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDec(_pickedImageFile != null ? 'Picked from device (will upload)' : 'Image URL (optional)'),
+                  readOnly: _pickedImageFile != null,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _showImageSourceDialog,
+                  icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                  label: const Text('Upload'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _red,
+                    side: const BorderSide(color: _red),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
-              ]),
+              ),
+            ]),
             if (_uploadingImage)
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: LinearProgressIndicator(color: _red),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _field('Prep Time (mins)', _prepTime,
                 keyboardType: TextInputType.number),
             const SizedBox(height: 16),

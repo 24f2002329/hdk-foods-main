@@ -32,7 +32,7 @@ class SiteConfig(models.Model):
 class Banner(models.Model):
     """Rotating hero banners shown on the customer home screen."""
 
-    image_url   = models.URLField()
+    image_url   = models.URLField(blank=True, default="")
     title       = models.CharField(max_length=100, blank=True, default="")
     subtitle    = models.CharField(max_length=200, blank=True, default="")
     link_action = models.CharField(
