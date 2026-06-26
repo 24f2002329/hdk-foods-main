@@ -469,25 +469,7 @@ class _ScaleOnTapState extends State<ScaleOnTap> with SingleTickerProviderStateM
   }
 }
 
-// Helper to determine Veg/Non-Veg status
-bool _isProductVeg(Product p) {
-  final name = p.name.toLowerCase();
-  final desc = p.description.toLowerCase();
-  if (name.contains('chicken') || 
-      name.contains('egg') || 
-      name.contains('meat') || 
-      name.contains('fish') || 
-      name.contains('mutton') || 
-      name.contains('pork') || 
-      name.contains('bacon') ||
-      desc.contains('chicken') || 
-      desc.contains('egg') || 
-      desc.contains('meat') ||
-      desc.contains('fish')) {
-    return false;
-  }
-  return true;
-}
+
 
 // Helper to map dynamic category names to premium Unsplash URLs
 String _getCategoryImageUrl(String name) {
@@ -1216,7 +1198,6 @@ class _SpecialsSection extends StatelessWidget {
                 itemCount: products.length,
                 itemBuilder: (context, index) {
                   final p = products[index];
-                  final isVeg = _isProductVeg(p);
                   final qty = cart.quantityFor(p);
 
                   return ScaleOnTap(
@@ -1244,23 +1225,6 @@ class _SpecialsSection extends StatelessWidget {
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) => Container(color: _stroke, height: 120),
                                   errorWidget: (context, url, s) => Container(color: _stroke, height: 120),
-                                ),
-                              ),
-                              // Veg/Non-Veg indicator
-                              Positioned(
-                                top: 10,
-                                left: 10,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(
-                                    Icons.lens,
-                                    size: 10,
-                                    color: isVeg ? Colors.green : Colors.red,
-                                  ),
                                 ),
                               ),
                               // Rating Badge
@@ -1459,7 +1423,6 @@ class _BestSellersGrid extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final p = displayList[index];
-                final isVeg = _isProductVeg(p);
                 final qty = cart.quantityFor(p);
 
                 return Padding(
@@ -1529,15 +1492,6 @@ class _BestSellersGrid extends StatelessWidget {
                                     children: [
                                       Row(
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              border: Border.all(color: isVeg ? Colors.green : Colors.red, width: 1.5),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Icon(Icons.lens, size: 8, color: isVeg ? Colors.green : Colors.red),
-                                          ),
-                                          const SizedBox(width: 6),
                                           Expanded(
                                             child: Text(
                                               p.name,
@@ -2055,7 +2009,6 @@ class _TrendingAndNewSection extends StatelessWidget {
                   itemCount: trending.length,
                   itemBuilder: (context, index) {
                     final p = trending[index];
-                    final isVeg = _isProductVeg(p);
                     final qty = cart.quantityFor(p);
 
                     return Container(
@@ -2097,19 +2050,7 @@ class _TrendingAndNewSection extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              // Veg/Non-Veg icon
-                              Positioned(
-                                top: 6,
-                                right: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Icon(Icons.lens, size: 8, color: isVeg ? Colors.green : Colors.red),
-                                ),
-                              ),
+
                             ],
                           ),
                           Expanded(
@@ -2181,7 +2122,6 @@ class _TrendingAndNewSection extends StatelessWidget {
                 itemCount: newArrivals.length,
                 itemBuilder: (context, index) {
                   final p = newArrivals[index];
-                  final isVeg = _isProductVeg(p);
                   final qty = cart.quantityFor(p);
 
                   return Container(
@@ -2223,19 +2163,7 @@ class _TrendingAndNewSection extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            // Veg/Non-veg icon
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Icon(Icons.lens, size: 8, color: isVeg ? Colors.green : Colors.red),
-                              ),
-                            ),
+
                           ],
                         ),
                         Expanded(
@@ -2578,7 +2506,7 @@ class _FoodBottomNavigationBar extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.restaurant_menu_rounded,
-                label: 'Categories',
+                label: 'Menu',
                 selected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),

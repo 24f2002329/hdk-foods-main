@@ -12,6 +12,7 @@ class Product {
   final int preparationTime;
   final int? categoryId;
   final double rating;
+  final bool isAvailable;
 
   Product({
     required this.id,
@@ -26,6 +27,7 @@ class Product {
     required this.preparationTime,
     this.categoryId,
     this.rating = 0,
+    this.isAvailable = true,
   });
 
   factory Product.fromJson(
@@ -38,40 +40,25 @@ class Product {
 
     return Product(
       id: json["id"],
-
       name: json["name"],
-
-      description:
-          json["description"] ?? "",
-
-      image:
-          json["image"] ?? "",
-
+      description: json["description"] ?? "",
+      image: json["image"] ?? "",
       price: double.parse(
         json["price"].toString(),
       ),
-
       strikePrice: json["strike_price"] != null
           ? double.tryParse(json["strike_price"].toString())
           : null,
-
       promoTag: json["promo_tag"] ?? "",
-
-      isFeatured:
-          json["is_featured"] ?? false,
-
-      isAddon:
-          json["is_addon"] ?? false,
-
-      preparationTime:
-          json["preparation_time"] ?? 15,
-
+      isFeatured: json["is_featured"] ?? false,
+      isAddon: json["is_addon"] ?? false,
+      preparationTime: json["preparation_time"] ?? 15,
       categoryId: categoryId,
-
       rating: double.tryParse(
             json["rating"]?.toString() ?? "",
           ) ??
           0,
+      isAvailable: json["is_available"] ?? true,
     );
   }
 }

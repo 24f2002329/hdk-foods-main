@@ -143,11 +143,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ? (_couponResult!['coupon']['code'] as String)
           : '';
 
+      final List<String> customDetails = [];
+      for (final item in cart.items) {
+        final List<String> specs = [];
+        if (item.size != null) specs.add("Size: ${item.size}");
+        if (item.spiceLevel != null) specs.add("Spice: ${item.spiceLevel}");
+        if (item.customizations.isNotEmpty) {
+          specs.add("Extras: ${item.customizations.join(', ')}");
+        }
+        if (item.notes != null && item.notes!.isNotEmpty) {
+          specs.add("Note: ${item.notes}");
+        }
+        if (specs.isNotEmpty) {
+          customDetails.add("${item.product.name} (${item.quantity}x) -> ${specs.join(', ')}");
+        }
+      }
+
+      final String finalDeliveryNotes = customDetails.join(' | ');
+
       final order = await _orderService.createOrder(
         addressId: _selectedAddress!.id!,
         items: items,
         paymentMethod: _selectedPaymentMethod,
         couponCode: appliedCode,
+        deliveryNotes: finalDeliveryNotes,
       );
 
       cart.clearCart();

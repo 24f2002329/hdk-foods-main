@@ -185,8 +185,23 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  if (item.size != null || item.spiceLevel != null || item.customizations.isNotEmpty || (item.notes != null && item.notes!.isNotEmpty)) ...[
+                    Text(
+                      [
+                        if (item.size != null) "Size: ${item.size}",
+                        if (item.spiceLevel != null) "Spice: ${item.spiceLevel}",
+                        if (item.customizations.isNotEmpty) "Add-ons: ${item.customizations.join(', ')}",
+                        if (item.notes != null && item.notes!.isNotEmpty) "Note: ${item.notes}",
+                      ].join(' | '),
+                      style: const TextStyle(
+                        color: _mutedText,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Text(
-                    "₹${item.product.price.toStringAsFixed(0)}",
+                    "₹${item.unitPrice.toStringAsFixed(0)}",
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -198,7 +213,7 @@ class _CartItemTile extends StatelessWidget {
                       IconButton(
                         onPressed: () => context
                             .read<CartProvider>()
-                            .decreaseQuantity(item.product),
+                            .decreaseQuantityForCartId(item.cartId),
                         color: _brandRed,
                         icon: const Icon(Icons.remove_circle_outline),
                       ),
@@ -213,7 +228,7 @@ class _CartItemTile extends StatelessWidget {
                       IconButton(
                         onPressed: () => context
                             .read<CartProvider>()
-                            .increaseQuantity(item.product),
+                            .increaseQuantityForCartId(item.cartId),
                         color: _brandRed,
                         icon: const Icon(Icons.add_circle_outline),
                       ),
@@ -221,7 +236,7 @@ class _CartItemTile extends StatelessWidget {
                       IconButton(
                         onPressed: () => context
                             .read<CartProvider>()
-                            .removeProduct(item.product),
+                            .removeProductByCartId(item.cartId),
                         color: _mutedText,
                         icon: const Icon(Icons.delete_outline),
                       ),
