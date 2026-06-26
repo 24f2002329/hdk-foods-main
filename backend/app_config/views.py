@@ -78,6 +78,10 @@ class BannerDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+from rest_framework.parsers import MultiPartParser, FormParser
+import os
+from django.conf import settings
+
 class BroadcastNotificationView(APIView):
     """Admin sends a push notification to all customers with an FCM token."""
 
@@ -95,3 +99,46 @@ class BroadcastNotificationView(APIView):
         from authentication.firebase import send_push_to_all
         count = send_push_to_all(title=title, body=body)
         return Response({"sent": count})
+
+
+class BannerImageUploadView(APIView):
+    """Admin uploads a banner image from the device camera/gallery.
+
+    Accepts multipart/form-data with an 'image' file field.
+    Saves the file under MEDIA_ROOT/banners/ and updates banner.image_url
+    with the public MEDIA_URL path.
+    """
+
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, pk):
+        try:
+            banner = Banner.objects.get(pk=pk)
+        except Banner.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate content type
+        if not image_file.content_type.startswith("image/"):
+            return Response({"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST)
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "banners")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        ext = os.path.splitext(image_file.name)[1].lower() or ".jpg"
+        filename = f"banner_{pk}{ext}"
+        filepath = os.path.join(upload_dir, filename)
+
+        with open(filepath, "wb") as f:
+            for chunk in image_file.chunks():
+                f.write(chunk)
+
+        banner.image_url = f"{settings.MEDIA_URL}banners/{filename}"
+        banner.save(update_fields=["image_url"])
+
+        return Response(BannerSerializer(banner).data)
+

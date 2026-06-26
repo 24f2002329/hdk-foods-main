@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/api_config.dart';
@@ -71,5 +72,25 @@ class AdminConfigService {
       return (jsonDecode(response.body)['sent'] as num?)?.toInt() ?? 0;
     }
     throw Exception('Failed to send notification: ${response.body}');
+  }
+
+  Future<Map<String, dynamic>> uploadBannerImage(int bannerId, File imageFile) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Not logged in');
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_base/config/banners/$bannerId/upload-image/'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to upload banner image: ${response.body}');
   }
 }

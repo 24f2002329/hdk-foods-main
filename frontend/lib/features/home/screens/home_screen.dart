@@ -172,7 +172,20 @@ class _HomeTabState extends State<HomeTab> {
     configFuture = ConfigService().getConfig();
     bannersFuture = ConfigService().getBanners();
     activeCouponsFuture = OrderService().getActiveCoupons();
+    ordersFuture = _fetchOrdersSafely();
     _loadUserData();
+  }
+
+  Future<List<Order>> _fetchOrdersSafely() async {
+    final loggedIn = await TokenStorage.isLoggedIn();
+    if (!loggedIn) {
+      return <Order>[];
+    }
+    try {
+      return await OrderService().getMyOrders();
+    } catch (_) {
+      return <Order>[];
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -183,10 +196,8 @@ class _HomeTabState extends State<HomeTab> {
       });
     }
     if (!loggedIn) {
-      ordersFuture = Future.value([]);
       return;
     }
-    ordersFuture = OrderService().getMyOrders().catchError((_) => <Order>[]);
     try {
       final user = await UserService().getCurrentUser();
       List<CustomerAddress> addresses = [];
@@ -399,7 +410,7 @@ class _HomeTabState extends State<HomeTab> {
             // Phase 11 — Floating Cart Summary
             if (cart.itemCount > 0)
               Positioned(
-                bottom: 90,
+                bottom: 16,
                 left: 16,
                 right: 16,
                 child: _FloatingCartSummary(cartCount: cart.itemCount, totalAmount: cart.totalAmount),
@@ -675,9 +686,9 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   _StickySearchDelegate({required this.child});
 
   @override
-  double get minExtent => 76.0;
+  double get minExtent => 72.0;
   @override
-  double get maxExtent => 76.0;
+  double get maxExtent => 72.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {

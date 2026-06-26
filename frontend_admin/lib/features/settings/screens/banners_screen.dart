@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/config_service.dart';
 
@@ -27,12 +29,14 @@ class _BannersScreenState extends State<BannersScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     try {
       final list = await _svc.getBanners();
       if (mounted) setState(() { _banners = list.cast<Map<String, dynamic>>(); _loading = false; });
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -45,24 +49,28 @@ class _BannersScreenState extends State<BannersScreen> {
   }
 
   Future<void> _delete(int id) async {
-    final ok = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: _card,
         title: const Text('Delete Banner', style: TextStyle(color: Colors.white)),
         content: const Text('Remove this banner?', style: TextStyle(color: Colors.grey)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
-    if (ok != true) return;
-    try {
-      await _svc.deleteBanner(id);
-      _load();
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    if (confirm == true) {
+      try {
+        await _svc.deleteBanner(id);
+        _load();
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -73,57 +81,53 @@ class _BannersScreenState extends State<BannersScreen> {
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text('Banners', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-        actions: [IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load)],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openForm(),
-        backgroundColor: _red,
-        child: const Icon(Icons.add, color: Colors.white),
+        actions: [
+          IconButton(icon: const Icon(Icons.add, color: _red), onPressed: () => _openForm()),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
           : _banners.isEmpty
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.image_not_supported, color: Colors.grey, size: 64),
-                  const SizedBox(height: 12),
-                  Text('No banners yet', style: GoogleFonts.poppins(color: Colors.grey)),
-                  const SizedBox(height: 8),
-                  TextButton.icon(onPressed: () => _openForm(),
-                    icon: const Icon(Icons.add, color: _red),
-                    label: const Text('Add Banner', style: TextStyle(color: _red))),
-                ]))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('No banners yet', style: GoogleFonts.poppins(color: Colors.grey)),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _openForm(),
+                        icon: const Icon(Icons.add, color: _red),
+                        label: const Text('Add Banner', style: TextStyle(color: _red)),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                  padding: const EdgeInsets.all(16),
                   itemCount: _banners.length,
-                  itemBuilder: (_, i) {
+                  itemBuilder: (context, i) {
                     final b = _banners[i];
                     return Card(
                       color: _card,
-                      margin: const EdgeInsets.only(bottom: 10),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _stroke)),
                       child: ListTile(
                         leading: b['image_url'] != null && (b['image_url'] as String).isNotEmpty
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: Image.network(b['image_url'], width: 52, height: 52,
-                                    fit: BoxFit.cover, errorBuilder: (_, _, _) =>
-                                        const Icon(Icons.broken_image, color: Colors.grey)),
+                                child: Image.network(b['image_url'], width: 60, height: 40, fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Icon(Icons.image, color: Colors.grey)),
                               )
-                            : const Icon(Icons.image, color: Colors.grey, size: 40),
+                            : const Icon(Icons.image, color: Colors.grey),
                         title: Text(b['title'] ?? 'Banner', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                         subtitle: Text(b['subtitle'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: (b['is_active'] == true ? Colors.green : Colors.grey).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(b['is_active'] == true ? 'Active' : 'Hidden',
-                                style: TextStyle(color: b['is_active'] == true ? Colors.greenAccent : Colors.grey, fontSize: 10)),
-                          ),
-                          IconButton(icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 18), onPressed: () => _openForm(banner: b)),
-                          IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18), onPressed: () => _delete(b['id'])),
-                        ]),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 18), onPressed: () => _openForm(banner: b)),
+                            IconButton(icon: const Icon(Icons.delete_outline, color: _red, size: 18), onPressed: () => _delete(b['id'])),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -149,6 +153,10 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
   bool _isActive = true;
   bool _saving = false;
 
+  File? _pickedImageFile;
+  final _picker = ImagePicker();
+  bool _uploadingImage = false;
+
   @override
   void initState() {
     super.initState();
@@ -168,9 +176,61 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final xfile = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1024,
+      );
+      if (xfile == null) return;
+      setState(() {
+        _pickedImageFile = File(xfile.path);
+        _imageUrl.clear();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
+      }
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: _red),
+            title: const Text('Camera', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library, color: _red),
+            title: const Text('Gallery', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
+          ),
+          if (_pickedImageFile != null || _imageUrl.text.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.clear, color: Colors.grey),
+              title: const Text('Remove image', style: TextStyle(color: Colors.grey)),
+              onTap: () {
+                setState(() { _pickedImageFile = null; _imageUrl.clear(); });
+                Navigator.pop(context);
+              },
+            ),
+        ]),
+      ),
+    );
+  }
+
   Future<void> _save() async {
-    if (_imageUrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image URL is required')));
+    if (_imageUrl.text.trim().isEmpty && _pickedImageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image is required')));
       return;
     }
     setState(() => _saving = true);
@@ -182,16 +242,28 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
       'is_active': _isActive,
     };
     try {
+      Map<String, dynamic> saved;
       if (widget.banner == null) {
-        await _svc.createBanner(data);
+        saved = await _svc.createBanner(data);
       } else {
         await _svc.updateBanner(widget.banner!['id'], data);
+        saved = widget.banner!;
       }
+
+      // Upload banner image file if one was picked
+      if (_pickedImageFile != null) {
+        setState(() { _uploadingImage = true; });
+        final bannerId = saved['id'];
+        if (bannerId != null) {
+          await _svc.uploadBannerImage(bannerId, _pickedImageFile!);
+        }
+      }
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() { _saving = false; _uploadingImage = false; });
     }
   }
 
@@ -213,7 +285,7 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
         title: Text(widget.banner == null ? 'Add Banner' : 'Edit Banner',
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
-          _saving
+          _saving || _uploadingImage
               ? const Padding(padding: EdgeInsets.all(16),
                   child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: _red)))
               : TextButton(onPressed: _save, child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold))),
@@ -222,7 +294,58 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextFormField(controller: _imageUrl, style: const TextStyle(color: Colors.white), decoration: _dec('Image URL *')),
+          if (_pickedImageFile != null)
+            GestureDetector(
+              onTap: _showImageSourceDialog,
+              child: Container(
+                height: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _red),
+                  image: DecorationImage(
+                    image: FileImage(_pickedImageFile!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Row(children: [
+              Expanded(child: TextFormField(controller: _imageUrl, style: const TextStyle(color: Colors.white), decoration: _dec('Image URL *'))),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _showImageSourceDialog,
+                  icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                  label: const Text('Upload'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _red,
+                    side: const BorderSide(color: _red),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ]),
+          if (_uploadingImage)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: LinearProgressIndicator(color: _red),
+            ),
           const SizedBox(height: 12),
           TextFormField(controller: _title, style: const TextStyle(color: Colors.white), decoration: _dec('Title (optional)')),
           const SizedBox(height: 12),
