@@ -123,7 +123,10 @@ class BannerImageUploadView(APIView):
             return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate content type
-        if not image_file.content_type.startswith("image/"):
+        content_type = image_file.content_type or ""
+        ext = os.path.splitext(image_file.name)[1].lower()
+        is_image_ext = ext in [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
+        if not (content_type.startswith("image/") or is_image_ext):
             return Response({"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST)
 
         upload_dir = os.path.join(settings.MEDIA_ROOT, "banners")

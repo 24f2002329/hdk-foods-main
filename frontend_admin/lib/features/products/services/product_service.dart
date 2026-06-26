@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../../../core/config/api_config.dart';
 import '../../../core/storage/token_storage.dart';
@@ -120,7 +121,25 @@ class ProductService {
       Uri.parse('$_base/products/$productId/image/'),
     );
     request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+    final extension = imageFile.path.split('.').last.toLowerCase();
+    String mimeType = 'image/jpeg';
+    if (extension == 'png') {
+      mimeType = 'image/png';
+    } else if (extension == 'gif') {
+      mimeType = 'image/gif';
+    } else if (extension == 'webp') {
+      mimeType = 'image/webp';
+    } else if (extension == 'bmp') {
+      mimeType = 'image/bmp';
+    }
+
+    final multipartFile = await http.MultipartFile.fromPath(
+      'image',
+      imageFile.path,
+      contentType: MediaType.parse(mimeType),
+    );
+    request.files.add(multipartFile);
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
