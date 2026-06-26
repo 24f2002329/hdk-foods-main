@@ -40,6 +40,37 @@ ALLOWED_HOSTS = os.getenv(
     "localhost,127.0.0.1"
 ).split(",")
 
+# If running on Azure App Service, automatically add WEBSITE_HOSTNAME and handle internal health check IPs
+if os.getenv("WEBSITE_INSTANCE_ID"):
+    azure_hostname = os.getenv("WEBSITE_HOSTNAME")
+    if azure_hostname and azure_hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(azure_hostname)
+
+    class AzureAllowedHosts(list):
+        def __iter__(self):
+            import inspect
+            frame = inspect.currentframe()
+            try:
+                while frame:
+                    if frame.f_code.co_name in ("validate_host", "<genexpr>"):
+                        f = frame
+                        while f:
+                            if f.f_code.co_name == "validate_host":
+                                host = f.f_locals.get("host", "")
+                                if host:
+                                    host_name = host.split(":")[0]
+                                    if host_name.startswith("169.254."):
+                                        return iter(["*"])
+                                break
+                            f = f.f_back
+                        break
+                    frame = frame.f_back
+            except Exception:
+                pass
+            return super().__iter__()
+
+    ALLOWED_HOSTS = AzureAllowedHosts(ALLOWED_HOSTS)
+
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
     ""

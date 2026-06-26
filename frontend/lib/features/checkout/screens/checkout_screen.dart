@@ -6,6 +6,7 @@ import '../../address/screens/address_screen.dart';
 import '../../address/services/address_service.dart';
 import '../../cart/services/cart_provider.dart';
 import '../../orders/services/order_service.dart';
+import 'kitchen_closed_screen.dart';
 import 'waiting_room_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -165,9 +166,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error placing order: $e')),
-        );
+        final errorMsg = e.toString().toLowerCase();
+        if (errorMsg.contains('closed') || errorMsg.contains('kitchen')) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => KitchenClosedScreen(
+                closedMessage: e.toString().replaceAll('Exception: ', '').replaceAll('Error: ', ''),
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error placing order: $e')),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isCreatingOrder = false);

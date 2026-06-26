@@ -54,6 +54,19 @@ class SiteConfig {
     }
   }
 
+  String get formattedCloseTime {
+    try {
+      final parts = storeCloseTime.split(':');
+      final h = int.parse(parts[0]);
+      final m = parts[1];
+      final period = h >= 12 ? 'PM' : 'AM';
+      final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+      return '$hour:$m $period';
+    } catch (_) {
+      return storeCloseTime;
+    }
+  }
+
   DateTime _parseTime(String t, DateTime ref) {
     final parts = t.split(':');
     return DateTime(ref.year, ref.month, ref.day,

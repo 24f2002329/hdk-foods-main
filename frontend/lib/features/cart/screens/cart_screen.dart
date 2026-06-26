@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../shared/models/product.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../checkout/screens/kitchen_closed_screen.dart';
+import '../../home/services/config_service.dart';
 import '../../home/services/product_service.dart';
 import '../models/cart_item.dart';
 import '../services/cart_provider.dart';
@@ -24,11 +26,13 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   late Future<List<Product>> _addOnsFuture;
+  late Future<SiteConfig> _configFuture;
 
   @override
   void initState() {
     super.initState();
     _addOnsFuture = ProductService.getAddOns();
+    _configFuture = ConfigService().getConfig();
   }
 
   @override
@@ -55,41 +59,80 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ],
       ),
-      body: Consumer<CartProvider>(
-        builder: (context, cart, _) {
-          if (cart.items.isEmpty) {
-            return const Center(
-              child: Text(
-                "Your cart is empty",
-                style: TextStyle(
-                  color: _mutedText,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            );
-          }
+      body: FutureBuilder<SiteConfig>(
+        future: _configFuture,
+        builder: (context, configSnapshot) {
+          final config = configSnapshot.data;
+          final isClosed = config != null && !config.isCurrentlyOpen;
 
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  children: [
-                    ...cart.items.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _CartItemTile(item: item),
+          return Consumer<CartProvider>(
+            builder: (context, cart, _) {
+              if (cart.items.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "Your cart is empty",
+                    style: TextStyle(
+                      color: _mutedText,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: [
+                  if (isClosed)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _brandRed.withValues(alpha: 0.1),
+                        border: const Border(bottom: BorderSide(color: _brandRed, width: 1.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: _brandRed, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              config.storeClosedMsg.isNotEmpty
+                                  ? config.storeClosedMsg
+                                  : "We are currently closed.",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    _AddOnsSection(addOnsFuture: _addOnsFuture),
-                  ],
-                ),
-              ),
-              _CartSummary(
-                total: cart.totalAmount,
-                bottomPadding: 16 + bottomInset + bottomNavigationClearance,
-              ),
-            ],
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      children: [
+                        ...cart.items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _CartItemTile(item: item),
+                          ),
+                        ),
+                        _AddOnsSection(addOnsFuture: _addOnsFuture),
+                      ],
+                    ),
+                  ),
+                  _CartSummary(
+                    total: cart.totalAmount,
+                    bottomPadding: 16 + bottomInset + bottomNavigationClearance,
+                    isClosed: isClosed,
+                    closedMessage: config?.storeClosedMsg ?? "",
+                    openTime: config?.formattedOpenTime,
+                    closeTime: config?.formattedCloseTime,
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -353,8 +396,19 @@ class _AddOnTile extends StatelessWidget {
 class _CartSummary extends StatelessWidget {
   final double total;
   final double bottomPadding;
+  final bool isClosed;
+  final String closedMessage;
+  final String? openTime;
+  final String? closeTime;
 
-  const _CartSummary({required this.total, required this.bottomPadding});
+  const _CartSummary({
+    required this.total,
+    required this.bottomPadding,
+    this.isClosed = false,
+    this.closedMessage = "",
+    this.openTime,
+    this.closeTime,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -399,21 +453,40 @@ class _CartSummary extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ElevatedButton(
-            onPressed: () async {
-              final loggedIn = await TokenStorage.isLoggedIn();
-              if (!context.mounted) return;
-              if (loggedIn) {
-                Navigator.pushNamed(context, '/checkout');
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              }
-            },
-            child: const Text(
-              "Proceed to Checkout",
-              style: TextStyle(fontWeight: FontWeight.w900),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isClosed ? Colors.grey[900] : _brandRed,
+            ),
+            onPressed: isClosed
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => KitchenClosedScreen(
+                          closedMessage: closedMessage,
+                          openTime: openTime,
+                          closeTime: closeTime,
+                        ),
+                      ),
+                    );
+                  }
+                : () async {
+                    final loggedIn = await TokenStorage.isLoggedIn();
+                    if (!context.mounted) return;
+                    if (loggedIn) {
+                      Navigator.pushNamed(context, '/checkout');
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    }
+                  },
+            child: Text(
+              isClosed ? "Kitchen is Closed" : "Proceed to Checkout",
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: isClosed ? Colors.grey : Colors.white,
+              ),
             ),
           ),
         ],
