@@ -19,3 +19,15 @@ class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
         fields = ["id", "image_url", "title", "subtitle", "link_action", "order", "is_active"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if ret.get("image_url") and not ret["image_url"].startswith("http"):
+            request = self.context.get("request")
+            if request is not None:
+                ret["image_url"] = request.build_absolute_uri(ret["image_url"])
+            else:
+                from django.conf import settings
+                domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
+                ret["image_url"] = domain.rstrip("/") + "/" + ret["image_url"].lstrip("/")
+        return ret
