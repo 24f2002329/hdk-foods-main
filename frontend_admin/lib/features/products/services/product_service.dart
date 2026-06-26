@@ -149,4 +149,85 @@ class ProductService {
     }
     throw Exception('Failed to upload image: ${response.body}');
   }
+
+  Future<List<ModifierGroup>> getModifierGroups() async {
+    final response = await http.get(
+      Uri.parse('$_base/modifiers/groups/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body) as List)
+          .map((e) => ModifierGroup.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load modifier groups: ${response.body}');
+  }
+
+  Future<ModifierGroup> createModifierGroup(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$_base/modifiers/groups/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 201) {
+      return ModifierGroup.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to create modifier group: ${response.body}');
+  }
+
+  Future<ModifierGroup> updateModifierGroup(int id, Map<String, dynamic> data) async {
+    final response = await http.patch(
+      Uri.parse('$_base/modifiers/groups/$id/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 200) {
+      return ModifierGroup.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to update modifier group: ${response.body}');
+  }
+
+  Future<void> deleteModifierGroup(int id) async {
+    final response = await http.delete(
+      Uri.parse('$_base/modifiers/groups/$id/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete modifier group: ${response.body}');
+    }
+  }
+
+  Future<ModifierOption> createModifierOption(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$_base/modifiers/options/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 201) {
+      return ModifierOption.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to create modifier option: ${response.body}');
+  }
+
+  Future<ModifierOption> updateModifierOption(int id, Map<String, dynamic> data) async {
+    final response = await http.patch(
+      Uri.parse('$_base/modifiers/options/$id/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 200) {
+      return ModifierOption.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to update modifier option: ${response.body}');
+  }
+
+  Future<void> deleteModifierOption(int id) async {
+    final response = await http.delete(
+      Uri.parse('$_base/modifiers/options/$id/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete modifier option: ${response.body}');
+    }
+  }
 }

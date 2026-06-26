@@ -19,6 +19,7 @@ import '../../orders/services/order_service.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
+import '../../products/screens/modifier_management_screen.dart';
 import '../../settings/screens/site_config_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
@@ -1356,6 +1357,17 @@ class _ProductsTabState extends State<_ProductsTab>
         title: Text('Products',
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ModifierGroupsManagementScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.tune, color: _red, size: 18),
+            label: const Text('Modifiers',
+                style: TextStyle(color: _red, fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
           IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
       ),
@@ -1775,7 +1787,7 @@ class _OrderCard extends StatelessWidget {
                         ]),
                       Text(
                         order.createdAt != null
-                            ? DateFormat('MMM d, h:mm a').format(order.createdAt!)
+                            ? DateFormat('MMM d, h:mm a').format(order.createdAt!.toLocal())
                             : '',
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
                       ),
@@ -1980,7 +1992,7 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
               if (order.createdAt != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('MMM d, h:mm a').format(order.createdAt!),
+                  DateFormat('MMM d, h:mm a').format(order.createdAt!.toLocal()),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
@@ -2314,6 +2326,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   File? _pickedImageFile;
   bool _uploadingImage = false;
 
+  // Modifier groups
+  List<ModifierGroup> _allModifierGroups = [];
+  Set<int> _selectedModifierGroupIds = {};
+  bool _loadingModifiers = true;
+
   @override
   void initState() {
     super.initState();
@@ -2330,6 +2347,26 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _isAvailable = p?.isAvailable ?? true;
     _isFeatured = p?.isFeatured ?? false;
     _isAddon = p?.isAddon ?? false;
+
+    // Pre-select modifier groups already assigned to this product
+    if (p != null) {
+      _selectedModifierGroupIds = p.modifierGroups.map((g) => g.id).toSet();
+    }
+    _loadModifierGroups();
+  }
+
+  Future<void> _loadModifierGroups() async {
+    try {
+      final groups = await ProductService().getModifierGroups();
+      if (mounted) {
+        setState(() {
+          _allModifierGroups = groups;
+          _loadingModifiers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingModifiers = false);
+    }
   }
 
   Future<void> _createCategory() async {
@@ -2477,6 +2514,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       'is_available': _isAvailable,
       'is_featured': _isFeatured,
       'is_addon': _isAddon,
+      'modifier_groups': _selectedModifierGroupIds.toList(),
     };
     try {
       Product saved;
@@ -2684,6 +2722,81 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               _isAddon,
               (v) => setState(() => _isAddon = v),
             ),
+            const SizedBox(height: 24),
+            // ── Modifier Groups Section ──
+            Text('Modifier Groups',
+                style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text('Assign customization options (Size, Spice, etc.) to this product.',
+                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11)),
+            const SizedBox(height: 10),
+            if (_loadingModifiers)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _red),
+                  ),
+                ),
+              )
+            else if (_allModifierGroups.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _stroke),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.info_outline, color: Colors.grey, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'No modifier groups created yet. Go to Products → Modifiers to create some.',
+                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                    ),
+                  ),
+                ]),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _allModifierGroups.map((g) {
+                  final selected = _selectedModifierGroupIds.contains(g.id);
+                  return FilterChip(
+                    label: Text(g.name),
+                    selected: selected,
+                    onSelected: (val) {
+                      setState(() {
+                        if (val) {
+                          _selectedModifierGroupIds.add(g.id);
+                        } else {
+                          _selectedModifierGroupIds.remove(g.id);
+                        }
+                      });
+                    },
+                    selectedColor: _red.withValues(alpha: 0.2),
+                    checkmarkColor: _red,
+                    labelStyle: TextStyle(
+                      color: selected ? _red : Colors.grey[400],
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    backgroundColor: _card,
+                    side: BorderSide(
+                      color: selected ? _red : _stroke,
+                    ),
+                    avatar: selected
+                        ? null
+                        : Icon(Icons.add, color: Colors.grey[600], size: 16),
+                  );
+                }).toList(),
+              ),
           ],
         ),
       ),

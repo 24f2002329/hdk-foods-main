@@ -223,3 +223,28 @@ class ProductImageUploadView(APIView):
         product.save(update_fields=["image"])
 
         return Response(ProductSerializer(product).data)
+
+
+from rest_framework import viewsets
+from .models import ModifierGroup, ModifierOption
+from .serializers import ModifierGroupWriteSerializer, ModifierOptionWriteSerializer
+
+
+class ModifierGroupViewSet(viewsets.ModelViewSet):
+    queryset = ModifierGroup.objects.all().order_by("display_order")
+    serializer_class = ModifierGroupWriteSerializer
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return []
+        return [IsAdmin()]
+
+
+class ModifierOptionViewSet(viewsets.ModelViewSet):
+    queryset = ModifierOption.objects.all().order_by("sort_order")
+    serializer_class = ModifierOptionWriteSerializer
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return []
+        return [IsAdmin()]

@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     AddOnListView,
     CategoryDetailView,
@@ -10,9 +11,16 @@ from .views import (
     ProductCreateView,
     ProductUpdateView,
     ProductDeleteView,
+    ModifierGroupViewSet,
+    ModifierOptionViewSet,
 )
 
+router = DefaultRouter()
+router.register("modifiers/groups", ModifierGroupViewSet, basename="modifier-groups")
+router.register("modifiers/options", ModifierOptionViewSet, basename="modifier-options")
+
 urlpatterns = [
+    path("", include(router.urls)),
     path("categories/", CategoryListView.as_view()),
     path("categories/<int:pk>/", CategoryDetailView.as_view()),
     path("products/", ProductListView.as_view()),

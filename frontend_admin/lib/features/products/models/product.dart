@@ -1,3 +1,6 @@
+import 'modifier.dart';
+export 'modifier.dart';
+
 class Category {
   final int id;
   final String name;
@@ -24,6 +27,7 @@ class Product {
   final bool isFeatured;
   final bool isAddon;
   final int preparationTime;
+  final List<ModifierGroup> modifierGroups;
 
   Product({
     required this.id,
@@ -37,10 +41,16 @@ class Product {
     this.isFeatured = false,
     this.isAddon = false,
     this.preparationTime = 15,
+    required this.modifierGroups,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     final cat = json['category'];
+    final rawModifiers = json['modifier_groups'] as List? ?? [];
+    final modifierGroups = rawModifiers
+        .map((m) => ModifierGroup.fromJson(m as Map<String, dynamic>))
+        .toList();
+
     return Product(
       id: json['id'],
       categoryId: cat is Map ? cat['id'] : (json['category_id'] ?? 0),
@@ -53,6 +63,7 @@ class Product {
       isFeatured: json['is_featured'] ?? false,
       isAddon: json['is_addon'] ?? false,
       preparationTime: json['preparation_time'] ?? 15,
+      modifierGroups: modifierGroups,
     );
   }
 
@@ -68,5 +79,6 @@ class Product {
         isFeatured: isFeatured,
         isAddon: isAddon,
         preparationTime: preparationTime,
+        modifierGroups: modifierGroups,
       );
 }

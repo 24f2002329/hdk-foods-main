@@ -72,9 +72,76 @@ class Product(models.Model):
         help_text="Original price before discount (slashed). Leave blank if no discount."
     )
 
+    modifier_groups = models.ManyToManyField(
+        "ModifierGroup",
+        related_name="products",
+        blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
 
     def __str__(self):
         return self.name
+
+
+class ModifierGroup(models.Model):
+    name = models.CharField(max_length=100)
+    selection_type = models.CharField(
+        max_length=10,
+        choices=[("SINGLE", "Single Choice"), ("MULTIPLE", "Multiple Choice")],
+        default="SINGLE"
+    )
+    required = models.BooleanField(default=False)
+    min_selection = models.PositiveIntegerField(default=0)
+    max_selection = models.PositiveIntegerField(default=1)
+    display_order = models.PositiveIntegerField(default=0)
+    visibility = models.BooleanField(default=True)
+    description = models.TextField(blank=True, default="")
+
+    def __str__(self):
+        return self.name
+
+
+class ModifierOption(models.Model):
+    modifier_group = models.ForeignKey(
+        ModifierGroup,
+        on_delete=models.CASCADE,
+        related_name="options"
+    )
+    name = models.CharField(max_length=100)
+    extra_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+    is_available = models.BooleanField(default=True)
+    image = models.URLField(blank=True, default="")
+    sort_order = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.modifier_group.name} - {self.name}"
+
+
+class ProductModifierOptionOverride(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="price_overrides"
+    )
+    modifier_option = models.ForeignKey(
+        ModifierOption,
+        on_delete=models.CASCADE,
+        related_name="product_overrides"
+    )
+    extra_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    class Meta:
+        unique_together = ("product", "modifier_option")
+
+    def __str__(self):
+        return f"{self.product.name} - {self.modifier_option.name} Override (₹{self.extra_price})"

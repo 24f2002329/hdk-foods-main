@@ -353,7 +353,7 @@ class _CustomerCard extends StatelessWidget {
                             size: 12, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('MMM yyyy').format(c.createdAt!),
+                          DateFormat('MMM yyyy').format(c.createdAt!.toLocal()),
                           style: const TextStyle(
                               color: Colors.grey, fontSize: 11),
                         ),
@@ -585,7 +585,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                 color: Colors.grey, fontSize: 13)),
                         if (c.createdAt != null)
                           Text(
-                            'Joined ${DateFormat('MMM d, yyyy').format(c.createdAt!)}',
+                            'Joined ${DateFormat('MMM d, yyyy').format(c.createdAt!.toLocal())}',
                             style: const TextStyle(
                                 color: Colors.grey, fontSize: 12),
                           ),

@@ -13,6 +13,7 @@ void main() {
       price: 120,
       isFeatured: true,
       preparationTime: 10,
+      modifierGroups: const [],
     );
 
     cart.addProduct(product);

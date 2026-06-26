@@ -747,7 +747,18 @@ class _StickyGlassmorphicSearchBar extends StatelessWidget {
   }
 }
 
-// ── PHASE 2: KITCHEN STATUS CARD ────────────────────────────────────────────
+class _StatusItem {
+  final String text;
+  final IconData icon;
+  final Color color;
+
+  const _StatusItem({
+    required this.text,
+    required this.icon,
+    required this.color,
+  });
+}
+
 class _KitchenStatusCard extends StatefulWidget {
   final SiteConfig? config;
   const _KitchenStatusCard({required this.config});
@@ -759,6 +770,8 @@ class _KitchenStatusCard extends StatefulWidget {
 class _KitchenStatusCardState extends State<_KitchenStatusCard> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  Timer? _timer;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -768,21 +781,94 @@ class _KitchenStatusCardState extends State<_KitchenStatusCard> with SingleTicke
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
     _pulseAnimation = Tween<double>(begin: 3.0, end: 8.0).animate(_pulseController);
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      final items = _getItems();
+      if (items.length > 1) {
+        if (mounted) {
+          setState(() {
+            _currentIndex = (_currentIndex + 1) % items.length;
+          });
+        }
+      } else {
+        if (_currentIndex != 0 && mounted) {
+          setState(() {
+            _currentIndex = 0;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _KitchenStatusCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _startTimer();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _timer?.cancel();
     super.dispose();
+  }
+
+  List<_StatusItem> _getItems() {
+    final cfg = widget.config;
+    if (cfg == null) return const [];
+
+    final isOpen = cfg.isCurrentlyOpen;
+    final openTime = cfg.formattedOpenTime;
+    final List<_StatusItem> items = [];
+
+    // 1. Kitchen Status Item
+    if (isOpen) {
+      items.add(_StatusItem(
+        text: 'Kitchen Open • Fresh food is being prepared.',
+        icon: Icons.restaurant_rounded,
+        color: Colors.greenAccent,
+      ));
+    } else {
+      final closedMsg = cfg.storeClosedMsg.isNotEmpty
+          ? cfg.storeClosedMsg
+          : 'We\'re closed. Opens at $openTime.';
+      items.add(_StatusItem(
+        text: 'Kitchen Closed • $closedMsg',
+        icon: Icons.storefront_rounded,
+        color: Colors.redAccent,
+      ));
+    }
+
+    // 2. Announcement Items (split by '|')
+    if (cfg.announcement.isNotEmpty) {
+      final parts = cfg.announcement.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty);
+      for (final part in parts) {
+        items.add(_StatusItem(
+          text: part,
+          icon: Icons.campaign_rounded,
+          color: Colors.amberAccent,
+        ));
+      }
+    }
+
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
-    final cfg = widget.config;
-    final isOpen = cfg?.isCurrentlyOpen ?? true;
-    final openTime = cfg?.formattedOpenTime ?? '10:00 AM';
-    final msg = isOpen ? 'Fresh food is being prepared.' : 'We\'re closed. Opens at $openTime.';
-    final color = isOpen ? Colors.greenAccent : Colors.redAccent;
+    final items = _getItems();
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    if (_currentIndex >= items.length) {
+      _currentIndex = 0;
+    }
+
+    final current = items[_currentIndex];
+    final color = current.color;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
@@ -794,40 +880,59 @@ class _KitchenStatusCardState extends State<_KitchenStatusCard> with SingleTicke
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withValues(alpha: 0.25), width: 1.2),
         ),
-        child: Row(
-          children: [
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.6),
-                        blurRadius: _pulseAnimation.value,
-                        spreadRadius: _pulseAnimation.value / 3,
-                      )
-                    ],
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.3), // slide up slightly
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: Row(
+            key: ValueKey<int>(_currentIndex),
+            children: [
+              if (current.icon == Icons.restaurant_rounded || current.icon == Icons.storefront_rounded)
+                AnimatedBuilder(
+                  animation: _pulseAnimation,
+                  builder: (context, child) {
+                    return Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.6),
+                            blurRadius: _pulseAnimation.value,
+                            spreadRadius: _pulseAnimation.value / 3,
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                )
+              else
+                Icon(current.icon, color: color, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  current.text,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                msg,
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

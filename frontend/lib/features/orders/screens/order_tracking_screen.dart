@@ -419,14 +419,15 @@ class _OrderHeaderCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime d) {
+    final local = d.toLocal();
     const months = [
       'Jan','Feb','Mar','Apr','May','Jun',
       'Jul','Aug','Sep','Oct','Nov','Dec'
     ];
-    final h = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
-    final m = d.minute.toString().padLeft(2, '0');
-    final period = d.hour >= 12 ? 'PM' : 'AM';
-    return '${d.day} ${months[d.month - 1]}, $h:$m $period';
+    final h = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
+    final m = local.minute.toString().padLeft(2, '0');
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    return '${local.day} ${months[local.month - 1]}, $h:$m $period';
   }
 }
 

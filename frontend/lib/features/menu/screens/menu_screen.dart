@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/category.dart';
 import '../../../shared/models/product.dart';
 import '../../cart/services/cart_provider.dart';
+import '../../cart/models/cart_item.dart';
 import '../../home/services/product_service.dart';
 import '../../home/services/config_service.dart';
 import '../../cart/screens/cart_screen.dart';
@@ -750,46 +751,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               );
 
-              // Announcement if Kitchen Closed
-              if (isStoreClosed) {
-                slivers.add(
-                  SliverToBoxAdapter(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: _brandRed.withValues(alpha: 0.08),
-                        border: Border.all(color: _brandRed.withValues(alpha: 0.3)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.storefront_rounded, color: _brandRed),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Kitchen Closed',
-                                  style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  siteConfig.storeClosedMsg.isNotEmpty
-                                      ? siteConfig.storeClosedMsg
-                                      : 'We are currently closed for orders. Opens at ${siteConfig.formattedOpenTime}.',
-                                  style: const TextStyle(color: _textSecondary, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }
+              // Unified sliding Kitchen Status & Announcement Card
+              slivers.add(
+                SliverToBoxAdapter(
+                  child: _MenuKitchenStatusCard(config: siteConfig),
+                ),
+              );
 
               // Recently Viewed Section (Bonus)
               if (_query.isEmpty && _recentlyViewedIds.isNotEmpty) {
@@ -1190,22 +1157,14 @@ class _MenuScreenState extends State<MenuScreen> {
   void _showProductDetails(BuildContext context, Product product, CartProvider cart, SiteConfig config) {
     double basePrice = product.price;
 
-    // Customization variables
-    String selectedSize = 'Regular';
-    double sizeExtraPrice = 0.0;
-
-    String selectedSpice = 'Medium';
-
-    Map<String, double> possibleAddons = {
-      'Extra Cheese': 30.0,
-      'Extra Sauce': 15.0,
-      'Extra Toppings': 40.0,
-    };
-    Map<String, bool> selectedAddons = {
-      'Extra Cheese': false,
-      'Extra Sauce': false,
-      'Extra Toppings': false,
-    };
+    final Map<int, List<ModifierOption>> selectedModifiersMap = {};
+    for (final group in product.modifierGroups) {
+      if (group.isSingleSelect && group.options.isNotEmpty) {
+        selectedModifiersMap[group.id] = [group.options.first];
+      } else {
+        selectedModifiersMap[group.id] = [];
+      }
+    }
 
     String notes = '';
 
@@ -1220,12 +1179,12 @@ class _MenuScreenState extends State<MenuScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             double calculateTotalPrice() {
-              double total = basePrice + sizeExtraPrice;
-              selectedAddons.forEach((name, selected) {
-                if (selected) {
-                  total += (possibleAddons[name] ?? 0.0);
+              double total = basePrice;
+              for (final selections in selectedModifiersMap.values) {
+                for (final opt in selections) {
+                  total += opt.extraPrice;
                 }
-              });
+              }
               return total;
             }
 
@@ -1239,7 +1198,6 @@ class _MenuScreenState extends State<MenuScreen> {
               builder: (context, scrollController) {
                 return Column(
                   children: [
-                    // Pull Handle
                     const SizedBox(height: 12),
                     Container(
                       width: 48,
@@ -1251,13 +1209,11 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Scrollable Body
                     Expanded(
                       child: ListView(
                         controller: scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         children: [
-                          // Large Image with Hero Animation
                           Hero(
                             tag: 'product_img_${product.id}',
                             child: ClipRRect(
@@ -1276,7 +1232,6 @@ class _MenuScreenState extends State<MenuScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Badges & Indicators
                           Row(
                             children: [
                               if (product.isFeatured) ...[
@@ -1315,14 +1270,12 @@ class _MenuScreenState extends State<MenuScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Product Name
                           Text(
                             product.name,
                             style: const TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(height: 8),
 
-                          // Preparation & Rating Info
                           Row(
                             children: [
                               const Icon(Icons.star_rounded, color: _gold, size: 18),
@@ -1342,129 +1295,113 @@ class _MenuScreenState extends State<MenuScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Description
                           Text(
                             product.description.isNotEmpty ? product.description : 'No description available.',
                             style: const TextStyle(color: _textSecondary, fontSize: 14, height: 1.5),
                           ),
                           const SizedBox(height: 24),
 
-                          // Size Selection Section
-                          const Text(
-                            'Select Size',
-                            style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          Column(
-                            children: [
-                              _buildSizeOption(
-                                title: 'Regular',
-                                subtitle: 'Perfect for one',
-                                extraPrice: 0.0,
-                                isSelected: selectedSize == 'Regular',
-                                onTap: () {
-                                  setModalState(() {
-                                    selectedSize = 'Regular';
-                                    sizeExtraPrice = 0.0;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                              _buildSizeOption(
-                                title: 'Medium',
-                                subtitle: 'Share with a friend',
-                                extraPrice: 50.0,
-                                isSelected: selectedSize == 'Medium',
-                                onTap: () {
-                                  setModalState(() {
-                                    selectedSize = 'Medium';
-                                    sizeExtraPrice = 50.0;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                              _buildSizeOption(
-                                title: 'Large',
-                                subtitle: 'For the whole group',
-                                extraPrice: 100.0,
-                                isSelected: selectedSize == 'Large',
-                                onTap: () {
-                                  setModalState(() {
-                                    selectedSize = 'Large';
-                                    sizeExtraPrice = 100.0;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
+                          ...product.modifierGroups.map((group) {
+                            if (group.options.isEmpty) return const SizedBox.shrink();
 
-                          // Spice Level Section
-                          const Text(
-                            'Select Spice Level',
-                            style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: ['Mild', 'Medium', 'Hot'].map((spice) {
-                              final isSelected = selectedSpice == spice;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setModalState(() => selectedSpice = spice);
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(right: 8),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? _brandRed : _panelLight,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: isSelected ? _brandRed : _stroke),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      spice,
-                                      style: TextStyle(
-                                        color: isSelected ? Colors.white : _textPrimary,
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      group.name,
+                                      style: const TextStyle(
+                                        color: _textPrimary,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14,
                                       ),
                                     ),
-                                  ),
+                                    if (group.required) ...[
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        '*',
+                                        style: TextStyle(
+                                          color: _brandRed,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Add-ons Section
-                          const Text(
-                            'Add Extras (Optional)',
-                            style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          ...selectedAddons.keys.map((addonName) {
-                            final checked = selectedAddons[addonName]!;
-                            final extra = possibleAddons[addonName]!;
-                            return CheckboxListTile(
-                              value: checked,
-                              title: Text(addonName, style: const TextStyle(color: _textPrimary, fontSize: 14)),
-                              subtitle: Text('+₹${extra.toStringAsFixed(0)}',
-                                  style: const TextStyle(color: _brandRed, fontWeight: FontWeight.bold, fontSize: 12)),
-                              activeColor: _brandRed,
-                              checkColor: Colors.white,
-                              contentPadding: EdgeInsets.zero,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              onChanged: (val) {
-                                setModalState(() {
-                                  selectedAddons[addonName] = val ?? false;
-                                });
-                              },
+                                if (group.description.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    group.description,
+                                    style: const TextStyle(color: _textSecondary, fontSize: 12),
+                                  ),
+                                ],
+                                const SizedBox(height: 10),
+                                if (group.isSingleSelect)
+                                  ...group.options.map((option) {
+                                    final isSelected = selectedModifiersMap[group.id]?.contains(option) ?? false;
+                                    return Column(
+                                      children: [
+                                        _buildModifierOptionTile(
+                                          title: option.name,
+                                          extraPrice: option.extraPrice,
+                                          isSelected: isSelected,
+                                          isSingleSelect: true,
+                                          onTap: () {
+                                            setModalState(() {
+                                              selectedModifiersMap[group.id] = [option];
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    );
+                                  })
+                                else
+                                  ...group.options.map((option) {
+                                    final isSelected = selectedModifiersMap[group.id]?.contains(option) ?? false;
+                                    return Column(
+                                      children: [
+                                        _buildModifierOptionTile(
+                                          title: option.name,
+                                          extraPrice: option.extraPrice,
+                                          isSelected: isSelected,
+                                          isSingleSelect: false,
+                                          onTap: () {
+                                            setModalState(() {
+                                              final current = List<ModifierOption>.from(
+                                                selectedModifiersMap[group.id] ?? [],
+                                              );
+                                              if (isSelected) {
+                                                current.remove(option);
+                                              } else {
+                                                if (current.length < group.maxSelection) {
+                                                  current.add(option);
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Maximum ${group.maxSelection} selection allowed for ${group.name}',
+                                                      ),
+                                                      duration: const Duration(seconds: 1),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                              selectedModifiersMap[group.id] = current;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    );
+                                  }),
+                                const SizedBox(height: 16),
+                              ],
                             );
                           }),
-                          const SizedBox(height: 24),
 
-                          // Cooking Notes
                           const Text(
                             'Any special instructions? (Optional)',
                             style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
@@ -1486,7 +1423,6 @@ class _MenuScreenState extends State<MenuScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Dynamic Recommended Add-ons (Phase 6 Bonus)
                           if (_addonsList.isNotEmpty) ...[
                             const Text(
                               'People also ordered with this',
@@ -1576,7 +1512,6 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                     ),
 
-                    // Add to Cart / Sticky Action Bar
                     Container(
                       padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + MediaQuery.of(context).padding.bottom),
                       decoration: BoxDecoration(
@@ -1618,20 +1553,37 @@ class _MenuScreenState extends State<MenuScreen> {
                               onPressed: (!product.isAvailable || config.isCurrentlyOpen == false)
                                   ? null
                                   : () {
-                                      final selectedAddonsList = selectedAddons.entries
-                                          .where((e) => e.value)
-                                          .map((e) => e.key)
-                                          .toList();
-                                      double totalAddonExtra = selectedAddonsList.fold(
-                                          0.0, (sum, name) => sum + (possibleAddons[name] ?? 0.0));
+                                      for (final group in product.modifierGroups) {
+                                        final selections = selectedModifiersMap[group.id] ?? [];
+                                        if (group.required && selections.length < group.minSelection) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Please select at least ${group.minSelection} option for "${group.name}"',
+                                              ),
+                                              backgroundColor: _brandRed,
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                      }
+
+                                      final List<SelectedModifier> selectedModifiers = [];
+                                      for (final group in product.modifierGroups) {
+                                        final selections = selectedModifiersMap[group.id] ?? [];
+                                        for (final opt in selections) {
+                                          selectedModifiers.add(SelectedModifier(
+                                            groupName: group.name,
+                                            optionName: opt.name,
+                                            price: opt.extraPrice,
+                                          ));
+                                        }
+                                      }
 
                                       cart.addProduct(
                                         product,
                                         quantity: 1,
-                                        size: selectedSize,
-                                        spiceLevel: selectedSpice,
-                                        customizations: selectedAddonsList,
-                                        customizationPrice: sizeExtraPrice + totalAddonExtra,
+                                        selectedModifiers: selectedModifiers,
                                         notes: notes.trim().isNotEmpty ? notes.trim() : null,
                                       );
 
@@ -1639,7 +1591,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text('Added ${product.name} ($selectedSize) to cart!'),
+                                          content: Text('Added ${product.name} to cart!'),
                                           backgroundColor: _brandRed,
                                           duration: const Duration(seconds: 2),
                                           action: SnackBarAction(
@@ -1676,46 +1628,63 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildSizeOption({
+  Widget _buildModifierOptionTile({
     required String title,
-    required String subtitle,
     required double extraPrice,
     required bool isSelected,
+    required bool isSingleSelect,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? _brandRed.withValues(alpha: 0.08) : _panelLight,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? _brandRed : _stroke,
             width: 1.5,
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(color: _textSecondary, fontSize: 12)),
-              ],
+            Icon(
+              isSingleSelect
+                  ? (isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded)
+                  : (isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded),
+              color: isSelected ? _brandRed : _textSecondary,
+              size: 20,
             ),
-            Text(
-              extraPrice > 0 ? '+₹${extraPrice.toStringAsFixed(0)}' : 'Free',
-              style: TextStyle(
-                color: isSelected ? _brandRed : _textSecondary,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: _textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
+            if (extraPrice > 0)
+              Text(
+                '+₹${extraPrice.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: _brandRed,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            else
+              const Text(
+                'Free',
+                style: TextStyle(
+                  color: _textSecondary,
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
       ),
@@ -2299,6 +2268,190 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusItem {
+  final String text;
+  final IconData icon;
+  final Color color;
+
+  const _StatusItem({
+    required this.text,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class _MenuKitchenStatusCard extends StatefulWidget {
+  final SiteConfig config;
+  const _MenuKitchenStatusCard({required this.config});
+
+  @override
+  State<_MenuKitchenStatusCard> createState() => _MenuKitchenStatusCardState();
+}
+
+class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  Timer? _timer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 3.0, end: 8.0).animate(_pulseController);
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      final items = _getItems();
+      if (items.length > 1) {
+        if (mounted) {
+          setState(() {
+            _currentIndex = (_currentIndex + 1) % items.length;
+          });
+        }
+      } else {
+        if (_currentIndex != 0 && mounted) {
+          setState(() {
+            _currentIndex = 0;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MenuKitchenStatusCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  List<_StatusItem> _getItems() {
+    final cfg = widget.config;
+    final isOpen = cfg.isCurrentlyOpen;
+    final openTime = cfg.formattedOpenTime;
+    final List<_StatusItem> items = [];
+
+    // 1. Kitchen Status Item (Only show on menu page if closed!)
+    if (!isOpen) {
+      final closedMsg = cfg.storeClosedMsg.isNotEmpty
+          ? cfg.storeClosedMsg
+          : 'We are currently closed for orders. Opens at $openTime.';
+      items.add(_StatusItem(
+        text: 'Kitchen Closed • $closedMsg',
+        icon: Icons.storefront_rounded,
+        color: _brandRed,
+      ));
+    }
+
+    // 2. Announcement Items (split by '|')
+    if (cfg.announcement.isNotEmpty) {
+      final parts = cfg.announcement.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty);
+      for (final part in parts) {
+        items.add(_StatusItem(
+          text: part,
+          icon: Icons.campaign_rounded,
+          color: Colors.amberAccent,
+        ));
+      }
+    }
+
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _getItems();
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    if (_currentIndex >= items.length) {
+      _currentIndex = 0;
+    }
+
+    final current = items[_currentIndex];
+    final color = current.color;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          border: Border.all(color: color.withValues(alpha: 0.25), width: 1.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.3),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: Row(
+            key: ValueKey<int>(_currentIndex),
+            children: [
+              if (current.icon == Icons.storefront_rounded)
+                AnimatedBuilder(
+                  animation: _pulseAnimation,
+                  builder: (context, child) {
+                    return Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.6),
+                            blurRadius: _pulseAnimation.value,
+                            spreadRadius: _pulseAnimation.value / 3,
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                )
+              else
+                Icon(current.icon, color: color, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  current.text,
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

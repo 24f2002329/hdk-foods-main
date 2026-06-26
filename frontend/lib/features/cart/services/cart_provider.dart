@@ -32,19 +32,44 @@ class CartProvider extends ChangeNotifier {
   void addProduct(
     Product product, {
     int quantity = 1,
+    List<SelectedModifier> selectedModifiers = const [],
     String? size,
     String? spiceLevel,
     List<String> customizations = const [],
     double customizationPrice = 0.0,
     String? notes,
   }) {
+    List<SelectedModifier> finalModifiers = List.from(selectedModifiers);
+    if (finalModifiers.isEmpty) {
+      // Legacy conversion
+      if (size != null) {
+        finalModifiers.add(SelectedModifier(
+          groupName: "Size",
+          optionName: size,
+          price: customizationPrice,
+        ));
+      }
+      if (spiceLevel != null) {
+        finalModifiers.add(SelectedModifier(
+          groupName: "Spice Level",
+          optionName: spiceLevel,
+          price: 0.0,
+        ));
+      }
+      for (final cust in customizations) {
+        final parts = cust.split(": ");
+        finalModifiers.add(SelectedModifier(
+          groupName: parts.length > 1 ? parts[0] : "Extra",
+          optionName: parts.length > 1 ? parts[1] : cust,
+          price: 0.0,
+        ));
+      }
+    }
+
     final item = CartItem(
       product: product,
       quantity: quantity,
-      size: size,
-      spiceLevel: spiceLevel,
-      customizations: customizations,
-      customizationPrice: customizationPrice,
+      selectedModifiers: finalModifiers,
       notes: notes,
     );
     final key = item.cartId;

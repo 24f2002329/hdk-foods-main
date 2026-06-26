@@ -105,8 +105,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   String _fmtDate(DateTime? d) {
     if (d == null) return '';
+    final local = d.toLocal();
     const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return '${d.day} ${m[d.month - 1]} ${d.year}';
+    return '${local.day} ${m[local.month - 1]} ${local.year}';
   }
 
   @override
