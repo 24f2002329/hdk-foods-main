@@ -2,27 +2,76 @@ import firebase_admin
 import json
 import logging
 import os
+import urllib.parse
 
-from firebase_admin import credentials, messaging
+from firebase_admin import credentials, messaging, storage
 
 logger = logging.getLogger(__name__)
 
 if not firebase_admin._apps:
-
-    firebase_json = os.environ.get(
-        "FIREBASE_SERVICE_ACCOUNT"
-    )
-
+    firebase_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if not firebase_json:
         print("Warning: FIREBASE_SERVICE_ACCOUNT environment variable is not set.")
     else:
         try:
-            cred = credentials.Certificate(
-                json.loads(firebase_json)
-            )
-            firebase_admin.initialize_app(cred)
+            firebase_data = json.loads(firebase_json)
+            cred = credentials.Certificate(firebase_data)
+            
+            project_id = firebase_data.get("project_id")
+            storage_bucket = os.environ.get("FIREBASE_STORAGE_BUCKET")
+            if not storage_bucket and project_id:
+                storage_bucket = f"{project_id}.firebasestorage.app"
+                
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': storage_bucket
+            })
         except json.JSONDecodeError as e:
             raise ValueError(f"FIREBASE_SERVICE_ACCOUNT is not a valid JSON string. Please check your .env file. Error: {e}")
+
+
+def _upload_to_bucket(bucket, file_obj, destination_path: str) -> str:
+    blob = bucket.blob(destination_path)
+    
+    # Reset file pointer to beginning
+    file_obj.seek(0)
+    
+    # Upload file content
+    blob.upload_from_file(
+        file_obj,
+        content_type=file_obj.content_type or "image/jpeg"
+    )
+    
+    try:
+        # Try to make public (works on fine-grained access control buckets)
+        blob.make_public()
+        return blob.public_url
+    except Exception as e:
+        logger.warning("Could not set ACL (uniform bucket-level access enabled): %s", e)
+        # Use Firebase public download URL format as fallback
+        encoded_path = urllib.parse.quote(destination_path, safe="")
+        return f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded_path}?alt=media"
+
+
+def upload_file_to_firebase(file_obj, destination_path: str) -> str:
+    """Uploads a file to Firebase Storage and returns its public URL."""
+    if not firebase_admin._apps:
+        raise ValueError("Firebase is not initialized.")
+    
+    bucket = storage.bucket()
+    try:
+        return _upload_to_bucket(bucket, file_obj, destination_path)
+    except Exception as e:
+        # If the default bucket does not exist and ends with .firebasestorage.app,
+        # try the older .appspot.com domain format.
+        if "bucket does not exist" in str(e).lower() and bucket.name.endswith(".firebasestorage.app"):
+            new_bucket_name = bucket.name.replace(".firebasestorage.app", ".appspot.com")
+            logger.info("Default .firebasestorage.app bucket not found. Retrying with older domain: %s", new_bucket_name)
+            try:
+                new_bucket = storage.bucket(new_bucket_name)
+                return _upload_to_bucket(new_bucket, file_obj, destination_path)
+            except Exception as retry_e:
+                raise retry_e
+        raise e
 
 
 def send_push(user, title: str, body: str, data: dict = None):

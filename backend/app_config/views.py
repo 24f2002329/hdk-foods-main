@@ -129,11 +129,23 @@ class BannerImageUploadView(APIView):
         if not (content_type.startswith("image/") or is_image_ext):
             return Response({"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST)
 
-        upload_dir = os.path.join(settings.MEDIA_ROOT, "banners")
-        os.makedirs(upload_dir, exist_ok=True)
-
         ext = os.path.splitext(image_file.name)[1].lower() or ".jpg"
         filename = f"banner_{pk}{ext}"
+
+        import firebase_admin
+        if firebase_admin._apps:
+            from authentication.firebase import upload_file_to_firebase
+            import logging
+            logger = logging.getLogger(__name__)
+            try:
+                banner.image_url = upload_file_to_firebase(image_file, f"banners/{filename}")
+                banner.save(update_fields=["image_url"])
+                return Response(BannerSerializer(banner).data)
+            except Exception as e:
+                logger.error("Firebase upload failed, falling back to local storage: %s", e)
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "banners")
+        os.makedirs(upload_dir, exist_ok=True)
         filepath = os.path.join(upload_dir, filename)
 
         with open(filepath, "wb") as f:

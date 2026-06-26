@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/product.dart';
 
@@ -47,12 +48,17 @@ class ProductRow extends StatelessWidget {
                 height: 92,
                 child: product.image.isEmpty
                     ? const _ProductImageFallback()
-                    : Image.network(
-                        product.image,
+                    : CachedNetworkImage(
+                        imageUrl: product.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const _ProductImageFallback();
-                        },
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => const _ProductImageFallback(),
                       ),
               ),
             ),

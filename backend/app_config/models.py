@@ -23,6 +23,25 @@ class SiteConfig(models.Model):
     def __str__(self):
         return "Site Configuration"
 
+    def is_currently_open(self):
+        if not self.is_store_open:
+            return False
+        
+        from django.utils import timezone
+        try:
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        except ImportError:
+            import pytz
+            tz = pytz.timezone("Asia/Kolkata")
+            
+        now_local = timezone.now().astimezone(tz).time()
+        
+        if self.store_open_time <= self.store_close_time:
+            return self.store_open_time <= now_local <= self.store_close_time
+        else:
+            return now_local >= self.store_open_time or now_local <= self.store_close_time
+
     @classmethod
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/category.dart';
 
@@ -39,19 +40,24 @@ class CategoryCard extends StatelessWidget {
                         size: 24,
                       ),
                     )
-                  : Image.network(
-                      category.image,
+                  : CachedNetworkImage(
+                      imageUrl: category.image,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const ColoredBox(
-                          color: Color(0xFF1E1E1E),
-                          child: Icon(
-                            Icons.fastfood_rounded,
-                            color: _brandRed,
-                            size: 24,
-                          ),
-                        );
-                      },
+                      placeholder: (context, url) => const Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => const ColoredBox(
+                        color: Color(0xFF1E1E1E),
+                        child: Icon(
+                          Icons.fastfood_rounded,
+                          color: _brandRed,
+                          size: 24,
+                        ),
+                      ),
                     ),
             ),
           ),

@@ -88,6 +88,13 @@ class CreateOrderView(APIView):
     ]
 
     def post(self, request):
+        from app_config.models import SiteConfig
+        config = SiteConfig.get()
+        if not config.is_currently_open():
+            return Response(
+                {"detail": config.store_closed_msg or "The kitchen is closed right now."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = OrderCreateSerializer(
             data=request.data

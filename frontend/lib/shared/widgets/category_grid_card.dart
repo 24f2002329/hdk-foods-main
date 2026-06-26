@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/category.dart';
 
@@ -41,12 +42,17 @@ class CategoryGridCard extends StatelessWidget {
                 aspectRatio: 1.5,
                 child: category.image.isEmpty
                     ? const _CategoryImageFallback()
-                    : Image.network(
-                        category.image,
+                    : CachedNetworkImage(
+                        imageUrl: category.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const _CategoryImageFallback();
-                        },
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => const _CategoryImageFallback(),
                       ),
               ),
               Padding(

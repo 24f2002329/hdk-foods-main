@@ -164,7 +164,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+if os.getenv("WEBSITE_INSTANCE_ID"):  # Running on Azure App Service
+    MEDIA_ROOT = Path("/home/site/media")
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
 
 
 CORS_ALLOW_ALL_ORIGINS = os.getenv(
