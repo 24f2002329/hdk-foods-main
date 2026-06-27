@@ -11,6 +11,7 @@ import '../../navigation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
 import '../services/notification_service.dart';
 import 'notification_screen.dart';
+import '../../../../core/widgets/error_retry.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -78,9 +79,15 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   }
 
   int _unreadNotificationCount = 0;
+  String? _error;
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() => _loading = true);
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final orders = await _service.getDeliveryOrders();
       int unread = 0;
@@ -94,11 +101,17 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
           _orders = orders;
           _unreadNotificationCount = unread;
           _loading = false;
+          _error = null;
         });
       }
     } catch (e, st) {
       debugPrint('DeliveryOrdersScreen._load error: $e\n$st');
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -153,12 +166,14 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _red))
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _orders.isEmpty
-                  ? const Center(
-                      child: Text('No deliveries assigned',
-                          style: TextStyle(color: Colors.grey, fontSize: 16)))
+          : _error != null
+              ? ErrorRetryWidget(error: _error!, onRetry: _load)
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: _orders.isEmpty
+                      ? const Center(
+                          child: Text('No deliveries assigned',
+                              style: TextStyle(color: Colors.grey, fontSize: 16)))
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _orders.length,

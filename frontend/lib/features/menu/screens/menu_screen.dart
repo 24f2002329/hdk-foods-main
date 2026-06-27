@@ -12,6 +12,7 @@ import '../../cart/models/cart_item.dart';
 import '../../home/services/product_service.dart';
 import '../../home/services/config_service.dart';
 import '../../cart/screens/cart_screen.dart';
+import '../../../core/widgets/error_retry.dart';
 
 // Brand colors
 const _brandRed = Color(0xFFFF1E1E);
@@ -25,7 +26,8 @@ const _gold = Color(0xFFFFC107);
 
 class MenuScreen extends StatefulWidget {
   final int? initialCategoryId;
-  const MenuScreen({super.key, this.initialCategoryId});
+  final bool autofocusSearch;
+  const MenuScreen({super.key, this.initialCategoryId, this.autofocusSearch = false});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -74,6 +76,11 @@ class _MenuScreenState extends State<MenuScreen> {
     dataFuture = _load();
     _loadFavorites();
     _loadAddons();
+    if (widget.autofocusSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchFocusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -477,8 +484,8 @@ class _MenuScreenState extends State<MenuScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const _ShimmerLoader();
               } else if (snapshot.hasError) {
-                return _ErrorState(
-                  message: snapshot.error.toString(),
+                return ErrorRetryWidget(
+                  error: snapshot.error.toString(),
                   onRetry: _refresh,
                 );
               }
@@ -815,10 +822,38 @@ class _MenuScreenState extends State<MenuScreen> {
                   slivers.add(
                     SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Center(
-                        child: Text(
-                          'No dishes found matching "$_query"',
-                          style: const TextStyle(color: _textSecondary, fontWeight: FontWeight.bold),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off_rounded,
+                                size: 64,
+                                color: Colors.grey[700],
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'No results found',
+                                style: TextStyle(
+                                  color: _textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'We couldn\'t find any dishes matching "$_query". Try checking the spelling or searching for something else!',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: _textSecondary,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -2231,49 +2266,7 @@ class _MenuData {
   });
 }
 
-// ── ERROR STATE WIDGET ───────────────────────────────────────────────────────
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
 
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded, color: _brandRed, size: 64),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load Menu',
-              style: TextStyle(color: _textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: const TextStyle(color: _textSecondary, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _brandRed,
-                minimumSize: const Size(140, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── EMPTY STATE WIDGET ───────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {

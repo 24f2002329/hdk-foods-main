@@ -1269,11 +1269,11 @@ class ApplyDiscountView(APIView):
         discount = data["discount_amount"]
         reason = data.get("discount_reason", "")
 
-        # Snapshot the pre-discount total once (never overwrite it).
-        if order.original_total is None:
-            order.original_total = order.total_amount
+        # Calculate true subtotal from items
+        subtotal = sum(item.price * item.quantity for item in order.items.all())
+        order.original_total = subtotal
 
-        if discount > order.original_total:
+        if discount > subtotal:
             return Response(
                 {"detail": "Discount cannot exceed the original order total."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1281,7 +1281,7 @@ class ApplyDiscountView(APIView):
 
         order.discount_amount = discount
         order.discount_reason = reason
-        order.total_amount = order.original_total - discount
+        order.total_amount = subtotal - discount
         order.is_modified_by_staff = True
         order.save(update_fields=[
             "discount_amount", "discount_reason",
@@ -1398,13 +1398,28 @@ class EditOrderItemsView(APIView):
                 price=price,
             )
 
-        # Persist total + flag the modification.
-        if order.original_total is None:
-            order.original_total = pre_edit_total
-        order.total_amount = total_amount
+        # Check if the existing discount was from a coupon and recalculate/cap it
+        discount_amount = order.discount_amount
+        if order.discount_reason and order.discount_reason.startswith("Coupon: "):
+            coupon_code = order.discount_reason.replace("Coupon: ", "").strip()
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code)
+                if total_amount < coupon.min_order_amount:
+                    discount_amount = Decimal("0.00")
+                    order.discount_reason = ""
+                else:
+                    discount_amount = coupon.compute_discount(total_amount)
+            except Coupon.DoesNotExist:
+                discount_amount = min(discount_amount, total_amount)
+        else:
+            discount_amount = min(discount_amount, total_amount)
+
+        order.discount_amount = discount_amount
+        order.original_total = total_amount
+        order.total_amount = total_amount - discount_amount
         order.is_modified_by_staff = True
         order.save(update_fields=[
-            "total_amount", "original_total",
+            "total_amount", "original_total", "discount_amount", "discount_reason",
             "is_modified_by_staff", "updated_at"
         ])
 
