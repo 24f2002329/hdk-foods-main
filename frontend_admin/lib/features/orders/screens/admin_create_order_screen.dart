@@ -25,21 +25,101 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
   // Form Fields
   final _phoneCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
+  
+  // Split Address Fields
+  final _houseCtrl = TextEditingController();
+  final _streetCtrl = TextEditingController();
+  final _landmarkCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController(text: 'Palghar');
+  final _pincodeCtrl = TextEditingController(text: '307001');
+
   final _notesCtrl = TextEditingController();
   final _couponCtrl = TextEditingController();
   String _deliveryType = 'delivery'; // 'delivery' or 'pickup'
   String _paymentMethod = 'cod'; // 'cod' or 'prepaid'
   bool _saving = false;
 
+  // Saved addresses and selection
+  List<Map<String, dynamic>> _savedAddresses = [];
+  int? _selectedAddressId;
+  bool _loadingCustomer = false;
+
   // Selected items: productId -> {quantity, product, selections: [{groupName, optionName, price}]}
   Map<int, Map<String, dynamic>> _selectedItems = {};
 
   @override
+  void initState() {
+    super.initState();
+    _phoneCtrl.addListener(_onPhoneChanged);
+  }
+
+  void _onPhoneChanged() {
+    final val = _phoneCtrl.text.trim();
+    if (val.length == 10 || val.length == 13) {
+      _fetchCustomerInfo(val);
+    }
+  }
+
+  Future<void> _fetchCustomerInfo(String phone) async {
+    setState(() {
+      _loadingCustomer = true;
+    });
+    try {
+      final res = await _svc.getCustomerInfo(phone);
+      if (res['found'] == true) {
+        setState(() {
+          if (_nameCtrl.text.trim().isEmpty) {
+            _nameCtrl.text = res['name'] ?? '';
+          }
+          final addrs = res['addresses'] as List<dynamic>;
+          _savedAddresses = addrs.map((e) => Map<String, dynamic>.from(e)).toList();
+          
+          final def = _savedAddresses.firstWhere(
+            (e) => e['is_default'] == true,
+            orElse: () => _savedAddresses.isNotEmpty ? _savedAddresses.first : {},
+          );
+          if (def.isNotEmpty) {
+            _selectedAddressId = def['id'] as int;
+            _houseCtrl.text = def['house'] ?? '';
+            _streetCtrl.text = def['street'] ?? '';
+            _landmarkCtrl.text = def['landmark'] ?? '';
+            _cityCtrl.text = def['city'] ?? '';
+            _pincodeCtrl.text = def['pincode'] ?? '';
+          }
+        });
+      }
+    } catch (_) {}
+    setState(() {
+      _loadingCustomer = false;
+    });
+  }
+
+  void _onAddressFieldChanged() {
+    if (_selectedAddressId != null) {
+      final selected = _savedAddresses.firstWhere((e) => e['id'] == _selectedAddressId, orElse: () => {});
+      if (selected.isEmpty ||
+          _houseCtrl.text != selected['house'] ||
+          _streetCtrl.text != selected['street'] ||
+          _landmarkCtrl.text != selected['landmark'] ||
+          _cityCtrl.text != selected['city'] ||
+          _pincodeCtrl.text != selected['pincode']) {
+        setState(() {
+          _selectedAddressId = null;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    _phoneCtrl.removeListener(_onPhoneChanged);
     _phoneCtrl.dispose();
     _nameCtrl.dispose();
-    _addressCtrl.dispose();
+    _houseCtrl.dispose();
+    _streetCtrl.dispose();
+    _landmarkCtrl.dispose();
+    _cityCtrl.dispose();
+    _pincodeCtrl.dispose();
     _notesCtrl.dispose();
     _couponCtrl.dispose();
     super.dispose();
@@ -121,7 +201,12 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
       'phone_number': _phoneCtrl.text.trim(),
       'customer_name': _nameCtrl.text.trim(),
       'delivery_type': _deliveryType,
-      'address_text': _deliveryType == 'delivery' ? _addressCtrl.text.trim() : 'Store Pickup',
+      'address_id': _deliveryType == 'delivery' ? _selectedAddressId : null,
+      'house': _deliveryType == 'delivery' ? _houseCtrl.text.trim() : 'Store Pickup',
+      'street': _deliveryType == 'delivery' ? _streetCtrl.text.trim() : '',
+      'landmark': _deliveryType == 'delivery' ? _landmarkCtrl.text.trim() : '',
+      'city': _deliveryType == 'delivery' ? _cityCtrl.text.trim() : 'Palghar',
+      'pincode': _deliveryType == 'delivery' ? _pincodeCtrl.text.trim() : '307001',
       'items': itemsPayload,
       'payment_method': _paymentMethod,
       'delivery_notes': noteParts.join(' | '),
@@ -208,15 +293,128 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           }),
                         ),
                         if (_deliveryType == 'delivery') ...[
+                          if (_loadingCustomer) ...[
+                            const SizedBox(height: 12),
+                            const Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: _red),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text('Loading customer addresses…', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ] else if (_savedAddresses.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<int?>(
+                              value: _selectedAddressId,
+                              dropdownColor: _card,
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              decoration: _inputDec('Select Saved Address'),
+                              items: [
+                                ..._savedAddresses.map((addr) {
+                                  final label = addr['label'] ?? 'Home';
+                                  final house = addr['house'] ?? '';
+                                  final street = addr['street'] ?? '';
+                                  final landmark = addr['landmark'] ?? '';
+                                  final city = addr['city'] ?? '';
+                                  final pincode = addr['pincode'] ?? '';
+                                  final fullAddrStr = [
+                                    if (house.isNotEmpty) house,
+                                    if (street.isNotEmpty) street,
+                                    if (landmark.isNotEmpty) landmark,
+                                    if (city.isNotEmpty) city,
+                                    if (pincode.isNotEmpty) pincode
+                                  ].join(', ');
+                                  return DropdownMenuItem<int?>(
+                                    value: addr['id'] as int?,
+                                    child: Text(
+                                      '$label: $fullAddrStr',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }),
+                                const DropdownMenuItem<int?>(
+                                  value: null,
+                                  child: Text('Enter New Address manually...'),
+                                ),
+                              ],
+                              onChanged: (v) => setState(() {
+                                _selectedAddressId = v;
+                                if (v != null) {
+                                  final selected = _savedAddresses.firstWhere((e) => e['id'] == v);
+                                  _houseCtrl.text = selected['house'] ?? '';
+                                  _streetCtrl.text = selected['street'] ?? '';
+                                  _landmarkCtrl.text = selected['landmark'] ?? '';
+                                  _cityCtrl.text = selected['city'] ?? '';
+                                  _pincodeCtrl.text = selected['pincode'] ?? '';
+                                } else {
+                                  _houseCtrl.text = '';
+                                  _streetCtrl.text = '';
+                                  _landmarkCtrl.text = '';
+                                  _cityCtrl.text = 'Palghar';
+                                  _pincodeCtrl.text = '307001';
+                                }
+                              }),
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           TextFormField(
-                            controller: _addressCtrl,
-                            maxLines: 2,
+                            controller: _houseCtrl,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _inputDec('House No / Flat No (Optional)', 'e.g. H.No 12 / Flat 302'),
+                            onChanged: (_) => _onAddressFieldChanged(),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _streetCtrl,
                             style: const TextStyle(color: Colors.white),
                             validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
-                                ? 'Delivery address is required'
+                                ? 'Street / Area is required'
                                 : null,
-                            decoration: _inputDec('Delivery Address *', 'e.g. H.No 12, Sector 15, Chandigarh'),
+                            decoration: _inputDec('Street / Area *', 'e.g. Sector 15 / Gandhi Nagar'),
+                            onChanged: (_) => _onAddressFieldChanged(),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _landmarkCtrl,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _inputDec('Landmark (Optional)', 'e.g. Near Shiv Temple'),
+                            onChanged: (_) => _onAddressFieldChanged(),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _cityCtrl,
+                                  style: const TextStyle(color: Colors.white),
+                                  validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
+                                      ? 'City is required'
+                                      : null,
+                                  decoration: _inputDec('City *', 'e.g. Palghar'),
+                                  onChanged: (_) => _onAddressFieldChanged(),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _pincodeCtrl,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(color: Colors.white),
+                                  validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
+                                      ? 'Pincode is required'
+                                      : null,
+                                  decoration: _inputDec('Pincode *', 'e.g. 307001'),
+                                  onChanged: (_) => _onAddressFieldChanged(),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                         const SizedBox(height: 12),

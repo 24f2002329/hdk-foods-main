@@ -302,3 +302,64 @@ class DeleteCustomerView(APIView):
 
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def normalize_phone_number(phone):
+    phone = phone.strip()
+    if not phone:
+        return ""
+    phone = "".join(c for c in phone if c.isdigit() or c == "+")
+    if len(phone) == 10 and phone.isdigit():
+        return f"+91{phone}"
+    if len(phone) == 12 and phone.startswith("91"):
+        return f"+{phone}"
+    if phone.startswith("+"):
+        return phone
+    return phone
+
+
+class AdminCustomerInfoView(APIView):
+    """Admin fetches customer name and saved addresses by phone number."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        phone = request.query_params.get("phone", "").strip()
+        if not phone:
+            return Response({"detail": "Phone parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        normalized_phone = normalize_phone_number(phone)
+        raw_10_digit = phone[-10:] if len(phone) >= 10 else phone
+
+        user = User.objects.filter(
+            Q(phone_number=phone) |
+            Q(phone_number=normalized_phone) |
+            Q(phone_number__endswith=raw_10_digit)
+        ).first()
+
+        if not user:
+            return Response({"found": False})
+
+        addresses = Address.objects.filter(user=user)
+        addresses_data = []
+        for addr in addresses:
+            addresses_data.append({
+                "id": addr.id,
+                "label": addr.label,
+                "house": addr.house,
+                "street": addr.street,
+                "landmark": addr.landmark,
+                "city": addr.city,
+                "pincode": addr.pincode,
+                "latitude": float(addr.latitude),
+                "longitude": float(addr.longitude),
+                "is_default": addr.is_default,
+            })
+
+        return Response({
+            "found": True,
+            "user_id": user.id,
+            "name": user.name,
+            "phone_number": user.phone_number,
+            "addresses": addresses_data
+        })

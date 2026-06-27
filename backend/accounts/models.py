@@ -116,7 +116,7 @@ class Address(models.Model):
         choices=LABEL_CHOICES
     )
 
-    house = models.CharField(max_length=255)
+    house = models.CharField(max_length=255, blank=True)
 
     street = models.CharField(
         max_length=255,
@@ -134,12 +134,14 @@ class Address(models.Model):
 
     latitude = models.DecimalField(
         max_digits=9,
-        decimal_places=6
+        decimal_places=6,
+        default=25.861129
     )
 
     longitude = models.DecimalField(
         max_digits=9,
-        decimal_places=6
+        decimal_places=6,
+        default=73.749306
     )
 
     is_default = models.BooleanField(default=False)

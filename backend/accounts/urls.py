@@ -12,6 +12,7 @@ from .views import (
     SaveFCMTokenView,
     SetDefaultDeliveryView,
     ToggleCustomerStatusView,
+    AdminCustomerInfoView,
 )
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
     path("customers/<int:pk>/", CustomerDetailView.as_view()),
     path("customers/<int:pk>/toggle-status/", ToggleCustomerStatusView.as_view()),
     path("customers/<int:pk>/delete/", DeleteCustomerView.as_view()),
+    path("admin/customer-info/", AdminCustomerInfoView.as_view()),
 ]

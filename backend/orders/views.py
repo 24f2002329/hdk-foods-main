@@ -36,7 +36,7 @@ from .serializers import (
 from django.utils import timezone
 from datetime import timedelta
 
-from django.db.models import Sum, Count, F, Avg
+from django.db.models import Sum, Count, F, Avg, Q
 from django.db.models.functions import TruncDate
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -1669,6 +1669,20 @@ class GetDeliveryLocationView(APIView):
         })
 
 
+def normalize_phone_number(phone):
+    phone = phone.strip()
+    if not phone:
+        return ""
+    phone = "".join(c for c in phone if c.isdigit() or c == "+")
+    if len(phone) == 10 and phone.isdigit():
+        return f"+91{phone}"
+    if len(phone) == 12 and phone.startswith("91"):
+        return f"+{phone}"
+    if phone.startswith("+"):
+        return phone
+    return phone
+
+
 class AdminCreateOrderView(APIView):
     """Admin manually places an order for a customer by their phone number."""
     permission_classes = [IsAdmin]
@@ -1678,6 +1692,15 @@ class AdminCreateOrderView(APIView):
         customer_name = request.data.get("customer_name", "").strip()
         delivery_type = request.data.get("delivery_type", "delivery") # delivery or pickup
         address_text = request.data.get("address_text", "").strip()
+        address_id = request.data.get("address_id")
+        
+        # Split Address Fields
+        house = request.data.get("house", "").strip()
+        street = request.data.get("street", "").strip()
+        landmark = request.data.get("landmark", "").strip()
+        city = request.data.get("city", "").strip()
+        pincode = request.data.get("pincode", "").strip()
+
         items = request.data.get("items", [])
         payment_method = request.data.get("payment_method", "cod") # cod or prepaid
         coupon_code = request.data.get("coupon_code", "").strip()
@@ -1690,38 +1713,76 @@ class AdminCreateOrderView(APIView):
             return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 1. Get or create the User
-        try:
-            user = User.objects.get(phone_number=phone_number)
-            if customer_name and not user.name:
+        normalized_phone = normalize_phone_number(phone_number)
+        raw_10_digit = phone_number[-10:] if len(phone_number) >= 10 else phone_number
+
+        user = User.objects.filter(
+            Q(phone_number=phone_number) |
+            Q(phone_number=normalized_phone) |
+            Q(phone_number__endswith=raw_10_digit)
+        ).first()
+
+        if user:
+            # Normalize user's phone if it wasn't
+            if user.phone_number != normalized_phone:
+                user.phone_number = normalized_phone
+                user.save(update_fields=["phone_number"])
+            # Update name if provided (filled)
+            if customer_name:
                 user.name = customer_name
-                user.save()
-        except User.DoesNotExist:
+                user.save(update_fields=["name"])
+        else:
             user = User.objects.create_user(
-                phone_number=phone_number,
+                phone_number=normalized_phone,
                 name=customer_name or "Guest Customer",
                 role="customer"
             )
 
         # 2. Get or create Address
-        if delivery_type == "pickup":
-            addr_text = "Store Pickup"
-        else:
-            addr_text = address_text or "Delivery"
+        address = None
+        if address_id:
+            try:
+                address = Address.objects.get(user=user, id=address_id)
+            except Address.DoesNotExist:
+                address = None
 
-        # Find if user already has an address with this text, or create a new one
-        address = Address.objects.filter(user=user, house=addr_text).first()
         if not address:
-            address = Address.objects.create(
+            if delivery_type == "pickup":
+                house_text = "Store Pickup"
+                street_text = ""
+                landmark_text = ""
+                city_text = "Sojat Road"
+                pincode_text = "306103"
+            else:
+                house_text = house or address_text or "Delivery"
+                street_text = street
+                landmark_text = landmark
+                city_text = city or "Sojat Road"
+                pincode_text = pincode or "306103"
+
+            # Find if user already has an address with these exact details
+            address = Address.objects.filter(
                 user=user,
-                label="Home" if delivery_type == "delivery" else "Other",
-                house=addr_text,
-                street="",
-                city="Chandigarh",
-                pincode="160001",
-                latitude=Decimal("30.7333"),
-                longitude=Decimal("76.7794"),
-                is_default=True
-            )
+                house=house_text,
+                street=street_text,
+                landmark=landmark_text,
+                city=city_text,
+                pincode=pincode_text
+            ).first()
+            
+            if not address:
+                address = Address.objects.create(
+                    user=user,
+                    label="Home" if delivery_type == "delivery" else "Other",
+                    house=house_text,
+                    street=street_text,
+                    landmark=landmark_text,
+                    city=city_text,
+                    pincode=pincode_text,
+                    latitude=Decimal("25.861129"),
+                    longitude=Decimal("73.749306"),
+                    is_default=True
+                )
 
         # 3. Calculate total and check coupon
         total_amount = Decimal("0.00")

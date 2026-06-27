@@ -574,9 +574,8 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
                 const SizedBox(height: 18),
                 _AddressField(
                   controller: _houseController,
-                  label: 'House number / Flat',
+                  label: 'House number / Flat (Optional)',
                   icon: Icons.home_rounded,
-                  validator: _required,
                 ),
                 _AddressField(
                   controller: _streetController,

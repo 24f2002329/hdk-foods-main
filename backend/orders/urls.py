@@ -34,11 +34,14 @@ from .views import (
     VerifyPaymentView
 )
 
+from accounts.views import AdminCustomerInfoView
+
 urlpatterns = [
     path("coupons/active/", ActiveCouponListView.as_view()),
     path("", OrderListView.as_view()),
     path("create/", CreateOrderView.as_view()),
     path("admin/create/", AdminCreateOrderView.as_view()),
+    path("admin/customer-info/", AdminCustomerInfoView.as_view()),
     path("my-orders/", MyOrdersView.as_view()),
     path("<int:pk>/", OrderDetailView.as_view()),
     path("<int:pk>/confirm/", ConfirmOrderView.as_view()),

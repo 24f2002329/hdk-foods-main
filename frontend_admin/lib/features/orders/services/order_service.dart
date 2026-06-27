@@ -224,4 +224,15 @@ class OrderService {
     final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
     throw Exception(detail);
   }
+
+  Future<Map<String, dynamic>> getCustomerInfo(String phone) async {
+    final response = await http.get(
+      Uri.parse('$_base/admin/customer-info/?phone=${Uri.encodeComponent(phone)}'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load customer info');
+  }
 }
