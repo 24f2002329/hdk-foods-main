@@ -9,6 +9,8 @@ import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../navigation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
+import '../services/notification_service.dart';
+import 'notification_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -75,15 +77,39 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     _load();
   }
 
+  int _unreadNotificationCount = 0;
+
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
       final orders = await _service.getDeliveryOrders();
-      if (mounted) setState(() { _orders = orders; _loading = false; });
+      int unread = 0;
+      try {
+        final res = await NotificationService().getNotifications();
+        unread = res['unread_count'] as int;
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+          _unreadNotificationCount = unread;
+          _loading = false;
+        });
+      }
     } catch (e, st) {
       debugPrint('DeliveryOrdersScreen._load error: $e\n$st');
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationScreen(),
+      ),
+    );
+    _load(silent: true);
   }
 
   @override
@@ -94,6 +120,34 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         title: const Text('My Deliveries',
             style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: _red),
+                onPressed: _openNotifications,
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _surface, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$_unreadNotificationCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load)
         ],
       ),

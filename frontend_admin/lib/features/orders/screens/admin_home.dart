@@ -22,6 +22,8 @@ import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
 import '../../products/screens/modifier_management_screen.dart';
 import '../../settings/screens/site_config_screen.dart';
+import '../../settings/services/notification_service.dart';
+import '../../settings/screens/notification_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -167,16 +169,40 @@ class _DashboardTabState extends State<_DashboardTab>
     super.dispose();
   }
 
+  int _unreadNotificationCount = 0;
+
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() { _loading = true; _error = null; });
     try {
       final data = await _svc.getDashboard(period: _period);
-      if (mounted) setState(() { _data = data; _loading = false; });
+      int unread = 0;
+      try {
+        final res = await NotificationService().getNotifications();
+        unread = res['unread_count'] as int;
+      } catch (_) {}
+      
+      if (mounted) {
+        setState(() {
+          _data = data;
+          _unreadNotificationCount = unread;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted && !silent) {
         setState(() { _error = e.toString(); _loading = false; });
       }
     }
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationScreen(),
+      ),
+    );
+    _load(silent: true);
   }
 
   Future<void> _loadChart() async {
@@ -234,6 +260,34 @@ class _DashboardTabState extends State<_DashboardTab>
             style: GoogleFonts.poppins(
                 color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: _red),
+                onPressed: _openNotifications,
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _surface, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$_unreadNotificationCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
               icon: const Icon(Icons.refresh, color: _red),
               onPressed: _load),
