@@ -229,6 +229,7 @@ class _MenuScreenState extends State<MenuScreen> {
   void _openFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1189,6 +1190,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: _panel,
       shape: const RoundedRectangleBorder(
@@ -2144,33 +2146,41 @@ class _ShimmerLoader extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // Filter chips shimmer
-            Row(
-              children: List.generate(3, (i) {
-                return Container(
-                  width: 80,
-                  height: 36,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                );
-              }),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              child: Row(
+                children: List.generate(3, (i) {
+                  return Container(
+                    width: 80,
+                    height: 36,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  );
+                }),
+              ),
             ),
             const SizedBox(height: 20),
             // Category rail shimmer
-            Row(
-              children: List.generate(4, (i) {
-                return Container(
-                  width: 90,
-                  height: 38,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                );
-              }),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              child: Row(
+                children: List.generate(4, (i) {
+                  return Container(
+                    width: 90,
+                    height: 38,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  );
+                }),
+              ),
             ),
             const SizedBox(height: 28),
             // Section title shimmer

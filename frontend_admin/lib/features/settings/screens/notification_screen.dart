@@ -71,6 +71,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _viewNotification(NotificationModel item) async {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

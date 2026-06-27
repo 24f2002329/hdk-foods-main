@@ -2554,6 +2554,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

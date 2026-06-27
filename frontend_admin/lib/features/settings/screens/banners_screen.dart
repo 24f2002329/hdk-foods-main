@@ -199,6 +199,7 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),

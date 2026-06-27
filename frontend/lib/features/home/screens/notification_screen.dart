@@ -72,6 +72,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     // Show details sheet
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

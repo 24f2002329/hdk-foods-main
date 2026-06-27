@@ -125,50 +125,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showHelp() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: const Color(0xFF181818),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Help & Support',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            const Text('Reach us any time',
-                style: TextStyle(color: _mutedText, fontSize: 13)),
-            const SizedBox(height: 20),
-            _HelpTile(
-              icon: Icons.call_rounded,
-              color: Colors.greenAccent,
-              label: 'Call Us',
-              subtitle: '+91 98765 43210',
-              onTap: () => launchUrl(Uri.parse('tel:+919876543210')),
-            ),
-            const SizedBox(height: 12),
-            _HelpTile(
-              icon: Icons.chat_rounded,
-              color: const Color(0xFF25D366),
-              label: 'WhatsApp',
-              subtitle: 'Chat with support',
-              onTap: () => launchUrl(Uri.parse('https://wa.me/919876543210')),
-            ),
-            const SizedBox(height: 12),
-            _HelpTile(
-              icon: Icons.mail_outline_rounded,
-              color: Colors.blueAccent,
-              label: 'Email',
-              subtitle: 'support@hdkfoods.com',
-              onTap: () =>
-                  launchUrl(Uri.parse('mailto:support@hdkfoods.com')),
-            ),
-          ],
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Help & Support',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              const Text('Reach us any time',
+                  style: TextStyle(color: _mutedText, fontSize: 13)),
+              const SizedBox(height: 20),
+              _HelpTile(
+                icon: Icons.call_rounded,
+                color: Colors.greenAccent,
+                label: 'Call Us',
+                subtitle: '+91 98765 43210',
+                onTap: () => launchUrl(Uri.parse('tel:+919876543210')),
+              ),
+              const SizedBox(height: 12),
+              _HelpTile(
+                icon: Icons.chat_rounded,
+                color: const Color(0xFF25D366),
+                label: 'WhatsApp',
+                subtitle: 'Chat with support',
+                onTap: () => launchUrl(Uri.parse('https://wa.me/919876543210')),
+              ),
+              const SizedBox(height: 12),
+              _HelpTile(
+                icon: Icons.mail_outline_rounded,
+                color: Colors.blueAccent,
+                label: 'Email',
+                subtitle: 'support@hdkfoods.com',
+                onTap: () =>
+                    launchUrl(Uri.parse('mailto:support@hdkfoods.com')),
+              ),
+            ],
+          ),
         ),
       ),
     );

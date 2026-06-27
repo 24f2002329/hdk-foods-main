@@ -199,6 +199,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   void _showHelpSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: _panelAlt,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
