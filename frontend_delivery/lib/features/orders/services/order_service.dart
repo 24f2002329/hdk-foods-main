@@ -145,10 +145,13 @@ class OrderService {
     throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to initiate payment');
   }
 
-  Future<Map<String, dynamic>> driverVerifyPayment(int orderId) async {
+  Future<Map<String, dynamic>> driverVerifyPayment(int orderId, {String? utr}) async {
+    final headers = await _headers();
+    headers['Content-Type'] = 'application/json';
     final response = await http.post(
       Uri.parse('$_base/$orderId/driver-verify/'),
-      headers: await _headers(),
+      headers: headers,
+      body: utr != null ? jsonEncode({'utr': utr}) : null,
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;

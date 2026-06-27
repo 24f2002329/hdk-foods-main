@@ -41,6 +41,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   final _announcement = TextEditingController();
   final _closedMsg = TextEditingController();
   final _scheduledClosedMsg = TextEditingController();
+  final _merchantUpiId = TextEditingController();
   bool _isStoreOpen = true;
   bool _showRatings = true;
   TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
@@ -77,6 +78,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     _announcement.dispose();
     _closedMsg.dispose();
     _scheduledClosedMsg.dispose();
+    _merchantUpiId.dispose();
     super.dispose();
   }
 
@@ -96,6 +98,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           _closeTime = TimeOfDay(hour: int.parse(ct[0]), minute: int.parse(ct[1]));
           
           _scheduledClosedMsg.text = data['scheduled_closed_msg'] ?? '';
+          _merchantUpiId.text = data['merchant_upi_id'] ?? 'hdkfoods@axisbank';
           _scheduledStart = data['scheduled_close_start'] != null
               ? DateTime.parse(data['scheduled_close_start']).toLocal()
               : null;
@@ -124,6 +127,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         'scheduled_closed_msg': _scheduledClosedMsg.text.trim(),
         'scheduled_close_start': _scheduledStart?.toUtc().toIso8601String(),
         'scheduled_close_end': _scheduledEnd?.toUtc().toIso8601String(),
+        'merchant_upi_id': _merchantUpiId.text.trim(),
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
     } catch (e) {
@@ -258,6 +262,12 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                     const SizedBox(height: 12),
                     _inputField('Scheduled Closed Message', _scheduledClosedMsg,
                         hint: 'e.g. Closed for scheduled maintenance. Back on Tuesday at 9 AM!'),
+                    const SizedBox(height: 24),
+
+                    // Direct UPI Payments
+                    _sectionHeader('Direct UPI Payments'),
+                    _inputField('Merchant UPI ID', _merchantUpiId,
+                        hint: 'e.g. hdkfoods@axisbank'),
                     const SizedBox(height: 24),
 
                     // Announcement

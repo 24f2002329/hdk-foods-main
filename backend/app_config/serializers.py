@@ -15,6 +15,7 @@ class SiteConfigSerializer(serializers.ModelSerializer):
             "scheduled_close_start",
             "scheduled_close_end",
             "scheduled_closed_msg",
+            "merchant_upi_id",
         ]
 
     def to_representation(self, instance):

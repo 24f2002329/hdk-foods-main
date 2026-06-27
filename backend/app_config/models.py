@@ -22,6 +22,9 @@ class SiteConfig(models.Model):
     # Ratings
     show_ratings        = models.BooleanField(default=True)
 
+    # Direct UPI
+    merchant_upi_id     = models.CharField(max_length=255, default="hdkfoods@axisbank", help_text="Merchant UPI ID to receive direct payments")
+
     class Meta:
         verbose_name = "Site Configuration"
 
