@@ -577,15 +577,6 @@ class DriverInitiatePaymentView(APIView):
 
                     return Response(response_data)
 
-
-                    # return Response({
-                    #     "cf_order_id": order.cashfree_order_id,
-                    #     "payment_session_id": order.payment_session_id or "",
-                    #     "payment_link": payment_link,
-                    #     "payment_status": "pending",
-                    #     "amount": float(order.total_amount)
-                    # })
-                    
             except requests.RequestException:
                 pass
 
