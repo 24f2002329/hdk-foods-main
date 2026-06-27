@@ -133,4 +133,26 @@ class OrderService {
     }
     throw Exception('Failed to edit items: ${response.body}');
   }
+
+  Future<Map<String, dynamic>> driverInitiatePayment(int orderId) async {
+    final response = await http.post(
+      Uri.parse('$_base/$orderId/driver-payment/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to initiate payment');
+  }
+
+  Future<Map<String, dynamic>> driverVerifyPayment(int orderId) async {
+    final response = await http.post(
+      Uri.parse('$_base/$orderId/driver-verify/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to verify payment');
+  }
 }

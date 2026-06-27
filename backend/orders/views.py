@@ -524,6 +524,198 @@ class VerifyPaymentView(APIView):
         )
 
 
+class DriverInitiatePaymentView(APIView):
+    """Driver requests/generates a Cashfree payment link for COD to Online conversion."""
+    permission_classes = [IsAdmin | IsDelivery]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.payment_status == "paid":
+            return Response({"detail": "Order already paid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Re-use existing payment link if it exists
+        if order.cashfree_order_id and order.cashfree_order_id.startswith("link_"):
+            try:
+                cf_response = requests.get(
+                    f"{settings.CASHFREE_BASE_URL}/links/{order.cashfree_order_id}",
+                    headers={
+                        "x-client-id": settings.CASHFREE_APP_ID,
+                        "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                        "x-api-version": settings.CASHFREE_API_VERSION,
+                    },
+                    timeout=15
+                )
+                if cf_response.status_code == 200:
+                    cf_link = cf_response.json()
+                    payment_link = cf_link.get("link_url")
+                    payment_status = cf_link.get("link_status")
+                    
+                    if payment_status == "PAID":
+                        order.payment_status = "paid"
+                        order.payment_id = str(cf_link.get("cf_link_id", ""))
+                        order.payment_method = "online"
+                        order.save(update_fields=["payment_status", "payment_id", "payment_method", "updated_at"])
+                        return Response({
+                            "cf_order_id": order.cashfree_order_id,
+                            "payment_session_id": order.payment_session_id or "",
+                            "payment_link": payment_link,
+                            "payment_status": "paid",
+                            "amount": float(order.total_amount)
+                        })
+                    
+                    response_data = {
+                        "cf_order_id": cf_link_id,
+                        "payment_session_id": order.payment_session_id,
+                        "payment_link": cf_link.get("link_url"),
+                        "payment_status": "pending",
+                        "amount": float(order.total_amount)
+                    }
+
+                    return Response(response_data)
+
+
+                    # return Response({
+                    #     "cf_order_id": order.cashfree_order_id,
+                    #     "payment_session_id": order.payment_session_id or "",
+                    #     "payment_link": payment_link,
+                    #     "payment_status": "pending",
+                    #     "amount": float(order.total_amount)
+                    # })
+                    
+            except requests.RequestException:
+                pass
+
+        # Create new Cashfree Payment Link
+        if not settings.CASHFREE_APP_ID or not settings.CASHFREE_SECRET_KEY:
+            return Response({"detail": "Online payment is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        cf_link_id = f"link_{order.order_number}_{uuid.uuid4().hex[:10]}"
+        try:
+            cf_response = requests.post(
+                f"{settings.CASHFREE_BASE_URL}/links",
+                headers={
+                    "x-client-id": settings.CASHFREE_APP_ID,
+                    "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                    "x-api-version": settings.CASHFREE_API_VERSION,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "link_id": cf_link_id,
+                    "link_amount": float(order.total_amount),
+                    "link_currency": "INR",
+                    "link_purpose": f"Payment for Order #{order.order_number}",
+                    "customer_details": {
+                        "customer_phone": order.user.phone_number,
+                        "customer_name": order.user.name or "Customer",
+                        "customer_email": getattr(order.user, "email", "customer@example.com") or "customer@example.com",
+                    },
+                },
+                timeout=15
+            )
+        except requests.RequestException:
+            return Response({"detail": "Could not reach payment gateway."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if cf_response.status_code not in (200, 201):
+            return Response({"detail": "Payment gateway error.", "gateway": cf_response.text}, status=status.HTTP_502_BAD_GATEWAY)
+
+        cf_link = cf_response.json()
+        order.payment_method = "online"
+        order.cashfree_order_id = cf_link_id
+        order.payment_session_id = str(cf_link.get("cf_link_id", ""))
+        order.save(update_fields=["payment_method", "cashfree_order_id", "payment_session_id", "updated_at"])
+
+        return Response({
+            "cf_order_id": cf_link_id,
+            "payment_session_id": order.payment_session_id,
+            "payment_link": cf_link.get("link_url"),
+            "payment_status": "pending",
+            "amount": float(order.total_amount)
+        })
+
+
+class DriverVerifyPaymentView(APIView):
+    """Driver checks payment status with Cashfree manually."""
+    permission_classes = [IsAdmin | IsDelivery]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.payment_status == "paid":
+            return Response({
+                "payment_status": "paid",
+                "payment_id": order.payment_id,
+                "order": OrderSerializer(order).data
+            })
+
+        cf_order_id = order.cashfree_order_id
+        if not cf_order_id:
+            return Response({"payment_status": order.payment_status})
+
+        is_payment_link = cf_order_id.startswith("link_")
+
+        try:
+            if is_payment_link:
+                cf_response = requests.get(
+                    f"{settings.CASHFREE_BASE_URL}/links/{cf_order_id}",
+                    headers={
+                        "x-client-id": settings.CASHFREE_APP_ID,
+                        "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                        "x-api-version": settings.CASHFREE_API_VERSION,
+                    },
+                    timeout=15
+                )
+            else:
+                cf_response = requests.get(
+                    f"{settings.CASHFREE_BASE_URL}/orders/{cf_order_id}",
+                    headers={
+                        "x-client-id": settings.CASHFREE_APP_ID,
+                        "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                        "x-api-version": settings.CASHFREE_API_VERSION,
+                    },
+                    timeout=15
+                )
+        except requests.RequestException:
+            return Response({"detail": "Could not reach payment gateway."}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if cf_response.status_code != 200:
+            return Response({"detail": "Payment gateway error.", "gateway": cf_response.text}, status=status.HTTP_502_BAD_GATEWAY)
+
+        cf_data = cf_response.json()
+        if is_payment_link:
+            order_status = cf_data.get("link_status")
+            cf_payment_id = str(cf_data.get("cf_link_id", ""))
+        else:
+            order_status = cf_data.get("order_status")
+            cf_payment_id = str(cf_data.get("cf_order_id", ""))
+
+        if order_status in ("PAID", "paid"):
+            order.payment_status = "paid"
+            order.payment_id = cf_payment_id
+            order.payment_method = "online"
+            order.save(update_fields=["payment_status", "payment_id", "payment_method", "updated_at"])
+            return Response({
+                "payment_status": "paid",
+                "payment_id": order.payment_id,
+                "order": OrderSerializer(order).data
+            })
+
+        if order_status in ("EXPIRED", "TERMINATED", "cancelled", "CANCELLED", "expired"):
+            order.payment_status = "failed"
+            order.save(update_fields=["payment_status", "updated_at"])
+
+        return Response({
+            "payment_status": order.payment_status,
+            "order_status": order_status,
+            "order": OrderSerializer(order).data
+        })
+
 
 class OrderPagination(PageNumberPagination):
     page_size = 20

@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/api_config.dart';
 import '../../../core/storage/token_storage.dart';
@@ -34,6 +37,136 @@ class _PaymentCollectionScreenState
   bool get _requiresCollection =>
       widget.order.paymentMethod == 'cod' &&
       widget.order.paymentStatus != 'paid';
+
+  // Online payment collection states
+  bool _isOnlinePaymentMode = false;
+  bool _loadingPaymentSession = false;
+  Map<String, dynamic>? _paymentSession;
+  Timer? _pollTimer;
+  bool _paymentCompleted = false;
+  String? _paymentMethodDetail;
+  String? _transactionId;
+  bool _showQrMode = true;
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initiateOnlinePayment() async {
+    setState(() {
+      _loadingPaymentSession = true;
+      _error = null;
+    });
+
+    try {
+      final res = await _orderService.driverInitiatePayment(widget.order.id);
+      setState(() {
+        _paymentSession = res;
+        _isOnlinePaymentMode = true;
+        _loadingPaymentSession = false;
+        if (res['payment_status'] == 'paid') {
+          _paymentCompleted = true;
+          _transactionId = res['cf_order_id']?.toString();
+          _paymentMethodDetail = 'UPI';
+        }
+      });
+
+      if (!_paymentCompleted) {
+        _startPolling();
+      }
+    } catch (e) {
+      setState(() {
+        _loadingPaymentSession = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  Future<void> _verifyPaymentStatus({bool manual = false}) async {
+    if (_busy && !manual) return;
+    if (manual) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final res = await _orderService.driverVerifyPayment(widget.order.id);
+      debugPrint(res.toString());
+      if (res['payment_status'] == 'paid') {
+        _stopPolling();
+        setState(() {
+          _paymentCompleted = true;
+          _transactionId = res['payment_id'] ?? res['order']?['payment_id'] ?? '';
+          _paymentMethodDetail = 'UPI';
+          _busy = false;
+        });
+      } else {
+        if (manual) {
+          setState(() {
+            _busy = false;
+            _error = "Payment is still pending. Try again after customer pays.";
+          });
+        }
+      }
+    } catch (e) {
+      if (manual) {
+        setState(() {
+          _busy = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _verifyPaymentStatus();
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  void _shareViaWhatsApp() async {
+    final phone = widget.order.customerPhone;
+    final text = "Dear customer, please click the link to complete your payment of ₹${widget.order.totalAmount.toStringAsFixed(0)} for Order #${widget.order.orderNumber}: ${_paymentSession?['payment_link']}";
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final formattedPhone = cleanPhone.length == 10 ? '91$cleanPhone' : cleanPhone;
+    final url = "https://wa.me/$formattedPhone?text=${Uri.encodeComponent(text)}";
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      setState(() => _error = "Could not launch WhatsApp");
+    }
+  }
+
+  void _shareViaSMS() async {
+    final phone = widget.order.customerPhone;
+    final text = "Dear customer, please click the link to complete your payment of ₹${widget.order.totalAmount.toStringAsFixed(0)} for Order #${widget.order.orderNumber}: ${_paymentSession?['payment_link']}";
+    final url = "sms:$phone?body=${Uri.encodeComponent(text)}";
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      setState(() => _error = "Could not launch SMS composer");
+    }
+  }
+
+  void _copyPaymentLink() {
+    final link = _paymentSession?['payment_link'] ?? '';
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Payment link copied to clipboard!')),
+    );
+  }
 
   // ── Complete delivery ──────────────────────────────────────────────────────
 
@@ -205,11 +338,9 @@ class _PaymentCollectionScreenState
   }
 
   Widget _buildPaymentCard() {
-    final isCod = widget.order.paymentMethod == 'cod';
-
-    if (!_requiresCollection) {
-      // Already paid (online) or COD already confirmed
+    if (_paymentCompleted || widget.order.paymentStatus == 'paid') {
       return _Card(
+        borderColor: Colors.greenAccent.withValues(alpha: 0.5),
         children: [
           Row(
             children: [
@@ -237,72 +368,316 @@ class _PaymentCollectionScreenState
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            isCod
-                ? 'Cash payment already confirmed.'
-                : 'Online payment was received before dispatch.',
-            style: const TextStyle(color: _kMuted, fontSize: 13),
+          const SizedBox(height: 14),
+          _Row(label: 'Method', value: _paymentMethodDetail ?? 'Online'),
+          _Row(label: 'Transaction ID', value: _transactionId ?? 'CF_PAYMENT_SUCCESS'),
+          const Divider(color: _kStroke, height: 20),
+          const Text(
+            'Online payment confirmed. You can now complete the delivery.',
+            style: TextStyle(color: _kMuted, fontSize: 12),
           ),
         ],
       );
     }
 
-    // COD — needs cash collection
-    return _Card(
-      borderColor: Colors.orangeAccent.withValues(alpha: 0.5),
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.orangeAccent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: Colors.orangeAccent.withValues(alpha: 0.4)),
+    if (_isOnlinePaymentMode) {
+      return _Card(
+        borderColor: Colors.blueAccent.withValues(alpha: 0.5),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Online Payment (Pending)',
+                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 20),
+                onPressed: () {
+                  _stopPolling();
+                  setState(() {
+                    _isOnlinePaymentMode = false;
+                    _error = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Collect Amount:', style: TextStyle(color: _kMuted, fontSize: 13)),
+                Text(
+                  '₹${widget.order.totalAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w900, fontSize: 20),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Option Toggles: Show QR vs Share Link
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _showQrMode = true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _showQrMode ? Colors.blueAccent.withValues(alpha: 0.15) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _showQrMode ? Colors.blueAccent : _kStroke),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_2_rounded, size: 18, color: _showQrMode ? Colors.blueAccent : Colors.grey),
+                        const SizedBox(width: 6),
+                        Text('Show QR Code', style: TextStyle(color: _showQrMode ? Colors.white : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _showQrMode = false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: !_showQrMode ? Colors.blueAccent.withValues(alpha: 0.15) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: !_showQrMode ? Colors.blueAccent : _kStroke),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.share_rounded, size: 16, color: !_showQrMode ? Colors.blueAccent : Colors.grey),
+                        const SizedBox(width: 6),
+                        Text('Share Link', style: TextStyle(color: !_showQrMode ? Colors.white : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_showQrMode) ...[
+            Center(
+              child: (_paymentSession?['payment_link'] == null || _paymentSession!['payment_link'].toString().isEmpty)
+                  ? const SizedBox(
+                      width: 180,
+                      height: 180,
+                      child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Image.network(
+                        'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${Uri.encodeComponent(_paymentSession?['payment_link'] ?? '')}',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox(
+                            width: 180,
+                            height: 180,
+                            child: Center(
+                              child: Text(
+                                'Failed to load QR code. Please share payment link instead.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.black54, fontSize: 11),
+                              ),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const SizedBox(
+                            width: 180,
+                            height: 180,
+                            child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                          );
+                        },
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'Let the customer scan this dynamic QR with GPay, PhonePe, Paytm, or any UPI app.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _kMuted, fontSize: 11),
+              ),
+            ),
+          ] else ...[
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Choose how to share payment link:', style: TextStyle(color: _kMuted, fontSize: 12)),
+                const SizedBox(height: 10),
+                Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(backgroundColor: Colors.green[900], child: const Icon(Icons.forum_rounded, color: Colors.white)),
+                        title: const Text('Send via WhatsApp', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                        subtitle: Text(widget.order.customerPhone, style: const TextStyle(color: _kMuted, fontSize: 11)),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                        onTap: _shareViaWhatsApp,
+                      ),
+                      const Divider(color: _kStroke, height: 1),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(backgroundColor: Colors.blue[900], child: const Icon(Icons.sms_rounded, color: Colors.white)),
+                        title: const Text('Send SMS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                        subtitle: Text(widget.order.customerPhone, style: const TextStyle(color: _kMuted, fontSize: 11)),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                        onTap: _shareViaSMS,
+                      ),
+                      const Divider(color: _kStroke, height: 1),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(backgroundColor: Colors.grey[800], child: const Icon(Icons.copy_rounded, color: Colors.white)),
+                        title: const Text('Copy Payment Link', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                        subtitle: const Text('Copy to clipboard and send manually', style: TextStyle(color: _kMuted, fontSize: 11)),
+                        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                        onTap: _copyPaymentLink,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const Divider(color: _kStroke, height: 24),
+          // Waiting for payment & poll status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
                 children: [
-                  Icon(Icons.payments_rounded,
-                      color: Colors.orangeAccent, size: 16),
-                  SizedBox(width: 6),
-                  Text('Cash on Delivery',
-                      style: TextStyle(
-                          color: Colors.orangeAccent,
-                          fontWeight: FontWeight.bold)),
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(color: Colors.blueAccent, strokeWidth: 2),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Waiting for payment...',
+                    style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () => _verifyPaymentStatus(manual: true),
+                icon: const Icon(Icons.refresh, size: 14, color: Colors.blueAccent),
+                label: const Text('Refresh Status', style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // COD cash collection card with an option to convert to online payment
+    return Column(
+      children: [
+        _Card(
+          borderColor: Colors.orangeAccent.withValues(alpha: 0.5),
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.payments_rounded,
+                          color: Colors.orangeAccent, size: 16),
+                      SizedBox(width: 6),
+                      Text('Cash on Delivery',
+                          style: TextStyle(
+                              color: Colors.orangeAccent,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Collect from Customer:',
+                    style: TextStyle(color: _kMuted, fontSize: 14),
+                  ),
+                  Text(
+                    '₹${widget.order.totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.orangeAccent.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Collect from Customer:',
-                style: TextStyle(color: _kMuted, fontSize: 14),
+        const SizedBox(height: 12),
+        if (_loadingPaymentSession)
+          const Center(child: Padding(
+            padding: EdgeInsets.all(8.0),
+            child: CircularProgressIndicator(color: Colors.blueAccent),
+          ))
+        else
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.blueAccent),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              Text(
-                '₹${widget.order.totalAmount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  color: Colors.orangeAccent,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                ),
+              onPressed: _initiateOnlinePayment,
+              icon: const Icon(Icons.qr_code_rounded, color: Colors.blueAccent, size: 18),
+              label: const Text(
+                'Collect Online Payment instead',
+                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13),
               ),
-            ],
+            ),
           ),
-        ),
       ],
     );
   }
@@ -331,12 +706,14 @@ class _PaymentCollectionScreenState
   }
 
   Widget _buildActionButton() {
-    final label = _requiresCollection
-        ? 'Confirm Payment Received'
-        : 'Complete Delivery';
+    final showDeliveredLabel = !_requiresCollection || _paymentCompleted;
+
+    final label = showDeliveredLabel
+        ? 'Complete Delivery'
+        : 'Confirm Cash Payment & Deliver';
 
     final color =
-        _requiresCollection ? Colors.orangeAccent : Colors.greenAccent;
+        showDeliveredLabel ? Colors.greenAccent : Colors.orangeAccent;
 
     return SizedBox(
       width: double.infinity,
