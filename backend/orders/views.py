@@ -238,11 +238,11 @@ class SelectPaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if order.status != "confirmed":
+        if order.status not in ["confirmed", "preparing", "out_for_delivery"]:
             return Response(
                 {
                     "detail":
-                        "Order must be confirmed "
+                        "Order must be confirmed, preparing, or out for delivery "
                         "before payment."
                 },
                 status=status.HTTP_400_BAD_REQUEST

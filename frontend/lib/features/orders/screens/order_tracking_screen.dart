@@ -2,6 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 import '../../../core/services/order_websocket_service.dart';
 import '../../../core/widgets/error_retry.dart';
@@ -30,6 +37,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   final OrderService _orderService = OrderService();
   final DeliveryLocationService _deliveryLocationService =
       DeliveryLocationService();
+  final CFPaymentGatewayService _cfService = CFPaymentGatewayService();
+  bool _isProcessingPayment = false;
 
   static const List<Map<String, dynamic>> _steps = [
     {'key': 'confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle_outline_rounded},
@@ -54,6 +63,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   @override
   void initState() {
     super.initState();
+    _cfService.setCallback(_onPaymentVerify, _onPaymentError);
     _stepAnim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -170,6 +180,76 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     }
   }
 
+  Future<void> _onPaymentVerify(String orderId) async {
+    try {
+      final updated = await _orderService.verifyPayment(orderId: widget.orderId);
+      if (!mounted) return;
+      setState(() {
+        _order = updated;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment successful!')),
+      );
+      _load(silent: true);
+    } catch (e) {
+      _showError('Payment captured but verification failed. $e');
+    } finally {
+      if (mounted) setState(() => _isProcessingPayment = false);
+    }
+  }
+
+  void _onPaymentError(CFErrorResponse errorResponse, String orderId) {
+    _showError('Payment failed: ${errorResponse.getMessage() ?? 'cancelled'}');
+    if (mounted) setState(() => _isProcessingPayment = false);
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _payOnline() async {
+    if (_isProcessingPayment) return;
+    setState(() => _isProcessingPayment = true);
+
+    try {
+      final result = await _orderService.selectPayment(
+        orderId: widget.orderId,
+        method: 'online',
+      );
+
+      final environment = result['environment'] == 'production'
+          ? CFEnvironment.PRODUCTION
+          : CFEnvironment.SANDBOX;
+
+      final session = CFSessionBuilder()
+          .setEnvironment(environment)
+          .setOrderId(result['cf_order_id'])
+          .setPaymentSessionId(result['payment_session_id'])
+          .build();
+
+      final theme = CFThemeBuilder()
+          .setNavigationBarBackgroundColorColor('#FF1E1E')
+          .setNavigationBarTextColor('#FFFFFF')
+          .build();
+
+      final cfWebCheckout = CFWebCheckoutPaymentBuilder()
+          .setSession(session)
+          .setTheme(theme)
+          .build();
+
+      _cfService.doPayment(cfWebCheckout);
+    } on CFException catch (e) {
+      _showError(e.message);
+      if (mounted) setState(() => _isProcessingPayment = false);
+    } catch (e) {
+      _showError('$e');
+      if (mounted) setState(() => _isProcessingPayment = false);
+    }
+  }
+
   Future<void> _showModifiedOrderDialog(Order order) async {
     final accepted = await showDialog<bool>(
       context: context,
@@ -236,6 +316,76 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         children: [
           // ── Header card ────────────────────────────────────────────────
           _OrderHeaderCard(order: order),
+
+          if ((order.paymentMethod == 'cod' ||
+                  (order.paymentMethod == 'online' &&
+                      order.paymentStatus != 'paid')) &&
+              order.paymentStatus != 'paid' &&
+              !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _panel,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _stroke),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.payment_rounded, color: Colors.blueAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        order.paymentMethod == 'online'
+                            ? 'Complete Online Payment'
+                            : 'Want to Pay Online?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    order.paymentMethod == 'online'
+                        ? 'Your online payment is pending. Please complete the payment to process your order.'
+                        : 'You can pay online now using UPI, cards, or net banking before your order is delivered.',
+                    style: const TextStyle(color: _mutedText, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isProcessingPayment ? null : _payOnline,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _brandRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: _isProcessingPayment
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Icon(Icons.flash_on_rounded, size: 16),
+                      label: Text(
+                        order.paymentMethod == 'online' ? 'Pay Now' : 'Pay Online Now',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // ── Queue banner ───────────────────────────────────────────────
           if (_queuePosition != null && order.status == 'pending_confirmation') ...[
