@@ -17,6 +17,7 @@ import '../../delivery_staff/services/delivery_staff_service.dart';
 import '../../orders/models/order.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
+import '../../orders/screens/admin_create_order_screen.dart';
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
 import '../../products/screens/modifier_management_screen.dart';
@@ -845,6 +846,18 @@ class _OrdersTabState extends State<_OrdersTab>
     }
   }
 
+  Future<void> _openCreateOrderScreen() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminCreateOrderScreen(),
+      ),
+    );
+    if (result == true) {
+      _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -856,6 +869,10 @@ class _OrdersTabState extends State<_OrdersTab>
         title: Text('Orders',
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_shopping_cart, color: _red),
+            onPressed: _openCreateOrderScreen,
+          ),
           IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
         ],
         bottom: PreferredSize(

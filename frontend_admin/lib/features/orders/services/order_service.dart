@@ -210,4 +210,18 @@ class OrderService {
     }
     throw Exception('Failed to edit items: ${response.body}');
   }
+
+  Future<Order> adminCreateOrder(Map<String, dynamic> payload) async {
+    final response = await http.post(
+      Uri.parse('$_base/admin/create/'),
+      headers: await _headers(),
+      body: jsonEncode(payload),
+    );
+    if (response.statusCode == 201) {
+      return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    }
+    final body = jsonDecode(response.body);
+    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    throw Exception(detail);
+  }
 }

@@ -1544,3 +1544,147 @@ class GetDeliveryLocationView(APIView):
             "longitude": str(order.delivery_longitude),
             "updated_at": order.delivery_location_updated_at,
         })
+
+
+class AdminCreateOrderView(APIView):
+    """Admin manually places an order for a customer by their phone number."""
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        phone_number = request.data.get("phone_number", "").strip()
+        customer_name = request.data.get("customer_name", "").strip()
+        delivery_type = request.data.get("delivery_type", "delivery") # delivery or pickup
+        address_text = request.data.get("address_text", "").strip()
+        items = request.data.get("items", [])
+        payment_method = request.data.get("payment_method", "cod") # cod or prepaid
+        coupon_code = request.data.get("coupon_code", "").strip()
+        delivery_notes = request.data.get("delivery_notes", "").strip()
+
+        if not phone_number:
+            return Response({"detail": "Phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not items:
+            return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Get or create the User
+        try:
+            user = User.objects.get(phone_number=phone_number)
+            if customer_name and not user.name:
+                user.name = customer_name
+                user.save()
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                phone_number=phone_number,
+                name=customer_name or "Guest Customer",
+                role="customer"
+            )
+
+        # 2. Get or create Address
+        if delivery_type == "pickup":
+            addr_text = "Store Pickup"
+        else:
+            addr_text = address_text or "Delivery"
+
+        # Find if user already has an address with this text, or create a new one
+        address = Address.objects.filter(user=user, house=addr_text).first()
+        if not address:
+            address = Address.objects.create(
+                user=user,
+                label="Home" if delivery_type == "delivery" else "Other",
+                house=addr_text,
+                street="",
+                city="Chandigarh",
+                pincode="160001",
+                latitude=Decimal("30.7333"),
+                longitude=Decimal("76.7794"),
+                is_default=True
+            )
+
+        # 3. Calculate total and check coupon
+        total_amount = Decimal("0.00")
+        coupon = None
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
+            except Coupon.DoesNotExist:
+                return Response({"detail": "Invalid or expired coupon code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order = Order.objects.create(
+            user=user,
+            address=address,
+            payment_method=payment_method,
+            payment_status="paid" if payment_method == "prepaid" else "pending",
+            delivery_notes=delivery_notes,
+            total_amount=Decimal("0.00"),
+            status="confirmed" # Admin-placed order is auto-confirmed
+        )
+
+        for item in items:
+            product_id = item.get("product_id")
+            quantity = int(item.get("quantity", 1))
+            
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                order.delete()
+                return Response({"detail": f"Product with ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            item_price = product.price
+            customization_price = Decimal("0.00")
+            selections = item.get("selections", [])
+            for sel in selections:
+                extra = Decimal(str(sel.get("price", 0.0)))
+                customization_price += extra
+
+            final_price = item_price + customization_price
+            total_amount += final_price * quantity
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=quantity,
+                price=final_price
+            )
+
+        order.total_amount = total_amount
+
+        # Apply coupon
+        if coupon:
+            now = timezone.now()
+            if coupon.valid_from and now < coupon.valid_from:
+                order.delete()
+                return Response({"detail": "Coupon is not yet valid."}, status=status.HTTP_400_BAD_REQUEST)
+            if coupon.valid_until and now > coupon.valid_until:
+                order.delete()
+                return Response({"detail": "Coupon has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+                order.delete()
+                return Response({"detail": "Coupon usage limit reached."}, status=status.HTTP_400_BAD_REQUEST)
+            if total_amount < coupon.min_order_amount:
+                order.delete()
+                return Response({"detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            discount = coupon.compute_discount(total_amount)
+            order.discount_amount = discount
+            order.discount_reason = f"Coupon: {coupon.code}"
+            order.original_total = total_amount
+            order.total_amount = total_amount - discount
+            Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
+
+        order.save()
+
+        # Send push notification to user (if FCM token is available)
+        try:
+            send_push(
+                user,
+                'Order Placed 🛍️',
+                f'An order has been placed for you: Order #{order.order_number}',
+                {'order_id': str(order.id)}
+            )
+        except Exception:
+            pass
+
+        # Broadcast to other channels
+        _broadcast_order(order, "new_order")
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
