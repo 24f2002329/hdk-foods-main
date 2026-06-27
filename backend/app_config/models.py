@@ -14,6 +14,11 @@ class SiteConfig(models.Model):
     store_close_time    = models.TimeField(default=time(22, 0))
     store_closed_msg    = models.CharField(max_length=255, blank=True, default="We're closed right now. See you soon!")
 
+    # Scheduled closures
+    scheduled_close_start = models.DateTimeField(null=True, blank=True, help_text="Start date & time of the scheduled closure")
+    scheduled_close_end   = models.DateTimeField(null=True, blank=True, help_text="End date & time of the scheduled closure")
+    scheduled_closed_msg  = models.CharField(max_length=255, blank=True, default="We are closed for a scheduled holiday/maintenance. See you soon!")
+
     # Ratings
     show_ratings        = models.BooleanField(default=True)
 
@@ -28,6 +33,11 @@ class SiteConfig(models.Model):
             return False
         
         from django.utils import timezone
+        now = timezone.now()
+        if self.scheduled_close_start and self.scheduled_close_end:
+            if self.scheduled_close_start <= now <= self.scheduled_close_end:
+                return False
+        
         try:
             import zoneinfo
             tz = zoneinfo.ZoneInfo("Asia/Kolkata")

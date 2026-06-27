@@ -12,7 +12,20 @@ class SiteConfigSerializer(serializers.ModelSerializer):
             "store_close_time",
             "store_closed_msg",
             "show_ratings",
+            "scheduled_close_start",
+            "scheduled_close_end",
+            "scheduled_closed_msg",
         ]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        from django.utils import timezone
+        now = timezone.now()
+        if instance.scheduled_close_start and instance.scheduled_close_end:
+            if instance.scheduled_close_start <= now <= instance.scheduled_close_end:
+                ret["is_store_open"] = False
+                ret["store_closed_msg"] = instance.scheduled_closed_msg or instance.store_closed_msg
+        return ret
 
 
 class BannerSerializer(serializers.ModelSerializer):

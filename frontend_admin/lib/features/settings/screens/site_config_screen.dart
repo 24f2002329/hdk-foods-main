@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
@@ -38,10 +39,13 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   // Controllers
   final _announcement = TextEditingController();
   final _closedMsg = TextEditingController();
+  final _scheduledClosedMsg = TextEditingController();
   bool _isStoreOpen = true;
   bool _showRatings = true;
   TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _closeTime = const TimeOfDay(hour: 22, minute: 0);
+  DateTime? _scheduledStart;
+  DateTime? _scheduledEnd;
 
   @override
   void initState() {
@@ -71,6 +75,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   void dispose() {
     _announcement.dispose();
     _closedMsg.dispose();
+    _scheduledClosedMsg.dispose();
     super.dispose();
   }
 
@@ -88,6 +93,15 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           final ct = (data['store_close_time'] as String? ?? '22:00:00').split(':');
           _openTime = TimeOfDay(hour: int.parse(ot[0]), minute: int.parse(ot[1]));
           _closeTime = TimeOfDay(hour: int.parse(ct[0]), minute: int.parse(ct[1]));
+          
+          _scheduledClosedMsg.text = data['scheduled_closed_msg'] ?? '';
+          _scheduledStart = data['scheduled_close_start'] != null
+              ? DateTime.parse(data['scheduled_close_start']).toLocal()
+              : null;
+          _scheduledEnd = data['scheduled_close_end'] != null
+              ? DateTime.parse(data['scheduled_close_end']).toLocal()
+              : null;
+          
           _loading = false;
         });
       }
@@ -106,6 +120,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         'show_ratings': _showRatings,
         'store_open_time': '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}:00',
         'store_close_time': '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}:00',
+        'scheduled_closed_msg': _scheduledClosedMsg.text.trim(),
+        'scheduled_close_start': _scheduledStart?.toUtc().toIso8601String(),
+        'scheduled_close_end': _scheduledEnd?.toUtc().toIso8601String(),
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
     } catch (e) {
@@ -219,6 +236,27 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                     const SizedBox(height: 12),
                     _inputField('Closed Message', _closedMsg,
                         hint: 'e.g. We\'re closed. Back at 10 AM!'),
+                    const SizedBox(height: 24),
+
+                    // Scheduled closure
+                    _sectionHeader('Scheduled Kitchen Closure'),
+                    Text(
+                      'Set a date & time range to temporarily close the kitchen for holidays or maintenance.',
+                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                    ),
+                    const SizedBox(height: 12),
+                    _dateTimeTile('Closure Start Time', _scheduledStart, () async {
+                      final picked = await _pickDateTime(context, _scheduledStart);
+                      if (picked != null) setState(() => _scheduledStart = picked);
+                    }, onClear: _scheduledStart != null ? () => setState(() => _scheduledStart = null) : null),
+                    const SizedBox(height: 8),
+                    _dateTimeTile('Closure End Time', _scheduledEnd, () async {
+                      final picked = await _pickDateTime(context, _scheduledEnd);
+                      if (picked != null) setState(() => _scheduledEnd = picked);
+                    }, onClear: _scheduledEnd != null ? () => setState(() => _scheduledEnd = null) : null),
+                    const SizedBox(height: 12),
+                    _inputField('Scheduled Closed Message', _scheduledClosedMsg,
+                        hint: 'e.g. Closed for scheduled maintenance. Back on Tuesday at 9 AM!'),
                     const SizedBox(height: 24),
 
                     // Announcement
@@ -416,4 +454,59 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                 ]),
         ),
       );
+
+  Widget _dateTimeTile(String label, DateTime? value, VoidCallback onTap, {VoidCallback? onClear}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _stroke)),
+        child: Row(children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                const SizedBox(height: 4),
+                Text(
+                  value != null 
+                      ? DateFormat('MMM d, yyyy - h:mm a').format(value) 
+                      : 'Not Scheduled',
+                  style: TextStyle(
+                    color: value != null ? _red : Colors.grey[600], 
+                    fontWeight: value != null ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onClear != null)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+              onPressed: onClear,
+            ),
+          IconButton(
+            icon: const Icon(Icons.calendar_month, color: _red, size: 20),
+            onPressed: onTap,
+          ),
+        ]),
+      );
+
+  Future<DateTime?> _pickDateTime(BuildContext context, DateTime? initial) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return null;
+    
+    if (!context.mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial ?? DateTime.now()),
+    );
+    if (time == null) return null;
+    
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
 }
