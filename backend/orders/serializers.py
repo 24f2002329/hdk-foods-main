@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Coupon, Order, OrderItem
+from .models import Coupon, Order, OrderItem, OrderReview
 
 
 
@@ -170,4 +170,24 @@ class CouponWriteSerializer(serializers.ModelSerializer):
             'min_order_amount', 'max_discount_amount',
             'is_active', 'valid_from', 'valid_until',
             'usage_limit',
+        ]
+
+
+class OrderReviewSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_phone = serializers.CharField(source="customer.phone_number", read_only=True)
+    order_number = serializers.CharField(source="order.order_number", read_only=True)
+
+    class Meta:
+        model = OrderReview
+        fields = [
+            "id",
+            "order",
+            "order_number",
+            "customer",
+            "customer_name",
+            "customer_phone",
+            "rating",
+            "comment",
+            "created_at",
         ]

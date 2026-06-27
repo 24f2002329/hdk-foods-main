@@ -577,9 +577,144 @@ class _DashboardTabState extends State<_DashboardTab>
                           ),
                         ),
                       ],
+                      // Additional Metrics Section
+                      const SizedBox(height: 28),
+                      Text('Business Insights',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InsightCard(
+                              label: 'Avg Order Value',
+                              value: '₹${_data?['average_order_value'] ?? 0}',
+                              icon: Icons.auto_graph_rounded,
+                              color: Colors.blueAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _InsightCard(
+                              label: 'Customer Rating',
+                              value: '${_data?['average_rating'] ?? 0} ★',
+                              icon: Icons.star_rate_rounded,
+                              color: Colors.amberAccent,
+                              subtitle: '${_data?['total_reviews'] ?? 0} reviews',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InsightCard(
+                              label: 'Cancelled Orders',
+                              value: '${_data?['cancelled_count'] ?? 0}',
+                              icon: Icons.cancel_outlined,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _InsightCard(
+                              label: 'Rejected Orders',
+                              value: '${_data?['rejected_count'] ?? 0}',
+                              icon: Icons.do_not_disturb_on_outlined,
+                              color: Colors.deepOrangeAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_data?['top_products'] != null && (_data!['top_products'] as List).isNotEmpty) ...[
+                        const SizedBox(height: 28),
+                        Text('Top Selling Products 🏆',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _card,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _stroke),
+                          ),
+                          child: Column(
+                            children: (_data!['top_products'] as List).map<Widget>((item) {
+                              final index = (_data!['top_products'] as List).indexOf(item) + 1;
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: index == 1 ? Colors.amber : (index == 2 ? Colors.grey : Colors.brown[300]),
+                                  child: Text('$index', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                                title: Text(item['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                subtitle: Text('${item['quantity']} units sold', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                trailing: Text('₹${(item['revenue'] as num).toStringAsFixed(0)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
+    );
+  }
+}
+
+class _InsightCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String? subtitle;
+
+  const _InsightCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+              Icon(icon, color: color, size: 16),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(subtitle!, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+          ],
+        ],
+      ),
     );
   }
 }

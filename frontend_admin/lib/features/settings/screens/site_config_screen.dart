@@ -11,6 +11,7 @@ import '../../users/screens/customer_management_screen.dart';
 import '../services/config_service.dart';
 import 'banners_screen.dart';
 import 'send_notification_screen.dart';
+import 'admin_reviews_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -265,10 +266,21 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                         hint: 'e.g. 🎉 Free delivery this weekend! (leave blank to hide)'),
                     const SizedBox(height: 24),
 
-                    // Ratings
-                    _sectionHeader('Product Ratings'),
+                    // Ratings & Feedback
+                    _sectionHeader('Ratings & Feedback'),
                     _toggleTile('Show ratings on product cards', _showRatings,
                         (v) => setState(() => _showRatings = v)),
+                    const SizedBox(height: 10),
+                    _actionCard(
+                      icon: Icons.rate_review_outlined,
+                      label: 'Customer Reviews',
+                      subtitle: 'View and monitor customer ratings & comments',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const AdminReviewsScreen())),
+                    ),
                     const SizedBox(height: 32),
 
                     // Profile

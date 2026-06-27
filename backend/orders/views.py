@@ -29,13 +29,14 @@ from .serializers import (
     RejectOrderSerializer,
     SelectPaymentSerializer,
     UpdateDeliveryLocationSerializer,
-    UpdateStatusSerializer
+    UpdateStatusSerializer,
+    OrderReviewSerializer
 )
 
 from django.utils import timezone
 from datetime import timedelta
 
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F, Avg
 from django.db.models.functions import TruncDate
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -893,6 +894,36 @@ class AdminDashboardView(APIView):
             status="delivered"
         ).count()
 
+        # Extra stats
+        cancelled_count = period_qs.filter(status="cancelled").count()
+        rejected_count = period_qs.filter(status="rejected").count()
+
+        aov = 0
+        if delivered_count > 0:
+            aov = round(float(revenue) / delivered_count, 2)
+
+        # Reviews stats
+        reviews_qs = OrderReview.objects.filter(created_at__date__gte=start_date)
+        total_reviews = reviews_qs.count()
+        avg_rating = reviews_qs.aggregate(avg=Avg("rating"))["avg"] or 0
+        avg_rating = round(float(avg_rating), 1)
+
+        # Top 5 products sold in this period
+        top_selling = (
+            OrderItem.objects.filter(order__created_at__date__gte=start_date)
+            .values("product__name")
+            .annotate(qty=Sum("quantity"), rev=Sum(F("price") * F("quantity")))
+            .order_by("-qty")[:5]
+        )
+        top_products = [
+            {
+                "name": item["product__name"],
+                "quantity": item["qty"],
+                "revenue": float(item["rev"] or 0),
+            }
+            for item in top_selling
+        ]
+
         # Always-live counts — current queue state, not date-filtered
         pending_orders = Order.objects.filter(
             status="pending_confirmation"
@@ -910,11 +941,17 @@ class AdminDashboardView(APIView):
             "period": period,
             "start_date": str(start_date),
             "total_orders": total_orders,
-            "revenue": revenue,
+            "revenue": float(revenue),
             "delivered_count": delivered_count,
             "pending_orders": pending_orders,
             "active_deliveries": active_deliveries,
             "in_progress": in_progress,
+            "cancelled_count": cancelled_count,
+            "rejected_count": rejected_count,
+            "average_order_value": aov,
+            "total_reviews": total_reviews,
+            "average_rating": avg_rating,
+            "top_products": top_products,
         })
 
 
@@ -1696,10 +1733,26 @@ class AdminCreateOrderView(APIView):
                 f'An order has been placed for you: Order #{order.order_number}',
                 {'order_id': str(order.id)}
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not send push notification: {e}")
 
         # Broadcast to other channels
         _broadcast_order(order, "new_order")
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+class AdminReviewsListView(generics.ListAPIView):
+    """Admin: list all reviews submitted by customers (paginated)."""
+    permission_classes = [IsAdmin]
+    pagination_class = OrderPagination
+
+    def get(self, request):
+        reviews = OrderReview.objects.all().order_by("-created_at")
+        page = self.paginate_queryset(reviews)
+        if page is not None:
+            serializer = OrderReviewSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = OrderReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
