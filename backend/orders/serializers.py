@@ -49,7 +49,6 @@ class UpdateStatusSerializer(serializers.Serializer):
             "pending_confirmation",
             "confirmed",
             "preparing",
-            "ready_for_pickup",
             "out_for_delivery",
             "delivered",
             "cancelled",

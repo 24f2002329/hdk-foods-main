@@ -774,7 +774,6 @@ class _OrderRow extends StatelessWidget {
       case 'pending_confirmation': return Colors.orange;
       case 'confirmed':
       case 'preparing': return Colors.blue;
-      case 'ready_for_pickup': return Colors.purple;
       case 'out_for_delivery': return Colors.indigo;
       case 'delivered': return Colors.green;
       default: return Colors.red;

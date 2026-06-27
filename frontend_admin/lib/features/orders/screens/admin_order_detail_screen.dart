@@ -115,7 +115,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     if (!mounted) return;
 
     if (staff.isEmpty) {
-      await _updateStatus('ready_for_pickup');
+      await _updateStatus('out_for_delivery');
       return;
     }
 
@@ -136,9 +136,9 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       if (result.deliveryUserId != null) {
         await _svc.assignDelivery(_order!.id, result.deliveryUserId!);
       }
-      final updated = await _svc.updateStatus(_order!.id, 'ready_for_pickup');
+      final updated = await _svc.updateStatus(_order!.id, 'out_for_delivery');
       setState(() => _order = updated);
-      _snack('Marked ready for pickup.');
+      _snack('Marked out for delivery.');
     } catch (e) {
       _snack(e.toString());
     } finally {
@@ -236,7 +236,6 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       case 'pending_confirmation': return Colors.orangeAccent;
       case 'confirmed': return Colors.blueAccent;
       case 'preparing': return Colors.amberAccent;
-      case 'ready_for_pickup': return Colors.tealAccent;
       default: return _red;
     }
   }
@@ -353,10 +352,6 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     if (s == 'preparing') {
       buttons.add(_btn('Mark Ready & Assign Delivery',
           Colors.tealAccent, _markReadyWithAssign));
-    }
-    if (s == 'ready_for_pickup') {
-      buttons.add(_btn('Mark Out for Delivery', Colors.blueAccent,
-          () => _updateStatus('out_for_delivery')));
     }
     if (s == 'out_for_delivery') {
       buttons.add(_btn('Mark Delivered', Colors.greenAccent,

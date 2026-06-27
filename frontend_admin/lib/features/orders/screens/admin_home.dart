@@ -368,7 +368,7 @@ class _DashboardTabState extends State<_DashboardTab>
                               title: 'Orders — $_periodLabel',
                               statuses: const [
                                 'pending_confirmation', 'confirmed',
-                                'preparing', 'ready_for_pickup',
+                                'preparing',
                                 'out_for_delivery', 'delivered',
                                 'cancelled', 'rejected',
                               ],
@@ -395,7 +395,7 @@ class _DashboardTabState extends State<_DashboardTab>
                             onTap: () => _drill(
                               title: 'In Progress',
                               statuses: const [
-                                'confirmed', 'preparing', 'ready_for_pickup'
+                                'confirmed', 'preparing'
                               ],
                               periodScoped: false,
                             ),
@@ -993,7 +993,7 @@ class _OrdersTabState extends State<_OrdersTab>
         return _all.where((o) => o.status == 'pending_confirmation').toList();
       case 'active':
         return _all.where((o) =>
-            ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']
+            ['confirmed', 'preparing', 'out_for_delivery']
                 .contains(o.status)).toList();
       case 'delivered':
         return _all.where((o) => o.status == 'delivered').toList();
@@ -1152,7 +1152,7 @@ class _OrdersTabState extends State<_OrdersTab>
         return _all.where((o) => o.status == 'pending_confirmation').length;
       case 'active':
         return _all.where((o) =>
-            ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']
+            ['confirmed', 'preparing', 'out_for_delivery']
                 .contains(o.status)).length;
       case 'delivered':
         return _all.where((o) => o.status == 'delivered').length;
@@ -1186,7 +1186,7 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
 
   static const _activeStatuses = [
     'pending_confirmation', 'confirmed', 'preparing',
-    'ready_for_pickup', 'out_for_delivery',
+    'out_for_delivery',
   ];
 
   @override
@@ -1270,7 +1270,6 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
     super.build(context);
     final pending   = _group(['pending_confirmation']);
     final inKitchen = _group(['confirmed', 'preparing']);
-    final ready     = _group(['ready_for_pickup']);
     final onWay     = _group(['out_for_delivery']);
     final total = _orders.length;
 
@@ -1341,16 +1340,6 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
                               count: inKitchen.length,
                               color: Colors.amberAccent,
                               children: inKitchen.map((o) => _OrderCard(
-                                order: o,
-                                onTap: () => _openDetail(o),
-                              )).toList(),
-                            ),
-                          if (ready.isNotEmpty)
-                            _Section(
-                              title: 'Ready for Pickup',
-                              count: ready.length,
-                              color: Colors.purpleAccent,
-                              children: ready.map((o) => _OrderCard(
                                 order: o,
                                 onTap: () => _openDetail(o),
                               )).toList(),
@@ -1961,7 +1950,6 @@ class _OrderCard extends StatelessWidget {
       case 'pending_confirmation': return Colors.orange;
       case 'confirmed':
       case 'preparing': return Colors.blue;
-      case 'ready_for_pickup': return Colors.purple;
       case 'out_for_delivery': return Colors.indigo;
       case 'delivered': return Colors.green;
       case 'rejected': return Colors.red;

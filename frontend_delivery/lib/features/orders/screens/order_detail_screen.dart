@@ -138,7 +138,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (!mounted) return;
 
     if (staff.isEmpty) {
-      await _updateStatus('ready_for_pickup');
+      await _updateStatus('out_for_delivery');
       return;
     }
 
@@ -160,9 +160,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         await _orderService.assignDelivery(_order.id, result.deliveryUserId!);
       }
       final updated =
-          await _orderService.updateStatus(_order.id, 'ready_for_pickup');
+          await _orderService.updateStatus(_order.id, 'out_for_delivery');
       setState(() => _order = updated);
-      _snack('Marked ready for pickup.');
+      _snack('Marked out for delivery.');
     } catch (e) {
       _snack(e.toString());
     } finally {
@@ -262,7 +262,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       case 'pending_confirmation': return Colors.orangeAccent;
       case 'confirmed': return Colors.blueAccent;
       case 'preparing': return Colors.amberAccent;
-      case 'ready_for_pickup': return Colors.tealAccent;
       default: return _red;
     }
   }
@@ -379,10 +378,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       buttons.add(_btn('Mark Ready & Assign Delivery',
           Colors.tealAccent, _markReadyWithAssign));
     }
-    if (s == 'ready_for_pickup' && widget.role == 'admin') {
-      buttons.add(_btn('Mark Out for Delivery', Colors.blueAccent,
-          () => _updateStatus('out_for_delivery')));
-    }
     if (s == 'out_for_delivery' && widget.role == 'delivery') {
       buttons.add(_btn(
         'Mark Delivered',
@@ -480,22 +475,46 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasCoords ? Colors.blueAccent : Colors.grey,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: hasCoords ? Colors.blueAccent : Colors.grey,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.navigation),
+                        label: const Text('Navigate'),
+                        onPressed: hasCoords
+                            ? () => _openNavigation(
+                                addr.latitude!, addr.longitude!)
+                            : null,
+                      ),
                     ),
-                    icon: const Icon(Icons.navigation),
-                    label: const Text('Navigate'),
-                    onPressed: hasCoords
-                        ? () => _openNavigation(
-                            addr.latitude!, addr.longitude!)
-                        : null,
-                  ),
+                    if (_order.status == 'out_for_delivery' && widget.role == 'delivery') ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.check_circle_outline_rounded),
+                          label: const Text('Complete Delivery'),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PaymentCollectionScreen(order: _order),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],

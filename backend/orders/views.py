@@ -1005,7 +1005,7 @@ class AdminDashboardView(APIView):
         ).count()
 
         in_progress = Order.objects.filter(
-            status__in=["confirmed", "preparing", "ready_for_pickup"]
+            status__in=["confirmed", "preparing"]
         ).count()
 
         return Response({

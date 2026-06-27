@@ -34,7 +34,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   static const List<Map<String, dynamic>> _steps = [
     {'key': 'confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle_outline_rounded},
     {'key': 'preparing', 'label': 'Preparing', 'icon': Icons.restaurant_rounded},
-    {'key': 'ready_for_pickup', 'label': 'Ready for Pickup', 'icon': Icons.inventory_2_outlined},
     {'key': 'out_for_delivery', 'label': 'Out for Delivery', 'icon': Icons.delivery_dining_rounded},
     {'key': 'delivered', 'label': 'Delivered', 'icon': Icons.home_rounded},
   ];

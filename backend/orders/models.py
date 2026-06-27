@@ -10,7 +10,6 @@ class Order(models.Model):
         ("pending_confirmation", "Pending Confirmation"),
         ("confirmed", "Confirmed"),
         ("preparing", "Preparing"),
-        ("ready_for_pickup", "Ready For Pickup"),
         ("out_for_delivery", "Out For Delivery"),
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
