@@ -753,6 +753,7 @@ class _OrdersTabState extends State<_OrdersTab>
   String? _error;
   String _filter = 'pending';
   Timer? _timer;
+  bool _firstLoadDone = false;
 
   static const _filters = [
     ('pending', 'Pending'),
@@ -781,7 +782,17 @@ class _OrdersTabState extends State<_OrdersTab>
     if (!silent) setState(() { _loading = true; _error = null; });
     try {
       final orders = await _svc.getAllOrders();
-      if (mounted) setState(() { _all = orders; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _all = orders;
+          _loading = false;
+          if (!_firstLoadDone) {
+            _firstLoadDone = true;
+            final pendingCount = _all.where((o) => o.status == 'pending_confirmation').length;
+            _filter = pendingCount == 0 ? 'all' : 'pending';
+          }
+        });
+      }
     } catch (e) {
       if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
     }

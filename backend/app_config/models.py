@@ -76,3 +76,24 @@ class Banner(models.Model):
 
     def __str__(self):
         return self.title or self.image_url
+
+
+class Notification(models.Model):
+    """In-app notifications for users (global announcements or user-specific order updates)."""
+    user = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} - {self.user.phone_number if self.user else 'All'}"

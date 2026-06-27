@@ -24,6 +24,8 @@ import '../../../shared/models/category.dart';
 import '../../../shared/models/product.dart';
 import '../services/config_service.dart';
 import '../services/product_service.dart';
+import '../services/notification_service.dart';
+import './notification_screen.dart';
 
 // Styling constants
 const _brandRed = Color(0xFFFF1E1E);
@@ -158,6 +160,7 @@ class _HomeTabState extends State<HomeTab> {
   User? _currentUser;
   CustomerAddress? _selectedAddress;
   bool _isLoggedIn = false;
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -209,14 +212,31 @@ class _HomeTabState extends State<HomeTab> {
       if (addresses.isNotEmpty) {
         activeAddr = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
       }
+
+      int unreadCount = 0;
+      try {
+        final res = await NotificationService().getNotifications();
+        unreadCount = res['unread_count'] as int;
+      } catch (_) {}
       
       if (mounted) {
         setState(() {
           _currentUser = user;
           _selectedAddress = activeAddr;
+          _unreadNotificationCount = unreadCount;
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationScreen(),
+      ),
+    );
+    _loadUserData();
   }
 
   Future<void> _selectAddress() async {
@@ -289,6 +309,7 @@ class _HomeTabState extends State<HomeTab> {
                         currentUser: _currentUser,
                         selectedAddress: _selectedAddress,
                         isLoggedIn: _isLoggedIn,
+                        unreadNotificationCount: _unreadNotificationCount,
                         onSelectAddress: _selectAddress,
                         onLoginPressed: () {
                           Navigator.of(context, rootNavigator: true).push(
@@ -297,6 +318,7 @@ class _HomeTabState extends State<HomeTab> {
                             if (mounted) _reload();
                           });
                         },
+                        onNotificationPressed: _openNotifications,
                       ),
                     ),
                   ),
@@ -508,15 +530,19 @@ class _HomeHeader extends StatelessWidget {
   final User? currentUser;
   final CustomerAddress? selectedAddress;
   final bool isLoggedIn;
+  final int unreadNotificationCount;
   final VoidCallback onSelectAddress;
   final VoidCallback onLoginPressed;
+  final VoidCallback onNotificationPressed;
 
   const _HomeHeader({
     required this.currentUser,
     required this.selectedAddress,
     required this.isLoggedIn,
+    required this.unreadNotificationCount,
     required this.onSelectAddress,
     required this.onLoginPressed,
+    required this.onNotificationPressed,
   });
 
   String _getGreeting() {
@@ -610,34 +636,28 @@ class _HomeHeader extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               IconButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: _panel,
-                      content: Text('Notifications are coming soon!', style: GoogleFonts.poppins(color: Colors.white)),
-                    ),
-                  );
-                },
+                onPressed: onNotificationPressed,
                 icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
               ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: _brandRed,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: _surface, width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    '3',
-                    style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+              if (unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _brandRed,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _surface, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$unreadNotificationCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
-              ),
             ],
           )
         else

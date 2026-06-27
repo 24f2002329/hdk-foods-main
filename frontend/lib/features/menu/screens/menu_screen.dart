@@ -42,7 +42,6 @@ class _MenuScreenState extends State<MenuScreen> {
   Timer? _debounceTimer;
 
   int? _selectedCategoryId;
-  bool _isAutoScrolling = false;
 
   // Keys for scrolling to sections
   final Map<int, GlobalKey> _sectionKeys = {};
@@ -75,14 +74,12 @@ class _MenuScreenState extends State<MenuScreen> {
     dataFuture = _load();
     _loadFavorites();
     _loadAddons();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _categoryScrollController.dispose();
     _debounceTimer?.cancel();
@@ -150,7 +147,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     // Default selection
     if (_selectedCategoryId == null && categories.isNotEmpty) {
-      _selectedCategoryId = -1; // -1 represents '🔥 Bestsellers' tab by default
+      _selectedCategoryId = -3; // -3 represents 'All' tab by default
     }
 
     return _MenuData(
@@ -180,77 +177,35 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  void _onScroll() {
-    if (_isAutoScrolling || !mounted) return;
-
-    // Determine current visible section
-    try {
-      // 1. Check Dynamic Bestsellers Section
-      if (_showBestsellersSection && _bestsellersKey.currentContext != null) {
-        final box = _bestsellersKey.currentContext!.findRenderObject() as RenderBox?;
-        if (box != null) {
-          final position = box.localToGlobal(Offset.zero);
-          if (position.dy >= 0 && position.dy < 240) {
-            _updateSelectedCategoryTab(-1);
-            return;
-          }
-        }
-      }
-
-      // 2. Check Dynamic New Arrivals Section
-      if (_showNewArrivalsSection && _newArrivalsKey.currentContext != null) {
-        final box = _newArrivalsKey.currentContext!.findRenderObject() as RenderBox?;
-        if (box != null) {
-          final position = box.localToGlobal(Offset.zero);
-          if (position.dy >= 0 && position.dy < 240) {
-            _updateSelectedCategoryTab(-2);
-            return;
-          }
-        }
-      }
-
-      // 3. Check Dynamic Category Sections
-      for (final entry in _sectionKeys.entries) {
-        final key = entry.value;
-        if (key.currentContext != null) {
-          final box = key.currentContext!.findRenderObject() as RenderBox?;
-          if (box != null) {
-            final position = box.localToGlobal(Offset.zero);
-            if (position.dy >= 0 && position.dy < 240) {
-              _updateSelectedCategoryTab(entry.key);
-              break;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _updateSelectedCategoryTab(int categoryId) {
-    if (_selectedCategoryId != categoryId) {
-      setState(() {
-        _selectedCategoryId = categoryId;
-      });
-      _scrollToCategoryChip(categoryId);
+  void _selectCategoryTab(int categoryId) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+    });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
     }
+    _scrollToCategoryChip(categoryId);
   }
 
   void _scrollToCategoryChip(int categoryId) {
     if (!_categoryScrollController.hasClients) return;
-    // Calculate approximate position. Since we don't know the dynamic width of chips,
-    // we can estimate based on a standard spacing.
-    // -1 is Bestsellers, -2 is New Arrivals, and positive values are category IDs.
+    // Calculate approximate position.
+    // -3 is All, -1 is Bestsellers, -4 is Favorites, -2 is New Arrivals, and positive values are category IDs.
     int index = 0;
-    if (categoryId == -1) {
+    if (categoryId == -3) {
       index = 0;
+    } else if (categoryId == -1) {
+      index = 1;
+    } else if (categoryId == -4) {
+      index = (_showBestsellersSection ? 1 : 0) + 1;
     } else if (categoryId == -2) {
-      index = _showBestsellersSection ? 1 : 0;
+      index = (_showBestsellersSection ? 1 : 0) + 1 + 1;
     } else {
       // Find index in category list
       dataFuture.then((data) {
         final catIndex = data.categories.indexWhere((c) => c.id == categoryId);
         if (catIndex != -1) {
-          int offset = (_showBestsellersSection ? 1 : 0) + (_showNewArrivalsSection ? 1 : 0);
+          int offset = 1 + (_showBestsellersSection ? 1 : 0) + 1 + (_showNewArrivalsSection ? 1 : 0);
           final targetIndex = catIndex + offset;
           final double targetOffset = targetIndex * 100.0 - 100.0;
           _categoryScrollController.animateTo(
@@ -269,31 +224,6 @@ class _MenuScreenState extends State<MenuScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
-  }
-
-  void _scrollToSection(int categoryId) {
-    GlobalKey? targetKey;
-    if (categoryId == -1) {
-      targetKey = _bestsellersKey;
-    } else if (categoryId == -2) {
-      targetKey = _newArrivalsKey;
-    } else {
-      targetKey = _sectionKeys[categoryId];
-    }
-
-    if (targetKey != null && targetKey.currentContext != null) {
-      setState(() {
-        _selectedCategoryId = categoryId;
-      });
-      _isAutoScrolling = true;
-      Scrollable.ensureVisible(
-        targetKey.currentContext!,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      ).then((_) {
-        _isAutoScrolling = false;
-      });
-    }
   }
 
   void _openFilterBottomSheet() {
@@ -694,8 +624,10 @@ class _MenuScreenState extends State<MenuScreen> {
                         controller: _categoryScrollController,
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                        itemCount: (_showBestsellersSection ? 1 : 0) +
+                        itemCount: 1 +
+                            (_showBestsellersSection ? 1 : 0) +
                             (_showNewArrivalsSection ? 1 : 0) +
+                            1 +
                             data.categories.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
@@ -703,26 +635,34 @@ class _MenuScreenState extends State<MenuScreen> {
                           int catId = 0;
                           String label = "";
 
-                          if (_showBestsellersSection && actualIndex == 0) {
-                            catId = -1;
-                            label = "🔥 Bestsellers";
-                          } else if (_showNewArrivalsSection &&
-                              ((_showBestsellersSection && actualIndex == 1) ||
-                                  (!_showBestsellersSection && actualIndex == 0))) {
-                            catId = -2;
-                            label = "🆕 New";
+                          if (actualIndex == 0) {
+                            catId = -3;
+                            label = "All";
                           } else {
-                            int shift = (_showBestsellersSection ? 1 : 0) +
-                                (_showNewArrivalsSection ? 1 : 0);
-                            final category = data.categories[actualIndex - shift];
-                            catId = category.id;
-                            label = category.name;
+                            int shiftIndex = actualIndex - 1;
+                            if (_showBestsellersSection && shiftIndex == 0) {
+                              catId = -1;
+                              label = "🔥 Bestsellers";
+                            } else if (shiftIndex == (_showBestsellersSection ? 1 : 0)) {
+                              catId = -4;
+                              label = "❤️ Favorites";
+                            } else if (_showNewArrivalsSection &&
+                                shiftIndex == (_showBestsellersSection ? 1 : 0) + 1) {
+                              catId = -2;
+                              label = "✨ New";
+                            } else {
+                              int dynamicTabsCount = (_showBestsellersSection ? 1 : 0) + 1 + (_showNewArrivalsSection ? 1 : 0);
+                              int shift = dynamicTabsCount;
+                              final category = data.categories[shiftIndex - shift];
+                              catId = category.id;
+                              label = category.name;
+                            }
                           }
 
                           final isSelected = catId == _selectedCategoryId;
 
                           return GestureDetector(
-                            onTap: () => _scrollToSection(catId),
+                            onTap: () => _selectCategoryTab(catId),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 250),
                               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -920,7 +860,7 @@ class _MenuScreenState extends State<MenuScreen> {
               } else {
                 // Browse Mode: Vertical Stack of Category Sections
                 // 1. Dynamic Section: Bestsellers
-                if (_showBestsellersSection) {
+                if (_showBestsellersSection && (_selectedCategoryId == -3 || _selectedCategoryId == -1)) {
                   slivers.add(
                     SliverToBoxAdapter(
                       key: _bestsellersKey,
@@ -963,7 +903,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 }
 
                 // 2. Dynamic Section: New Arrivals
-                if (_showNewArrivalsSection) {
+                if (_showNewArrivalsSection && (_selectedCategoryId == -3 || _selectedCategoryId == -2)) {
                   slivers.add(
                     SliverToBoxAdapter(
                       key: _newArrivalsKey,
@@ -1005,8 +945,87 @@ class _MenuScreenState extends State<MenuScreen> {
                   );
                 }
 
+                // 2.5. Dynamic Section: Favorites
+                if (_selectedCategoryId == -4) {
+                  final favoriteProducts = _applyFiltersAndSort(
+                    data.products
+                        .where((p) => _favoriteProductIds.contains(p.id))
+                        .toList(),
+                  );
+
+                  slivers.add(
+                    SliverToBoxAdapter(
+                      child: const _SectionHeader(title: '❤️ My Favorites'),
+                    ),
+                  );
+
+                  if (favoriteProducts.isEmpty) {
+                    slivers.add(
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+                        sliver: SliverToBoxAdapter(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.favorite_border_rounded, color: _textSecondary, size: 48),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'No favorites yet',
+                                style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Tap the heart icon on any food item to save it here!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: _textSecondary, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    slivers.add(
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final product = favoriteProducts[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _PremiumFoodCard(
+                                  product: product,
+                                  isFavorite: true,
+                                  onFavoriteTapped: () => _toggleFavorite(product.id),
+                                  cartQuantity: cart.quantityFor(product),
+                                  isStoreClosed: isStoreClosed,
+                                  onAddPressed: () {
+                                    _recordRecentlyViewed(product.id);
+                                    _showProductDetails(context, product, cart, siteConfig);
+                                  },
+                                  onIncreasePressed: () => cart.increaseQuantity(product),
+                                  onDecreasePressed: () => cart.decreaseQuantity(product),
+                                  onTap: () {
+                                    _recordRecentlyViewed(product.id);
+                                    _showProductDetails(context, product, cart, siteConfig);
+                                  },
+                                ),
+                              );
+                            },
+                            childCount: favoriteProducts.length,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                }
+
                 // 3. Category Lists from backend
                 for (final category in data.categories) {
+                  if (_selectedCategoryId != -3 && _selectedCategoryId != category.id) {
+                    continue;
+                  }
                   final catKey = _sectionKeys.putIfAbsent(category.id, () => GlobalKey());
                   final rawProducts = data.productsByCategory[category.id] ?? [];
                   final products = _applyFiltersAndSort(rawProducts);

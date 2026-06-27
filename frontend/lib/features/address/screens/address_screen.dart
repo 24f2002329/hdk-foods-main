@@ -103,6 +103,13 @@ class _AddressScreenState extends State<AddressScreen> {
           'Delivery addresses',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_rounded, color: _brandOrange),
+            onPressed: () => _openAddressForm(),
+            tooltip: 'Add Address',
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddressForm(),

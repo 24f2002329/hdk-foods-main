@@ -98,6 +98,14 @@ class BroadcastNotificationView(APIView):
 
         from authentication.firebase import send_push_to_all
         count = send_push_to_all(title=title, body=body)
+
+        # Create global Notification database record
+        from .models import Notification
+        try:
+            Notification.objects.create(title=title, body=body, user=None)
+        except Exception:
+            pass
+
         return Response({"sent": count})
 
 
@@ -156,4 +164,52 @@ class BannerImageUploadView(APIView):
         banner.save(update_fields=["image_url"])
 
         return Response(BannerSerializer(banner).data)
+
+
+class NotificationListView(APIView):
+    """List customer notifications (user-specific and global announcements)."""
+    from rest_framework.permissions import IsAuthenticated
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        from .models import Notification
+        from .serializers import NotificationSerializer
+        notifications = Notification.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True)
+        ).order_by("-created_at")
+        serializer = NotificationSerializer(notifications, many=True)
+        unread_count = notifications.filter(is_read=False).count()
+        return Response({
+            "notifications": serializer.data,
+            "unread_count": unread_count
+        })
+
+    def post(self, request):
+        """Mark all notifications as read."""
+        from django.db.models import Q
+        from .models import Notification
+        Notification.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True)
+        ).update(is_read=True)
+        return Response({"detail": "All notifications marked as read."})
+
+
+class MarkNotificationReadView(APIView):
+    """Mark a specific notification as read."""
+    from rest_framework.permissions import IsAuthenticated
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        from django.db.models import Q
+        from .models import Notification
+        try:
+            notification = Notification.objects.get(
+                Q(pk=pk) & (Q(user=request.user) | Q(user__isnull=True))
+            )
+            notification.is_read = True
+            notification.save(update_fields=["is_read"])
+            return Response({"detail": "Notification marked as read."})
+        except Notification.DoesNotExist:
+            return Response({"detail": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Banner, SiteConfig
+from .models import Banner, SiteConfig, Notification
 
 
 class SiteConfigSerializer(serializers.ModelSerializer):
@@ -44,3 +44,9 @@ class BannerSerializer(serializers.ModelSerializer):
                 domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
                 ret["image_url"] = domain.rstrip("/") + "/" + ret["image_url"].lstrip("/")
         return ret
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "title", "body", "is_read", "created_at"]

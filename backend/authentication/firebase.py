@@ -76,6 +76,12 @@ def upload_file_to_firebase(file_obj, destination_path: str) -> str:
 
 def send_push(user, title: str, body: str, data: dict = None):
     """Send a push notification to a single user. Silently skips if no token or Firebase not configured."""
+    try:
+        from app_config.models import Notification
+        Notification.objects.create(user=user, title=title, body=body)
+    except Exception as e:
+        logger.warning("Failed to save database notification: %s", e)
+
     if not firebase_admin._apps:
         return
     token = getattr(user, "fcm_token", "").strip()
