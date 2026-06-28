@@ -42,6 +42,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   final _closedMsg = TextEditingController();
   final _scheduledClosedMsg = TextEditingController();
   final _merchantUpiId = TextEditingController();
+  final _loyaltyCoinsPercentage = TextEditingController();
   bool _isStoreOpen = true;
   bool _showRatings = true;
   TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
@@ -79,6 +80,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     _closedMsg.dispose();
     _scheduledClosedMsg.dispose();
     _merchantUpiId.dispose();
+    _loyaltyCoinsPercentage.dispose();
     super.dispose();
   }
 
@@ -99,6 +101,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           
           _scheduledClosedMsg.text = data['scheduled_closed_msg'] ?? '';
           _merchantUpiId.text = data['merchant_upi_id'] ?? 'hdkfoods@axisbank';
+          _loyaltyCoinsPercentage.text = (data['loyalty_coins_percentage'] ?? 10).toString();
           _scheduledStart = data['scheduled_close_start'] != null
               ? DateTime.parse(data['scheduled_close_start']).toLocal()
               : null;
@@ -128,6 +131,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         'scheduled_close_start': _scheduledStart?.toUtc().toIso8601String(),
         'scheduled_close_end': _scheduledEnd?.toUtc().toIso8601String(),
         'merchant_upi_id': _merchantUpiId.text.trim(),
+        'loyalty_coins_percentage': int.tryParse(_loyaltyCoinsPercentage.text.trim()) ?? 10,
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
     } catch (e) {
@@ -270,6 +274,17 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                         hint: 'e.g. hdkfoods@axisbank'),
                     const SizedBox(height: 24),
 
+                    // Loyalty Coins
+                    _sectionHeader('Loyalty Coins Configuration'),
+                    _inputField(
+                      'Loyalty Coins Percentage (%)',
+                      _loyaltyCoinsPercentage,
+                      hint: 'e.g. 10',
+                      maxLines: 1,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 24),
+
                     // Announcement
                     _sectionHeader('Announcement Ribbon'),
                     _inputField('Announcement', _announcement,
@@ -410,19 +425,34 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         ),
       );
 
-  Widget _inputField(String label, TextEditingController ctrl, {String hint = ''}) => TextFormField(
+  Widget _inputField(
+    String label,
+    TextEditingController ctrl, {
+    String hint = '',
+    int maxLines = 2,
+    TextInputType? keyboardType,
+  }) =>
+      TextFormField(
         controller: ctrl,
-        maxLines: 2,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           labelStyle: const TextStyle(color: Colors.grey),
           hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-          filled: true, fillColor: _card,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _red)),
+          filled: true,
+          fillColor: _card,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _stroke)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _stroke)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _red)),
         ),
       );
 

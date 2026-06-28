@@ -198,6 +198,53 @@ class UpdateOrderStatusTest(BaseOrderTest):
         )
         self.assertEqual(res.status_code, 200)
 
+    def test_dynamic_loyalty_coins_earned(self):
+        from app_config.models import SiteConfig
+        # Configure loyalty coins percentage as 5%
+        config = SiteConfig.get()
+        config.loyalty_coins_percentage = 5
+        config.save()
+
+        order = self._create_order()
+        order.status = "out_for_delivery"
+        order.assigned_delivery = self.delivery
+        order.save()
+
+        _auth(self.client, self.delivery)
+        res = self.client.patch(
+            f"/api/orders/{order.id}/status/",
+            {"status": "delivered"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+
+        # 199.00 * 5 // 100 = 9
+        self.assertEqual(res.data["coins_earned"], 9)
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.loyalty_coins, 9)
+
+        # Now test 15%
+        config.loyalty_coins_percentage = 15
+        config.save()
+
+        order2 = self._create_order()
+        order2.status = "out_for_delivery"
+        order2.assigned_delivery = self.delivery
+        order2.save()
+
+        res2 = self.client.patch(
+            f"/api/orders/{order2.id}/status/",
+            {"status": "delivered"},
+            format="json",
+        )
+        self.assertEqual(res2.status_code, 200)
+
+        # 199.00 * 15 // 100 = 29
+        self.assertEqual(res2.data["coins_earned"], 29)
+        self.customer.refresh_from_db()
+        # Customer should have previous 9 coins + new 29 coins = 38 coins
+        self.assertEqual(self.customer.loyalty_coins, 38)
+
 
 class PaginationTest(BaseOrderTest):
     def test_order_list_paginated(self):

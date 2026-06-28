@@ -816,7 +816,9 @@ class UpdateOrderStatusView(APIView):
             )
 
         if new_status == 'delivered' and order.status != 'delivered':
-            earned = int(order.total_amount // 10)
+            from app_config.models import SiteConfig
+            percentage = SiteConfig.get().loyalty_coins_percentage
+            earned = int((order.total_amount * percentage) // 100)
             if earned > 0:
                 customer = order.user
                 customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + earned

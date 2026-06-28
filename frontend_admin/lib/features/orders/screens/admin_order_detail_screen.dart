@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../../../core/widgets/error_retry.dart';
 import '../models/order.dart';
@@ -470,6 +473,197 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     return buttons;
   }
 
+  Future<void> _exportInvoicePdf(Order order) async {
+    final pdf = pw.Document();
+
+    final dateStr = order.createdAt != null
+        ? DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!.toLocal())
+        : 'N/A';
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'HDK FOODS',
+                        style: pw.TextStyle(
+                          fontSize: 24,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColor.fromHex('#FF1E1E'),
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text('Deliciously Yours', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text('INVOICE', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 4),
+                      pw.Text('Order #${order.orderNumber}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                      pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.Divider(thickness: 1, color: PdfColors.grey300),
+              pw.SizedBox(height: 16),
+
+              // Billing Details
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('CUSTOMER DETAILS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                        pw.SizedBox(height: 6),
+                        pw.Text(order.customerName.isNotEmpty ? order.customerName : 'Walk-in Customer', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Phone: ${order.customerPhone.isNotEmpty ? order.customerPhone : 'N/A'}'),
+                      ],
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('DELIVERY ADDRESS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                        pw.SizedBox(height: 6),
+                        if (order.address != null) ...[
+                          pw.Text(order.address!.lineOne),
+                          if (order.address!.lineTwo.isNotEmpty) pw.Text(order.address!.lineTwo),
+                        ] else ...[
+                          pw.Text('Takeaway / Dine-in'),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 24),
+
+              // Items Table Header
+              pw.Container(
+                color: PdfColors.grey200,
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: pw.Row(
+                  children: [
+                    pw.Expanded(child: pw.Text('Item Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Container(width: 60, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Container(width: 40, child: pw.Text('Qty', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Container(width: 70, child: pw.Text('Total', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                  ],
+                ),
+              ),
+
+              // Items List
+              pw.ListView.builder(
+                itemCount: order.items.length,
+                itemBuilder: (pw.Context context, int index) {
+                  final item = order.items[index];
+                  return pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5)),
+                    ),
+                    child: pw.Row(
+                      children: [
+                        pw.Expanded(child: pw.Text(item.productName, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Container(width: 60, child: pw.Text('₹${item.price.toStringAsFixed(2)}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Container(width: 40, child: pw.Text('${item.quantity}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Container(width: 70, child: pw.Text('₹${(item.price * item.quantity).toStringAsFixed(2)}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              pw.SizedBox(height: 16),
+
+              // Summary
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.SizedBox(),
+                  pw.Container(
+                    width: 200,
+                    child: pw.Column(
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('₹${order.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                          ],
+                        ),
+                        if (order.discountAmount > 0) ...[
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Discount (${order.discountReason}):', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green)),
+                              pw.Text('-₹${order.discountAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green)),
+                            ],
+                          ),
+                        ],
+                        if (order.coinsRedeemed > 0) ...[
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Coins Redeemed:', style: pw.TextStyle(fontSize: 10, color: PdfColor.fromHex('#FF8A00'))),
+                              pw.Text('-₹${order.coinsRedeemed.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, color: PdfColor.fromHex('#FF8A00'))),
+                            ],
+                          ),
+                        ],
+                        pw.Divider(thickness: 1, color: PdfColors.grey400),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Grand Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                            pw.Text('₹${order.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.Spacer(),
+
+              // Footer
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Thank you for ordering from HDK Foods!', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    pw.Text('hdkfoods.in | Support: contact@hdkfoods.in', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'invoice_${order.orderNumber}.pdf',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -500,6 +694,11 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             style: GoogleFonts.poppins(
                 color: Colors.white, fontWeight: FontWeight.w700)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+            tooltip: 'Export Invoice',
+            onPressed: () => _exportInvoicePdf(o),
+          ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
             tooltip: 'Chat with Customer',

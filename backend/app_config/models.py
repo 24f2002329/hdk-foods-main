@@ -25,6 +25,9 @@ class SiteConfig(models.Model):
     # Direct UPI
     merchant_upi_id     = models.CharField(max_length=255, default="hdkfoods@axisbank", help_text="Merchant UPI ID to receive direct payments")
 
+    # Loyalty Coins
+    loyalty_coins_percentage = models.PositiveIntegerField(default=10, help_text="Loyalty coins percentage of order value (e.g. 5 means 5%)")
+
     class Meta:
         verbose_name = "Site Configuration"
 

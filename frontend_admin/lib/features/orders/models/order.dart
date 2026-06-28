@@ -1,3 +1,56 @@
+class OrderAddress {
+  final String label;
+  final String house;
+  final String street;
+  final String landmark;
+  final String city;
+  final String pincode;
+  final double? latitude;
+  final double? longitude;
+
+  OrderAddress({
+    this.label = '',
+    this.house = '',
+    this.street = '',
+    this.landmark = '',
+    this.city = '',
+    this.pincode = '',
+    this.latitude,
+    this.longitude,
+  });
+
+  factory OrderAddress.fromJson(Map<String, dynamic> json) {
+    return OrderAddress(
+      label: json['label'] ?? '',
+      house: json['house'] ?? '',
+      street: json['street'] ?? '',
+      landmark: json['landmark'] ?? '',
+      city: json['city'] ?? '',
+      pincode: json['pincode'] ?? '',
+      latitude: json['latitude'] != null
+          ? double.tryParse('${json['latitude']}')
+          : null,
+      longitude: json['longitude'] != null
+          ? double.tryParse('${json['longitude']}')
+          : null,
+    );
+  }
+
+  String get lineOne {
+    final parts = [house, street].where((p) => p.trim().isNotEmpty);
+    return parts.join(', ');
+  }
+
+  String get lineTwo {
+    final parts = [
+      if (landmark.trim().isNotEmpty) landmark,
+      city,
+      if (pincode.trim().isNotEmpty) pincode,
+    ].where((p) => p.trim().isNotEmpty);
+    return parts.join(', ');
+  }
+}
+
 class OrderItem {
   final int? productId;
   final String productName;
@@ -43,6 +96,9 @@ class Order {
   final String discountReason;
   final String customerName;
   final String customerPhone;
+  final int coinsRedeemed;
+  final int coinsEarned;
+  final OrderAddress? address;
 
   // Cancellation properties
   final bool cancellationRequested;
@@ -74,6 +130,9 @@ class Order {
     this.discountReason = '',
     this.customerName = '',
     this.customerPhone = '',
+    this.coinsRedeemed = 0,
+    this.coinsEarned = 0,
+    this.address,
     this.cancellationRequested = false,
     this.cancellationReason = '',
     this.cancellationApproved,
@@ -82,6 +141,8 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? [];
+    final addrJson = json['address_detail'] as Map<String, dynamic>?;
+
     return Order(
       id: json['id'],
       orderNumber: json['order_number'] ?? '',
@@ -116,6 +177,9 @@ class Order {
       discountReason: json['discount_reason'] ?? '',
       customerName: json['customer_name'] ?? '',
       customerPhone: json['customer_phone'] ?? '',
+      coinsRedeemed: json['coins_redeemed'] ?? 0,
+      coinsEarned: json['coins_earned'] ?? 0,
+      address: addrJson != null ? OrderAddress.fromJson(addrJson) : null,
       cancellationRequested: json['cancellation_requested'] ?? false,
       cancellationReason: json['cancellation_reason'] ?? '',
       cancellationApproved: json['cancellation_approved'],

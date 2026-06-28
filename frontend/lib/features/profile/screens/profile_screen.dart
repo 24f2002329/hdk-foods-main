@@ -8,6 +8,7 @@ import '../../accounts/models/user.dart';
 import '../../accounts/services/user_service.dart';
 import '../../orders/screens/orders_screen.dart';
 import '../../address/screens/address_screen.dart';
+import '../../home/services/config_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -25,6 +26,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   User? _user;
+  SiteConfig? _config;
   bool _loading = true;
   String? _error;
   bool _isLoggedIn = true;
@@ -55,9 +57,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       final user = await _userService.getCurrentUser();
+      SiteConfig? config;
+      try {
+        config = await ConfigService().getConfig();
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _user = user;
+          _config = config;
           _loading = false;
         });
       }
@@ -309,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Earn 10% coins back on every order',
+                                      'Earn ${_config?.loyaltyCoinsPercentage ?? 10}% coins back on every order',
                                       style: TextStyle(
                                         color: _mutedText.withValues(alpha: 0.8),
                                         fontSize: 11,

@@ -16,6 +16,7 @@ class SiteConfigSerializer(serializers.ModelSerializer):
             "scheduled_close_end",
             "scheduled_closed_msg",
             "merchant_upi_id",
+            "loyalty_coins_percentage",
         ]
 
     def to_representation(self, instance):

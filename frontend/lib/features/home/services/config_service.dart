@@ -10,6 +10,7 @@ class SiteConfig {
   final String storeCloseTime;
   final String storeClosedMsg;
   final bool showRatings;
+  final int loyaltyCoinsPercentage;
 
   const SiteConfig({
     this.announcement = '',
@@ -18,6 +19,7 @@ class SiteConfig {
     this.storeCloseTime = '22:00:00',
     this.storeClosedMsg = "We're closed right now. See you soon!",
     this.showRatings = true,
+    this.loyaltyCoinsPercentage = 10,
   });
 
   factory SiteConfig.fromJson(Map<String, dynamic> json) => SiteConfig(
@@ -27,6 +29,7 @@ class SiteConfig {
         storeCloseTime: json['store_close_time'] ?? '22:00:00',
         storeClosedMsg: json['store_closed_msg'] ?? "We're closed right now.",
         showRatings: json['show_ratings'] ?? true,
+        loyaltyCoinsPercentage: json['loyalty_coins_percentage'] ?? 10,
       );
 
   bool get isCurrentlyOpen {
