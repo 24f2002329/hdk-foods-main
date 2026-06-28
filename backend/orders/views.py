@@ -37,7 +37,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from django.db.models import Sum, Count, F, Avg, Q
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, ExtractHour
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
@@ -1016,6 +1016,17 @@ class AdminDashboardView(APIView):
             for item in top_selling
         ]
 
+        # Hourly distribution of orders in this period (to identify Peak Times)
+        hourly_dist = (
+            period_qs
+            .annotate(hour=ExtractHour("created_at"))
+            .values("hour")
+            .annotate(count=Count("id"))
+            .order_by("hour")
+        )
+        hourly_data = {h["hour"]: h["count"] for h in hourly_dist}
+        hourly_list = [{"hour": h, "count": hourly_data.get(h, 0)} for h in range(24)]
+
         # Always-live counts — current queue state, not date-filtered
         pending_orders = Order.objects.filter(
             status="pending_confirmation"
@@ -1044,6 +1055,7 @@ class AdminDashboardView(APIView):
             "total_reviews": total_reviews,
             "average_rating": avg_rating,
             "top_products": top_products,
+            "hourly_distribution": hourly_list,
         })
 
 

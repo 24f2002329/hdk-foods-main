@@ -138,6 +138,7 @@ class _DashboardTabState extends State<_DashboardTab>
   bool get wantKeepAlive => true;
   Map<String, dynamic>? _data;
   List<Map<String, dynamic>> _chartData = [];
+  List<Product> _unavailableProducts = [];
   bool _loading = true;
   String? _error;
   String _period = 'today';
@@ -150,16 +151,33 @@ class _DashboardTabState extends State<_DashboardTab>
     super.initState();
     _load();
     _loadChart();
+    _loadUnavailableProducts();
     _timer = Timer.periodic(
-        const Duration(seconds: 30), (_) => _load(silent: true));
+        const Duration(seconds: 30), (_) {
+          _load(silent: true);
+          _loadUnavailableProducts();
+        });
 
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
     _ws!.stream.listen((msg) {
       if (msg['type'] == 'new_order' || msg['type'] == 'order_update') {
         _load(silent: true);
+        _loadUnavailableProducts();
       }
     });
+  }
+
+  Future<void> _loadUnavailableProducts() async {
+    try {
+      final list = await ProductService().getProducts();
+      final filtered = list.where((p) => !p.isAvailable).toList();
+      if (mounted) {
+        setState(() {
+          _unavailableProducts = filtered;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -229,6 +247,239 @@ class _DashboardTabState extends State<_DashboardTab>
     if (v == null) return '0';
     final n = double.tryParse('$v') ?? 0;
     return n.toStringAsFixed(0);
+  }
+
+  Widget _buildTopProductsChart() {
+    final list = _data?['top_products'] as List?;
+    if (list == null || list.isEmpty) return const SizedBox.shrink();
+
+    double maxQty = 1;
+    for (final item in list) {
+      final qty = (item['quantity'] as num).toDouble();
+      if (qty > maxQty) maxQty = qty;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 28),
+        Text('Top Products Sold (Units)',
+            style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 180,
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: maxQty * 1.15,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => const Color(0xFF1E1E1E),
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final name = list[groupIndex]['name'] as String;
+                    return BarTooltipItem(
+                      '$name\n${rod.toY.toInt()} units',
+                      const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    );
+                  },
+                ),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (double value, TitleMeta meta) {
+                      final index = value.toInt();
+                      if (index < 0 || index >= list.length) {
+                        return const SizedBox.shrink();
+                      }
+                      final name = list[index]['name'] as String;
+                      final shortName = name.length > 8 ? '${name.substring(0, 7)}..' : name;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(shortName, style: const TextStyle(color: Colors.grey, fontSize: 8)),
+                      );
+                    },
+                    reservedSize: 24,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 8)),
+                    reservedSize: 22,
+                  ),
+                ),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              barGroups: List.generate(
+                list.length,
+                (i) {
+                  final qty = (list[i]['quantity'] as num).toDouble();
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: qty,
+                        color: i == 0 ? Colors.amber : (i == 1 ? Colors.blueAccent : Colors.deepOrangeAccent),
+                        width: 14,
+                        borderRadius: BorderRadius.circular(4),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxQty * 1.1,
+                          color: const Color(0xFF1E1E1E),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBusyHoursChart() {
+    final list = _data?['hourly_distribution'] as List?;
+    if (list == null || list.isEmpty) return const SizedBox.shrink();
+
+    double maxCount = 1;
+    List<FlSpot> spots = [];
+    for (int i = 0; i < list.length; i++) {
+      final count = (list[i]['count'] as num).toDouble();
+      spots.add(FlSpot(i.toDouble(), count));
+      if (count > maxCount) maxCount = count;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 28),
+        Text('Peak Order Times (Busy Hours)',
+            style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text('Total orders by hour of day',
+            style: GoogleFonts.poppins(
+                color: Colors.grey, fontSize: 11)),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 160,
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (_) => FlLine(
+                  color: const Color(0xFF2A2A2A),
+                  strokeWidth: 1,
+                ),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    getTitlesWidget: (v, _) => Text(
+                      v.toInt().toString(),
+                      style: const TextStyle(color: Colors.grey, fontSize: 8),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    interval: 4,
+                    getTitlesWidget: (v, _) {
+                      final hour = v.toInt();
+                      if (hour < 0 || hour >= 24) return const SizedBox.shrink();
+                      final suffix = hour >= 12 ? 'PM' : 'AM';
+                      final disp = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                      return Text('$disp$suffix', style: const TextStyle(color: Colors.grey, fontSize: 8));
+                    },
+                  ),
+                ),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  color: Colors.deepOrange,
+                  barWidth: 2.5,
+                  dotData: const FlDotData(show: false),
+                  belowBarData: BarAreaData(
+                     show: true,
+                     color: Colors.deepOrange.withValues(alpha: 0.1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInventoryAlertCard() {
+    if (_unavailableProducts.isEmpty) return const SizedBox.shrink();
+
+    final names = _unavailableProducts.map((p) => p.name).join(', ');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF1E1E).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFF1E1E).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF1E1E), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Inventory Warning (${_unavailableProducts.length} Items Out of Stock)',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'The following items are marked as unavailable and hidden from customers:\n$names',
+                  style: GoogleFonts.poppins(
+                    color: Colors.grey,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _drill({
@@ -351,6 +602,7 @@ class _DashboardTabState extends State<_DashboardTab>
                             color: Colors.grey, fontSize: 12),
                       ),
                       const SizedBox(height: 20),
+                      _buildInventoryAlertCard(),
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
@@ -577,6 +829,7 @@ class _DashboardTabState extends State<_DashboardTab>
                           ),
                         ),
                       ],
+                      _buildBusyHoursChart(),
                       // Additional Metrics Section
                       const SizedBox(height: 28),
                       Text('Business Insights',
@@ -660,6 +913,7 @@ class _DashboardTabState extends State<_DashboardTab>
                           ),
                         ),
                       ],
+                      _buildTopProductsChart(),
                       const SizedBox(height: 24),
                     ],
                   ),
