@@ -698,7 +698,7 @@ class ConfirmOrderView(APIView):
             order.user,
             "Order Confirmed ✅",
             f"Your order #{order.order_number} is confirmed! Ready in ~{prep_time} mins.",
-            {"order_id": str(order.id)},
+            {"order_id": str(order.id), "type": "order"},
         )
 
         _broadcast_order(order)
@@ -750,7 +750,7 @@ class RejectOrderView(APIView):
             order.user,
             "Order Rejected ❌",
             f"Order #{order.order_number} was rejected. Sorry for the inconvenience.",
-            {"order_id": str(order.id)},
+            {"order_id": str(order.id), "type": "order"},
         )
 
         _broadcast_order(order)
@@ -812,7 +812,7 @@ class UpdateOrderStatusView(APIView):
         }
         if new_status in _push_map:
             title, body = _push_map[new_status]
-            send_push(order.user, title, body, {"order_id": str(order.id)})
+            send_push(order.user, title, body, {"order_id": str(order.id), "type": "order"})
 
         _broadcast_order(order)
 
@@ -877,7 +877,7 @@ class AssignDeliveryView(APIView):
             delivery_user,
             "New Delivery Assigned 🛵",
             f"Order #{order.order_number} has been assigned to you.",
-            {"order_id": str(order.id)},
+            {"order_id": str(order.id), "type": "order"},
         )
 
         return Response(
@@ -1863,7 +1863,7 @@ class AdminCreateOrderView(APIView):
                 user,
                 'Order Placed 🛍️',
                 f'An order has been placed for you: Order #{order.order_number}',
-                {'order_id': str(order.id)}
+                {'order_id': str(order.id), 'type': 'order'}
             )
         except Exception as e:
             logger.warning(f"Could not send push notification: {e}")
@@ -1987,14 +1987,24 @@ class AdminHandleCancellationView(APIView):
                 order.refund_status = "not_applicable"
 
             try:
-                send_push(order.user, "Order Cancelled 🚫", f"Your cancellation request for order #{order.order_number} has been approved.")
+                send_push(
+                    order.user,
+                    "Order Cancelled 🚫",
+                    f"Your cancellation request for order #{order.order_number} has been approved.",
+                    {"order_id": str(order.id), "type": "order"}
+                )
             except Exception as e:
                 logger.warning(f"Could not send push notification: {e}")
         else:
             order.cancellation_approved = False
             order.cancellation_requested = False # reset so they can request again if needed
             try:
-                send_push(order.user, "Cancellation Request Declined ⚠️", f"Your cancellation request for order #{order.order_number} was declined.")
+                send_push(
+                    order.user,
+                    "Cancellation Request Declined ⚠️",
+                    f"Your cancellation request for order #{order.order_number} was declined.",
+                    {"order_id": str(order.id), "type": "order"}
+                )
             except Exception as e:
                 logger.warning(f"Could not send push notification: {e}")
 
@@ -2040,7 +2050,12 @@ class AdminCancelOrderView(APIView):
         _broadcast_order(order)
 
         try:
-            send_push(order.user, "Order Cancelled 🚫", f"Your order #{order.order_number} has been cancelled by the kitchen: {reason}")
+            send_push(
+                order.user,
+                "Order Cancelled 🚫",
+                f"Your order #{order.order_number} has been cancelled by the kitchen: {reason}",
+                {"order_id": str(order.id), "type": "order"}
+            )
         except Exception as e:
             logger.warning(f"Could not send push notification: {e}")
 
@@ -2104,7 +2119,16 @@ class OrderMessageListCreateView(APIView):
 
         try:
             if is_admin:
-                send_push(order.user, "Message from Kitchen 💬", message_text)
+                send_push(
+                    order.user,
+                    "Message from Kitchen 💬",
+                    message_text,
+                    data={
+                        "type": "chat",
+                        "order_id": order.id,
+                        "order_number": order.order_number,
+                    }
+                )
         except Exception as e:
             logger.warning(f"Could not send chat push notification: {e}")
 

@@ -15,6 +15,8 @@ import 'features/auth/screens/splash_screen.dart';
 import 'features/cart/services/cart_provider.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/checkout/screens/checkout_screen.dart';
+import 'features/orders/screens/order_chat_screen.dart';
+import 'features/orders/screens/order_tracking_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -67,14 +69,89 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNotificationClickHandling();
+  }
+
+  void _setupNotificationClickHandling() {
+    // 1. App in background/foreground when notification clicked
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _handleNotificationClick(message);
+    });
+
+    // 2. App terminated when notification clicked
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          _handleNotificationClick(message);
+        });
+      }
+    });
+
+    // 3. Foreground options presentation config
+    FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+  }
+
+  void _handleNotificationClick(RemoteMessage message) {
+    final data = message.data;
+    final type = data['type'];
+
+    if (type == 'chat') {
+      final orderIdStr = data['order_id'];
+      final orderNumber = data['order_number'] ?? '';
+      if (orderIdStr != null) {
+        final orderId = int.tryParse(orderIdStr.toString());
+        if (orderId != null) {
+          _navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderChatScreen(
+                orderId: orderId,
+                orderNumber: orderNumber,
+              ),
+            ),
+          );
+        }
+      }
+    } else if (type == 'order') {
+      final orderIdStr = data['order_id'];
+      if (orderIdStr != null) {
+        final orderId = int.tryParse(orderIdStr.toString());
+        if (orderId != null) {
+          _navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => OrderTrackingScreen(orderId: orderId),
+            ),
+          );
+        }
+      }
+    } else {
+      // Default: Go to active orders list / home
+      _navigatorKey.currentState?.pushNamed('/home');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => CartProvider(),
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(

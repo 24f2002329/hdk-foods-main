@@ -91,8 +91,15 @@ class NotificationService {
     await _local.initialize(
       const InitializationSettings(android: android),
       onDidReceiveNotificationResponse: (response) {
-        final orderId = response.payload;
-        if (orderId != null) _handleTap({'order_id': orderId});
+        try {
+          if (response.payload != null) {
+            final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+            _handleTap(data);
+          }
+        } catch (_) {
+          final orderId = response.payload;
+          if (orderId != null) _handleTap({'order_id': orderId});
+        }
       },
     );
 
@@ -110,7 +117,6 @@ class NotificationService {
   static Future<void> _showLocal(RemoteMessage message) async {
     final n = message.notification;
     if (n == null) return;
-    final orderId = message.data['order_id'];
 
     await _local.show(
       message.hashCode,
@@ -125,7 +131,7 @@ class NotificationService {
           icon: '@mipmap/ic_launcher',
         ),
       ),
-      payload: orderId,
+      payload: jsonEncode(message.data),
     );
   }
 }

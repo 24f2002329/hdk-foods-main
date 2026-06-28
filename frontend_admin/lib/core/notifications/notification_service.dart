@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
 import '../../features/orders/screens/admin_order_detail_screen.dart';
+import '../../features/orders/screens/admin_order_chat_screen.dart';
 
 const _kChannelId = 'hdkfoods_orders';
 const _kChannelName = 'Order Alerts';
@@ -75,9 +76,21 @@ class NotificationService {
     if (orderId == null) return;
     final ctx = navigatorKey?.currentContext;
     if (ctx == null) return;
-    Navigator.of(ctx).push(MaterialPageRoute(
-      builder: (_) => AdminOrderDetailScreen(orderId: orderId),
-    ));
+
+    final type = data['type'];
+    if (type == 'chat') {
+      final orderNumber = data['order_number'] ?? '';
+      Navigator.of(ctx).push(MaterialPageRoute(
+        builder: (_) => AdminOrderChatScreen(
+          orderId: orderId,
+          orderNumber: orderNumber,
+        ),
+      ));
+    } else {
+      Navigator.of(ctx).push(MaterialPageRoute(
+        builder: (_) => AdminOrderDetailScreen(orderId: orderId),
+      ));
+    }
   }
 
   // ── Local notifications ───────────────────────────────────────────────────
@@ -87,8 +100,15 @@ class NotificationService {
     await _local.initialize(
       const InitializationSettings(android: android),
       onDidReceiveNotificationResponse: (response) {
-        final orderId = int.tryParse(response.payload ?? '');
-        if (orderId != null) _handleTap({'order_id': '$orderId'});
+        try {
+          if (response.payload != null) {
+            final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+            _handleTap(data);
+          }
+        } catch (_) {
+          final orderId = int.tryParse(response.payload ?? '');
+          if (orderId != null) _handleTap({'order_id': '$orderId'});
+        }
       },
     );
 
@@ -106,7 +126,6 @@ class NotificationService {
   static Future<void> _showLocal(RemoteMessage message) async {
     final n = message.notification;
     if (n == null) return;
-    final orderId = message.data['order_id'];
 
     await _local.show(
       message.hashCode,
@@ -121,7 +140,7 @@ class NotificationService {
           icon: '@mipmap/ic_launcher',
         ),
       ),
-      payload: orderId,
+      payload: jsonEncode(message.data),
     );
   }
 }
