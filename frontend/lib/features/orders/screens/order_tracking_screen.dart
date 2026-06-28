@@ -855,6 +855,22 @@ class _OrderHeaderCard extends StatelessWidget {
                       style: const TextStyle(
                           color: Colors.greenAccent, fontSize: 11),
                     ),
+                  if (order.coinsRedeemed > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Redeemed ${order.coinsRedeemed} HDK Coins',
+                        style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 11),
+                      ),
+                    ),
+                  if (order.coinsEarned > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Earned +${order.coinsEarned} HDK Coins! 🌟',
+                        style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                 ],
               ),
               Column(

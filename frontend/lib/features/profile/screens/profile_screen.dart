@@ -266,6 +266,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [const Color(0xFFFF1E1E).withValues(alpha: 0.15), const Color(0xFFFF8A00).withValues(alpha: 0.05)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFFF8A00).withValues(alpha: 0.25)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFFFF8A00), width: 1.5),
+                                ),
+                                child: const Icon(
+                                  Icons.stars_rounded,
+                                  color: Color(0xFFFF8A00),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'HDK Coins',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Earn 10% coins back on every order',
+                                      style: TextStyle(
+                                        color: _mutedText.withValues(alpha: 0.8),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '${_user?.loyaltyCoins ?? 0}',
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8A00),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 20),
 
                         // ── Navigation tiles ───────────────────────────────

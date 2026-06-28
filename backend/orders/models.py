@@ -141,6 +141,8 @@ class Order(models.Model):
     cancellation_requested_at = models.DateTimeField(null=True, blank=True)
     cancellation_approved = models.BooleanField(null=True, blank=True)
     refund_status = models.CharField(max_length=50, blank=True, default="")
+    coins_redeemed = models.IntegerField(default=0)
+    coins_earned = models.IntegerField(default=0)
 
     # Snapshot of total_amount before the first staff modification.
     # Used to re-base discounts so applying a second discount doesn't

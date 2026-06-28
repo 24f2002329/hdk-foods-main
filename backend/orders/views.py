@@ -196,6 +196,19 @@ class CreateOrderView(APIView):
             order.total_amount = total_amount - discount
             Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
 
+        # Apply loyalty coins redemption
+        redeem_coins = bool(request.data.get("redeem_coins", False))
+        if redeem_coins:
+            user = request.user
+            available_coins = getattr(user, 'loyalty_coins', 0)
+            if available_coins > 0:
+                redeemed = min(available_coins, int(order.total_amount))
+                if redeemed > 0:
+                    order.coins_redeemed = redeemed
+                    order.total_amount = order.total_amount - Decimal(str(redeemed))
+                    user.loyalty_coins = available_coins - redeemed
+                    user.save(update_fields=['loyalty_coins'])
+
         order.save()
 
         send_push_to_role(
@@ -801,6 +814,14 @@ class UpdateOrderStatusView(APIView):
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        if new_status == 'delivered' and order.status != 'delivered':
+            earned = int(order.total_amount // 10)
+            if earned > 0:
+                customer = order.user
+                customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + earned
+                customer.save(update_fields=['loyalty_coins'])
+                order.coins_earned = earned
 
         order.status = new_status
         order.save()
@@ -1975,6 +1996,11 @@ class AdminHandleCancellationView(APIView):
             if reason:
                 order.cancellation_reason = reason
 
+            if order.coins_redeemed > 0:
+                customer = order.user
+                customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + order.coins_redeemed
+                customer.save(update_fields=['loyalty_coins'])
+
             # Initiate Cashfree Refund if paid online
             if order.payment_method == "online" and order.payment_status == "paid":
                 success = initiate_cashfree_refund(order, reason or "Customer Cancellation Request Approved")
@@ -2034,6 +2060,11 @@ class AdminCancelOrderView(APIView):
         order.status = "cancelled"
         order.cancellation_reason = reason
         order.cancellation_approved = True
+
+        if order.coins_redeemed > 0:
+            customer = order.user
+            customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + order.coins_redeemed
+            customer.save(update_fields=['loyalty_coins'])
 
         # Initiate Cashfree Refund if paid online
         if order.payment_method == "online" and order.payment_status == "paid":

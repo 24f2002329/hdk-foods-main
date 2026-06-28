@@ -27,6 +27,7 @@ class OrderService {
     String paymentMethod = 'cod',
     String deliveryNotes = '',
     String couponCode = '',
+    bool redeemCoins = false,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/create/'),
@@ -37,6 +38,7 @@ class OrderService {
         'payment_method': paymentMethod,
         'delivery_notes': deliveryNotes,
         if (couponCode.isNotEmpty) 'coupon_code': couponCode,
+        'redeem_coins': redeemCoins,
       }),
     );
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../accounts/services/user_service.dart';
 import '../../address/models/customer_address.dart';
 import '../../address/screens/address_screen.dart';
 import '../../address/services/address_service.dart';
@@ -38,10 +39,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Map<String, dynamic>? _couponResult;
   String? _couponError;
 
+  // Loyalty coins state
+  int _userCoins = 0;
+  bool _redeemCoins = false;
+
   @override
   void initState() {
     super.initState();
     _loadAddresses();
+    _loadUserCoins();
+  }
+
+  Future<void> _loadUserCoins() async {
+    try {
+      final user = await UserService().getCurrentUser();
+      if (mounted) {
+        setState(() {
+          _userCoins = user.loyaltyCoins;
+        });
+      }
+    } catch (_) {}
+  }
+
+  double _calculateCoinsDiscount(double remainingTotal) {
+    return _userCoins < remainingTotal ? _userCoins.toDouble() : remainingTotal;
   }
 
   @override
@@ -167,6 +188,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         paymentMethod: _selectedPaymentMethod,
         couponCode: appliedCode,
         deliveryNotes: finalDeliveryNotes,
+        redeemCoins: _redeemCoins,
       );
 
       cart.clearCart();
@@ -250,7 +272,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final discount = _couponResult?['valid'] == true
         ? double.tryParse(_couponResult!['discount_amount'].toString()) ?? 0.0
         : 0.0;
-    final finalTotal = cartTotal - discount;
+    final coinsDiscount = _redeemCoins ? _calculateCoinsDiscount(cartTotal - discount) : 0.0;
+    final finalTotal = cartTotal - discount - coinsDiscount;
 
     if (cart.items.isEmpty && !_isCreatingOrder) {
       return Scaffold(
@@ -358,22 +381,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               Text('-₹${discount.toStringAsFixed(0)}',
                                   style: const TextStyle(color: Colors.greenAccent, fontSize: 13)),
                             ]),
+                          ],
+                          if (coinsDiscount > 0) ...[
                             const SizedBox(height: 6),
                             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              const Text('Total',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text('₹${finalTotal.toStringAsFixed(0)}',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            ]),
-                          ] else ...[
-                            const SizedBox(height: 6),
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              const Text('Total',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text('₹${cartTotal.toStringAsFixed(0)}',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              const Text('Coins Redeemed',
+                                  style: TextStyle(color: Color(0xFFFF8A00), fontSize: 13)),
+                              Text('-₹${coinsDiscount.toStringAsFixed(0)}',
+                                  style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 13)),
                             ]),
                           ],
+                          const SizedBox(height: 12),
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                            const Text('Total',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text('₹${finalTotal.toStringAsFixed(0)}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          ]),
                         ]),
                       ),
                       const SizedBox(height: 24),
@@ -458,6 +482,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                           ),
                         ]),
+                      // ── Redeem Loyalty Coins ──────────────────────────────
+                      if (_userCoins > 0) ...[
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _panel,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _redeemCoins
+                                  ? const Color(0xFFFF8A00).withValues(alpha: 0.4)
+                                  : _stroke,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.stars_rounded, color: Color(0xFFFF8A00), size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Redeem $_userCoins HDK Coins',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Save ₹${_calculateCoinsDiscount(cartTotal - discount).toStringAsFixed(0)} on this order',
+                                      style: const TextStyle(
+                                        color: _mutedText,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _redeemCoins,
+                                activeColor: const Color(0xFFFF8A00),
+                                activeTrackColor: const Color(0xFFFF8A00).withValues(alpha: 0.2),
+                                inactiveTrackColor: const Color(0xFF2A2A2A),
+                                onChanged: (val) {
+                                  setState(() => _redeemCoins = val);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // ── Payment mode ──────────────────────────────────────

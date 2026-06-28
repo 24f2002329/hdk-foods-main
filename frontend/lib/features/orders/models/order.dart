@@ -101,6 +101,8 @@ class Order {
   final String cancellationReason;
   final bool? cancellationApproved;
   final String refundStatus;
+  final int coinsRedeemed;
+  final int coinsEarned;
 
   Order({
     required this.id,
@@ -123,6 +125,8 @@ class Order {
     this.cancellationReason = '',
     this.cancellationApproved,
     this.refundStatus = '',
+    this.coinsRedeemed = 0,
+    this.coinsEarned = 0,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -166,6 +170,8 @@ class Order {
       cancellationReason: json['cancellation_reason'] ?? '',
       cancellationApproved: json['cancellation_approved'],
       refundStatus: json['refund_status'] ?? '',
+      coinsRedeemed: json['coins_redeemed'] ?? 0,
+      coinsEarned: json['coins_earned'] ?? 0,
     );
   }
 }

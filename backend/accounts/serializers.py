@@ -7,8 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "phone_number", "name", "role"]
-        read_only_fields = ["id", "phone_number", "role"]
+        fields = ["id", "phone_number", "name", "role", "loyalty_coins"]
+        read_only_fields = ["id", "phone_number", "role", "loyalty_coins"]
 
 
 class DeliveryStaffSerializer(serializers.ModelSerializer):
