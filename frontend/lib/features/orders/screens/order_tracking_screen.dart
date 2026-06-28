@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1351,6 +1352,8 @@ class _AddressMapCardState extends State<_AddressMapCard>
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
   GoogleMapController? _mapCtrl;
+  BitmapDescriptor? _destinationIcon;
+  BitmapDescriptor? _deliveryIcon;
 
   @override
   void initState() {
@@ -1362,16 +1365,92 @@ class _AddressMapCardState extends State<_AddressMapCard>
     _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+    _loadCustomMarkers();
+  }
+
+  Future<void> _loadCustomMarkers() async {
+    try {
+      final dest = await _getCustomMarker(Icons.home_rounded, const Color(0xFFFF1E1E));
+      final deliv = await _getCustomMarker(Icons.delivery_dining_rounded, Colors.blueAccent);
+      if (mounted) {
+        setState(() {
+          _destinationIcon = dest;
+          _deliveryIcon = deliv;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<BitmapDescriptor> _getCustomMarker(IconData iconData, Color color) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+
+    // Background circle
+    final Paint paint = Paint()..color = color;
+    canvas.drawCircle(const Offset(40, 40), 38, paint);
+
+    // White border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(const Offset(40, 40), 38, borderPaint);
+
+    // Icon
+    final TextPainter textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(iconData.codePoint),
+      style: TextStyle(
+        fontSize: 44,
+        fontFamily: iconData.fontFamily,
+        package: iconData.fontPackage,
+        color: Colors.white,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2));
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(80, 80);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+  }
+
+  void _fitMapBounds() {
+    if (_mapCtrl == null) return;
+
+    final addr = widget.address;
+    final loc = widget.deliveryLocation;
+    final hasAddrCoords = addr.latitude != null && addr.longitude != null;
+    final hasLiveLoc = widget.isOutForDelivery && loc != null;
+
+    if (hasAddrCoords && hasLiveLoc) {
+      final LatLngBounds bounds = LatLngBounds(
+        southwest: LatLng(
+          loc.latitude < addr.latitude! ? loc.latitude : addr.latitude!,
+          loc.longitude < addr.longitude! ? loc.longitude : addr.longitude!,
+        ),
+        northeast: LatLng(
+          loc.latitude > addr.latitude! ? loc.latitude : addr.latitude!,
+          loc.longitude > addr.longitude! ? loc.longitude : addr.longitude!,
+        ),
+      );
+      _mapCtrl!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
+    } else if (hasLiveLoc) {
+      _mapCtrl!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(loc.latitude, loc.longitude)),
+      );
+    } else if (hasAddrCoords) {
+      _mapCtrl!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(addr.latitude!, addr.longitude!)),
+      );
+    }
   }
 
   @override
   void didUpdateWidget(_AddressMapCard old) {
     super.didUpdateWidget(old);
-    final loc = widget.deliveryLocation;
-    if (loc != null && _mapCtrl != null) {
-      _mapCtrl!.animateCamera(
-        CameraUpdate.newLatLng(LatLng(loc.latitude, loc.longitude)),
-      );
+    if (_mapCtrl != null) {
+      _fitMapBounds();
     }
   }
 
@@ -1404,7 +1483,7 @@ class _AddressMapCardState extends State<_AddressMapCard>
       markers.add(Marker(
         markerId: const MarkerId('destination'),
         position: LatLng(addr.latitude!, addr.longitude!),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: _destinationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
           title: addr.label.isNotEmpty ? addr.label : 'Your Address',
         ),
@@ -1414,9 +1493,28 @@ class _AddressMapCardState extends State<_AddressMapCard>
       markers.add(Marker(
         markerId: const MarkerId('delivery_person'),
         position: LatLng(loc.latitude, loc.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        icon: _deliveryIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         infoWindow: const InfoWindow(title: 'Delivery Partner'),
       ));
+    }
+
+    final Set<Polyline> polylines = {};
+    if (hasLiveLoc && hasAddrCoords) {
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('delivery_route'),
+          points: [
+            LatLng(loc.latitude, loc.longitude),
+            LatLng(addr.latitude!, addr.longitude!),
+          ],
+          color: _brandRed,
+          width: 5,
+          geodesic: true,
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+        ),
+      );
     }
 
     final cameraTarget = hasLiveLoc
@@ -1450,13 +1548,19 @@ class _AddressMapCardState extends State<_AddressMapCard>
                       initialCameraPosition:
                           CameraPosition(target: cameraTarget, zoom: 15),
                       markers: markers,
+                      polylines: polylines,
                       myLocationButtonEnabled: false,
                       zoomControlsEnabled: false,
                       scrollGesturesEnabled: true,
                       zoomGesturesEnabled: true,
                       rotateGesturesEnabled: false,
                       tiltGesturesEnabled: false,
-                      onMapCreated: (c) => _mapCtrl = c,
+                      onMapCreated: (c) {
+                        _mapCtrl = c;
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _fitMapBounds();
+                        });
+                      },
                     ),
                     // LIVE badge
                     if (hasLiveLoc)

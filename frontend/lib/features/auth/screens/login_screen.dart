@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:smart_auth/smart_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import 'otp_screen.dart';
@@ -39,6 +41,13 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.dispose();
     _phoneFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _fillPhoneFromGoogle() async {
@@ -261,6 +270,46 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: _mutedText,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        color: _mutedText,
+                        fontSize: 11,
+                        height: 1.5,
+                      ),
+                      children: [
+                        const TextSpan(text: 'By continuing, you agree to our\n'),
+                        TextSpan(
+                          text: 'Terms & Conditions',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => _launchUrl('https://hdkfoods.in/terms'),
+                        ),
+                        const TextSpan(text: '  and  '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => _launchUrl('https://hdkfoods.in/privacy-policy'),
+                        ),
+                      ],
                     ),
                   ),
                 ),

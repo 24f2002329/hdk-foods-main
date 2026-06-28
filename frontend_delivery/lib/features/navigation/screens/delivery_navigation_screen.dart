@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -43,6 +45,8 @@ class _DeliveryNavigationScreenState
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  BitmapDescriptor? _destinationIcon;
+  BitmapDescriptor? _driverIcon;
 
   // ── Location stream ─────────────────────────────────────────────────────────
   StreamSubscription<Position>? _positionSub;
@@ -75,7 +79,9 @@ class _DeliveryNavigationScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initMarkers();
+    _loadCustomMarkers().then((_) {
+      _initMarkers();
+    });
     _initLocationStream();
   }
 
@@ -96,6 +102,95 @@ class _DeliveryNavigationScreenState
     }
   }
 
+  Future<void> _loadCustomMarkers() async {
+    try {
+      final dest = await _getCustomMarker(Icons.home_rounded, const Color(0xFFFF1E1E));
+      final driv = await _getCustomMarker(Icons.directions_bike_rounded, Colors.blueAccent);
+      if (mounted) {
+        setState(() {
+          _destinationIcon = dest;
+          _driverIcon = driv;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<BitmapDescriptor> _getCustomMarker(IconData iconData, Color color) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+
+    // Background circle
+    final Paint paint = Paint()..color = color;
+    canvas.drawCircle(const Offset(40, 40), 38, paint);
+
+    // White border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(const Offset(40, 40), 38, borderPaint);
+
+    // Icon
+    final TextPainter textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(iconData.codePoint),
+      style: TextStyle(
+        fontSize: 44,
+        fontFamily: iconData.fontFamily,
+        package: iconData.fontPackage,
+        color: Colors.white,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2));
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(80, 80);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
+  }
+
+  Future<void> _launchNativeNavigation() async {
+    final lat = _destination.latitude;
+    final lng = _destination.longitude;
+    final googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
+    final fallbackUrl = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+
+    try {
+      if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
+        await launchUrl(Uri.parse(googleMapsUrl));
+      } else {
+        await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _fitMapBounds() {
+    if (_mapController == null) return;
+
+    final dest = _destination;
+    final pos = _currentPosition;
+
+    if (pos != null) {
+      final LatLngBounds bounds = LatLngBounds(
+        southwest: LatLng(
+          pos.latitude < dest.latitude ? pos.latitude : dest.latitude,
+          pos.longitude < dest.longitude ? pos.longitude : dest.longitude,
+        ),
+        northeast: LatLng(
+          pos.latitude > dest.latitude ? pos.latitude : dest.latitude,
+          pos.longitude > dest.longitude ? pos.longitude : dest.longitude,
+        ),
+      );
+      _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
+    } else {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(dest),
+      );
+    }
+  }
+
   // ── Initialisation ──────────────────────────────────────────────────────────
 
   void _initMarkers() {
@@ -103,7 +198,7 @@ class _DeliveryNavigationScreenState
       Marker(
         markerId: const MarkerId('destination'),
         position: _destination,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: _destinationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
           title: widget.order.address?.label.isNotEmpty == true
               ? widget.order.address!.label
@@ -177,7 +272,7 @@ class _DeliveryNavigationScreenState
         Marker(
           markerId: const MarkerId('driver'),
           position: driverLatLng,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
+          icon: _driverIcon ?? BitmapDescriptor.defaultMarkerWithHue(
               BitmapDescriptor.hueBlue),
           infoWindow: const InfoWindow(title: 'You'),
         ),
@@ -259,6 +354,7 @@ class _DeliveryNavigationScreenState
           _routeLoading = false;
           _routeFailed = false;
         });
+        _fitMapBounds();
         return;
       } catch (e) {
         if (attempt == maxAttempts - 1) {
@@ -538,7 +634,12 @@ class _DeliveryNavigationScreenState
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
-              onMapCreated: (c) => _mapController = c,
+              onMapCreated: (c) {
+                _mapController = c;
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  _fitMapBounds();
+                });
+              },
             ),
 
             // ── Route loading spinner ────────────────────────────────────
@@ -585,6 +686,24 @@ class _DeliveryNavigationScreenState
                     foregroundColor: Colors.white,
                   ),
                   icon: const Icon(Icons.arrow_back_rounded),
+                ),
+              ),
+            ),
+
+            // ── Re-center button ──────────────────────────────────────────
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: IconButton.filled(
+                    onPressed: _fitMapBounds,
+                    style: IconButton.styleFrom(
+                      backgroundColor: _kPanel,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.center_focus_strong_rounded),
+                  ),
                 ),
               ),
             ),
@@ -754,6 +873,29 @@ class _DeliveryNavigationScreenState
                             color: Colors.white70,
                             fontSize: 13),
                         overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _launchNativeNavigation,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.map_rounded, color: Colors.blueAccent, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'Open Maps',
+                              style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
