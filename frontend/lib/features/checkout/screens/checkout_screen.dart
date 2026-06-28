@@ -9,6 +9,7 @@ import '../../cart/services/cart_provider.dart';
 import '../../orders/services/order_service.dart';
 import 'kitchen_closed_screen.dart';
 import 'waiting_room_screen.dart';
+import '../../../shared/widgets/congratulations_overlay.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -42,6 +43,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Loyalty coins state
   int _userCoins = 0;
   bool _redeemCoins = false;
+
+  // Cutlery state
+  bool _cutleryNeeded = true;
 
   @override
   void initState() {
@@ -121,14 +125,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         orderTotal: cartTotal,
       );
       if (!mounted) return;
-      if (result == null || result['valid'] != true) {
-        setState(() {
-          _couponError = result?['detail'] ?? 'Invalid coupon.';
-          _couponResult = null;
-        });
-      } else {
-        setState(() => _couponResult = result);
-      }
+        if (result == null || result['valid'] == false) {
+          setState(() {
+            _couponError = result?['detail'] ?? 'Invalid coupon.';
+            _couponResult = null;
+          });
+        } else {
+          setState(() => _couponResult = result);
+          final discount = double.tryParse(result['discount_amount'].toString()) ?? 0.0;
+          if (discount > 0) {
+            CongratulationsOverlay.show(context, discount);
+          }
+        }
     } catch (e) {
       if (mounted) setState(() => _couponError = 'Could not validate coupon.');
     } finally {
@@ -180,7 +188,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       }
 
-      final String finalDeliveryNotes = customDetails.join(' | ');
+      final List<String> notesParts = [];
+      if (customDetails.isNotEmpty) {
+        notesParts.add(customDetails.join(' | '));
+      }
+      notesParts.add(_cutleryNeeded ? "Cutlery Needed: Yes" : "Cutlery Needed: No");
+      final String finalDeliveryNotes = notesParts.join(' | ');
 
       final order = await _orderService.createOrder(
         addressId: _selectedAddress!.id!,
@@ -530,12 +543,66 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 inactiveTrackColor: const Color(0xFF2A2A2A),
                                 onChanged: (val) {
                                   setState(() => _redeemCoins = val);
+                                  if (val) {
+                                    final coinsDiscount = _calculateCoinsDiscount(cartTotal - discount);
+                                    if (coinsDiscount > 0) {
+                                      CongratulationsOverlay.show(context, coinsDiscount);
+                                    }
+                                  }
                                 },
                               ),
                             ],
                           ),
                         ),
                       ],
+                      const SizedBox(height: 24),
+
+                      // ── Cutlery Option ───────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _panel,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _stroke),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.flatware_rounded, color: _brandRed, size: 24),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Cutlery Needed',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Ticked if you need spoons/forks/napkins',
+                                    style: TextStyle(
+                                      color: _mutedText,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Checkbox(
+                              value: _cutleryNeeded,
+                              activeColor: _brandRed,
+                              checkColor: Colors.white,
+                              onChanged: (val) {
+                                setState(() => _cutleryNeeded = val ?? true);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 24),
 
                       // ── Payment mode ──────────────────────────────────────
