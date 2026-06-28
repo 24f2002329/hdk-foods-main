@@ -235,4 +235,39 @@ class OrderService {
     }
     throw Exception('Failed to load customer info');
   }
+
+  Future<Order> adminHandleCancellation({
+    required int orderId,
+    required String action,
+    required String reason,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_base/$orderId/admin-handle-cancellation/'),
+      headers: await _headers(),
+      body: jsonEncode({'action': action, 'reason': reason}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    }
+    final body = jsonDecode(response.body);
+    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    throw Exception(detail);
+  }
+
+  Future<Order> adminCancelOrder({
+    required int orderId,
+    required String reason,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_base/$orderId/admin-cancel/'),
+      headers: await _headers(),
+      body: jsonEncode({'reason': reason}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    }
+    final body = jsonDecode(response.body);
+    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    throw Exception(detail);
+  }
 }

@@ -31,7 +31,10 @@ from .views import (
     UpdateDeliveryLocationView,
     UpdateOrderStatusView,
     ValidateCouponView,
-    VerifyPaymentView
+    VerifyPaymentView,
+    RequestCancellationView,
+    AdminHandleCancellationView,
+    AdminCancelOrderView
 )
 
 from accounts.views import AdminCustomerInfoView
@@ -59,6 +62,9 @@ urlpatterns = [
     path("<int:pk>/queue-position/", QueuePositionView.as_view()),
     path("<int:pk>/delivery-location/", UpdateDeliveryLocationView.as_view()),
     path("<int:pk>/delivery-location/get/", GetDeliveryLocationView.as_view()),
+    path("<int:pk>/request-cancellation/", RequestCancellationView.as_view()),
+    path("<int:pk>/admin-handle-cancellation/", AdminHandleCancellationView.as_view()),
+    path("<int:pk>/admin-cancel/", AdminCancelOrderView.as_view()),
     path("delivery/", DeliveryOrdersView.as_view()),
     path("pending/", PendingOrdersView.as_view()),
     path("admin/dashboard/", AdminDashboardView.as_view()),

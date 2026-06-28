@@ -96,6 +96,12 @@ class Order {
   final OrderAddress? address;
   final String deliveryNotes;
 
+  // Cancellation properties
+  final bool cancellationRequested;
+  final String cancellationReason;
+  final bool? cancellationApproved;
+  final String refundStatus;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -113,6 +119,10 @@ class Order {
     this.estimatedDeliveryTime,
     this.address,
     this.deliveryNotes = '',
+    this.cancellationRequested = false,
+    this.cancellationReason = '',
+    this.cancellationApproved,
+    this.refundStatus = '',
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -152,6 +162,10 @@ class Order {
           : null,
       address: addrJson != null ? OrderAddress.fromJson(addrJson) : null,
       deliveryNotes: json['delivery_notes'] ?? '',
+      cancellationRequested: json['cancellation_requested'] ?? false,
+      cancellationReason: json['cancellation_reason'] ?? '',
+      cancellationApproved: json['cancellation_approved'],
+      refundStatus: json['refund_status'] ?? '',
     );
   }
 }

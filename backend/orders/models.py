@@ -135,6 +135,13 @@ class Order(models.Model):
     # Cleared when the customer acknowledges the changes.
     is_modified_by_staff = models.BooleanField(default=False)
 
+    # Premium Cancellation Request Flow
+    cancellation_requested = models.BooleanField(default=False)
+    cancellation_reason = models.TextField(blank=True, default="")
+    cancellation_requested_at = models.DateTimeField(null=True, blank=True)
+    cancellation_approved = models.BooleanField(null=True, blank=True)
+    refund_status = models.CharField(max_length=50, blank=True, default="")
+
     # Snapshot of total_amount before the first staff modification.
     # Used to re-base discounts so applying a second discount doesn't
     # double-count.

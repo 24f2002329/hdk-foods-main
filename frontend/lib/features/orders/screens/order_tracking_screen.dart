@@ -82,7 +82,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     });
 
     _pollingTimer = Timer.periodic(
-      const Duration(seconds: 25),
+      const Duration(seconds: 10),
       (_) => _load(silent: true),
     );
   }
@@ -250,6 +250,166 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     }
   }
 
+  Future<void> _requestCancellation(String reason) async {
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    try {
+      await _orderService.requestCancellation(
+        orderId: widget.orderId,
+        reason: reason,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cancellation request submitted successfully.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to request cancellation: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+      }
+    }
+  }
+
+  void _showCancellationBottomSheet(Order order) {
+    final reasonCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF151515),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(top: BorderSide(color: Color(0xFF2A2A2A))),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF333333),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Cancel Your Order',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Please provide a reason for cancelling. If you paid online, a refund will be processed upon approval.',
+                  style: TextStyle(
+                    color: Color(0xFFB8B8B8),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                StatefulBuilder(
+                  builder: (context, setModalState) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: reasonCtrl,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          maxLines: 3,
+                          onChanged: (val) {
+                            setModalState(() {});
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'e.g., I ordered the wrong item / entered incorrect address...',
+                            hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFF1E1E1E),
+                            contentPadding: const EdgeInsets.all(16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFFF1E1E)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text(
+                                  'Keep Order',
+                                  style: TextStyle(color: Color(0xFFB8B8B8), fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: reasonCtrl.text.trim().isEmpty
+                                    ? null
+                                    : () {
+                                        final reason = reasonCtrl.text.trim();
+                                        Navigator.pop(ctx);
+                                        _requestCancellation(reason);
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFF1E1E),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: const Color(0xFF333333),
+                                  disabledForegroundColor: const Color(0xFF666666),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Request Cancel',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _showModifiedOrderDialog(Order order) async {
     final accepted = await showDialog<bool>(
       context: context,
@@ -314,8 +474,51 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // ── Header card ────────────────────────────────────────────────
           _OrderHeaderCard(order: order),
+
+          // ── Cancellation Section Card ─────────────────────────────────
+          if (order.cancellationRequested) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF221702), // dark warm amber
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF5E4300)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Cancellation Requested',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You requested to cancel this order: "${order.cancellationReason}"',
+                    style: const TextStyle(color: Color(0xFFE2B93B), fontSize: 12),
+                  ),
+                  if (order.refundStatus.isNotEmpty && order.refundStatus != 'not_applicable') ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Online Refund Status: ${order.refundStatus.toUpperCase()}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
 
           if ((order.paymentMethod == 'cod' ||
                   (order.paymentMethod == 'online' &&
@@ -427,6 +630,46 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           // ── Items ──────────────────────────────────────────────────────
           if (order.items.isNotEmpty) ...[
             _ItemsCard(order: order),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Cancellation Option Banner ─────────────────────────────────
+          if (!order.cancellationRequested &&
+              order.status != 'delivered' &&
+              order.status != 'cancelled' &&
+              order.status != 'rejected') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111111),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF1F1F1F)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFFB8B8B8), size: 18),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Need to cancel this order?',
+                      style: TextStyle(color: Color(0xFFB8B8B8), fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _showCancellationBottomSheet(order),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFFF1E1E),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text(
+                      'Cancel Order',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
           ],
 
@@ -903,8 +1146,56 @@ class _CancelledCard extends StatelessWidget {
               ),
             ],
           ),
-          if (order.paymentMethod == 'online' &&
-              order.paymentStatus == 'paid') ...[
+          if (order.paymentMethod == 'online') ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFF222222)),
+            const SizedBox(height: 10),
+            const Text(
+              'Refund Status Tracker',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildRefundStep(
+              title: 'Refund Initiated',
+              subtitle: 'Refund request processed by our kitchen to payment gateway.',
+              isActive: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
+              isCompleted: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
+            ),
+            _buildRefundStep(
+              title: 'Processing by Bank',
+              subtitle: 'Refund is being credited back to your account (usually takes 3-5 business days).',
+              isActive: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
+              isCompleted: false,
+              isLast: true,
+            ),
+            if (order.refundStatus == 'failed') ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Refund automated attempt failed. Support team is manually resolving this.',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ] else if (order.paymentMethod == 'online' && order.paymentStatus == 'paid') ...[
             const SizedBox(height: 10),
             const Text(
               'A refund will be processed to your original payment method in 3–5 business days.',
@@ -913,6 +1204,70 @@ class _CancelledCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildRefundStep({
+    required String title,
+    required String subtitle,
+    required bool isActive,
+    required bool isCompleted,
+    bool isLast = false,
+  }) {
+    final dotColor = isCompleted
+        ? Colors.greenAccent
+        : (isActive ? Colors.blueAccent : const Color(0xFF333333));
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.transparent,
+                  width: 3,
+                ),
+              ),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 28,
+                color: isCompleted ? Colors.greenAccent : const Color(0xFF333333),
+              ),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.grey[600],
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: _mutedText,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

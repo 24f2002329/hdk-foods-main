@@ -163,10 +163,28 @@ class _HomeTabState extends State<HomeTab> {
   bool _isLoggedIn = false;
   int _unreadNotificationCount = 0;
 
+  Timer? _autoReloadTimer;
+
   @override
   void initState() {
     super.initState();
     _reload();
+    _autoReloadTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) {
+        if (mounted && _isLoggedIn) {
+          setState(() {
+            ordersFuture = _fetchOrdersSafely();
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _autoReloadTimer?.cancel();
+    super.dispose();
   }
 
   void _reload() {

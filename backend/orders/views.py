@@ -1888,3 +1888,160 @@ class AdminReviewsListView(generics.ListAPIView):
 
         serializer = OrderReviewSerializer(reviews, many=True)
         return Response(serializer.data)
+
+
+def initiate_cashfree_refund(order, reason):
+    import uuid
+    if not order.cashfree_order_id:
+        return False
+    refund_id = f"ref_{order.order_number}_{uuid.uuid4().hex[:6]}"
+    try:
+        url = f"{settings.CASHFREE_BASE_URL}/orders/{order.cashfree_order_id}/refunds"
+        headers = {
+            "x-client-id": settings.CASHFREE_APP_ID,
+            "x-client-secret": settings.CASHFREE_SECRET_KEY,
+            "x-api-version": settings.CASHFREE_API_VERSION,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "refund_amount": float(order.total_amount),
+            "refund_id": refund_id,
+            "refund_note": reason or "Cancellation refund"
+        }
+        res = requests.post(url, json=payload, headers=headers, timeout=10)
+        if res.status_code in [200, 201]:
+            return True
+    except Exception as e:
+        logger.warning(f"Refund initiation failed: {e}")
+    return False
+
+
+class RequestCancellationView(APIView):
+    """Customer: Request cancellation for an order."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, user=request.user)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.status in ["delivered", "cancelled", "rejected"]:
+            return Response(
+                {"detail": "Cannot request cancellation for this order."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response(
+                {"detail": "Cancellation reason is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order.cancellation_requested = True
+        order.cancellation_reason = reason
+        order.cancellation_requested_at = timezone.now()
+        order.save()
+
+        # Notify admins via websocket
+        _broadcast_order(order, "cancellation_requested")
+
+        return Response(OrderSerializer(order).data)
+
+
+class AdminHandleCancellationView(APIView):
+    """Admin: Approve or decline a cancellation request."""
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action", "").strip() # "approve" or "reject"
+        reason = request.data.get("reason", "").strip()
+
+        if action not in ["approve", "reject"]:
+            return Response(
+                {"detail": "Action must be either 'approve' or 'reject'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if action == "approve":
+            order.cancellation_approved = True
+            order.status = "cancelled"
+            if reason:
+                order.cancellation_reason = reason
+
+            # Initiate Cashfree Refund if paid online
+            if order.payment_method == "online" and order.payment_status == "paid":
+                success = initiate_cashfree_refund(order, reason or "Customer Cancellation Request Approved")
+                if success:
+                    order.refund_status = "initiated"
+                    order.payment_status = "refunded"
+                else:
+                    order.refund_status = "failed"
+            else:
+                order.refund_status = "not_applicable"
+
+            try:
+                send_push(order.user, "Order Cancelled 🚫", f"Your cancellation request for order #{order.order_number} has been approved.")
+            except Exception as e:
+                logger.warning(f"Could not send push notification: {e}")
+        else:
+            order.cancellation_approved = False
+            order.cancellation_requested = False # reset so they can request again if needed
+            try:
+                send_push(order.user, "Cancellation Request Declined ⚠️", f"Your cancellation request for order #{order.order_number} was declined.")
+            except Exception as e:
+                logger.warning(f"Could not send push notification: {e}")
+
+        order.save()
+        _broadcast_order(order)
+
+        return Response(OrderSerializer(order).data)
+
+
+class AdminCancelOrderView(APIView):
+    """Admin: Cancel order directly at any stage."""
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        reason = request.data.get("reason", "").strip()
+        if not reason:
+            return Response(
+                {"detail": "Cancellation reason is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order.status = "cancelled"
+        order.cancellation_reason = reason
+        order.cancellation_approved = True
+
+        # Initiate Cashfree Refund if paid online
+        if order.payment_method == "online" and order.payment_status == "paid":
+            success = initiate_cashfree_refund(order, reason)
+            if success:
+                order.refund_status = "initiated"
+                order.payment_status = "refunded"
+            else:
+                order.refund_status = "failed"
+        else:
+            order.refund_status = "not_applicable"
+
+        order.save()
+        _broadcast_order(order)
+
+        try:
+            send_push(order.user, "Order Cancelled 🚫", f"Your order #{order.order_number} has been cancelled by the kitchen: {reason}")
+        except Exception as e:
+            logger.warning(f"Could not send push notification: {e}")
+
+        return Response(OrderSerializer(order).data)

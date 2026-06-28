@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/storage/token_storage.dart';
@@ -29,17 +30,45 @@ class _OrdersScreenState extends State<OrdersScreen> {
   bool _hasMore = true;
   String? _error;
 
+  Timer? _autoReloadTimer;
+
   @override
   void initState() {
     super.initState();
     _init();
     _scrollController.addListener(_onScroll);
+    _autoReloadTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _silentReload(),
+    );
   }
 
   @override
   void dispose() {
+    _autoReloadTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _silentReload() async {
+    if (_loading || !_isLoggedIn) return;
+    try {
+      final data = await _orderService.getMyOrdersPaged(page: 1);
+      final results = (data['results'] as List)
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        for (final newOrder in results) {
+          final idx = _orders.indexWhere((o) => o.id == newOrder.id);
+          if (idx != -1) {
+            _orders[idx] = newOrder;
+          } else {
+            _orders.insert(0, newOrder);
+          }
+        }
+      });
+    } catch (_) {}
   }
 
   void _onScroll() {

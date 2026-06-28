@@ -44,6 +44,12 @@ class Order {
   final String customerName;
   final String customerPhone;
 
+  // Cancellation properties
+  final bool cancellationRequested;
+  final String cancellationReason;
+  final bool? cancellationApproved;
+  final String refundStatus;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -68,6 +74,10 @@ class Order {
     this.discountReason = '',
     this.customerName = '',
     this.customerPhone = '',
+    this.cancellationRequested = false,
+    this.cancellationReason = '',
+    this.cancellationApproved,
+    this.refundStatus = '',
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -106,6 +116,10 @@ class Order {
       discountReason: json['discount_reason'] ?? '',
       customerName: json['customer_name'] ?? '',
       customerPhone: json['customer_phone'] ?? '',
+      cancellationRequested: json['cancellation_requested'] ?? false,
+      cancellationReason: json['cancellation_reason'] ?? '',
+      cancellationApproved: json['cancellation_approved'],
+      refundStatus: json['refund_status'] ?? '',
     );
   }
 }

@@ -311,7 +311,8 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                             ),
                           ] else if (_savedAddresses.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            DropdownButtonFormField<int?>(
+                             DropdownButtonFormField<int?>(
+                              isExpanded: true,
                               value: _selectedAddressId,
                               dropdownColor: _card,
                               style: const TextStyle(color: Colors.white, fontSize: 13),

@@ -106,6 +106,73 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     }
   }
 
+  Future<String?> _cancelReasonDialog({required String title, String actionLabel = 'Cancel Order'}) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _panel,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Enter reason for cancellation...',
+            hintStyle: TextStyle(color: Colors.grey),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _red)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(actionLabel, style: const TextStyle(color: _red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleCancellation(String action) async {
+    setState(() => _busy = true);
+    try {
+      final updated = await _svc.adminHandleCancellation(
+        orderId: _order!.id,
+        action: action,
+        reason: '',
+      );
+      setState(() => _order = updated);
+      _snack(action == 'approve' ? 'Cancellation approved.' : 'Cancellation request declined.');
+    } catch (e) {
+      _snack(e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _adminCancelDirectly() async {
+    final reason = await _cancelReasonDialog(title: 'Cancel Order (Direct)');
+    if (reason == null || reason.isEmpty) return;
+
+    setState(() => _busy = true);
+    try {
+      final updated = await _svc.adminCancelOrder(
+        orderId: _order!.id,
+        reason: reason,
+      );
+      setState(() => _order = updated);
+      _snack('Order cancelled.');
+    } catch (e) {
+      _snack(e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _markReadyWithAssign() async {
     List<DeliveryStaff> staff = [];
     try {
@@ -357,6 +424,12 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       buttons.add(_btn('Mark Delivered', Colors.greenAccent,
           () => _updateStatus('delivered')));
     }
+
+    // Direct cancellation after confirmation
+    if (s != 'pending_confirmation' && s != 'delivered' && s != 'cancelled' && s != 'rejected') {
+      buttons.add(const SizedBox(height: 10));
+      buttons.add(_btn('Cancel Order', Colors.redAccent, _adminCancelDirectly));
+    }
     return buttons;
   }
 
@@ -404,6 +477,75 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Cancellation Request Notification Card
+          if (o.cancellationRequested && o.status != 'cancelled' && o.status != 'rejected') ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2C1E03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amberAccent),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Cancellation Requested by Customer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Reason: "${o.cancellationReason}"',
+                    style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _busy ? null : () => _handleCancellation('approve'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Approve & Cancel', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _busy ? null : () => _handleCancellation('reject'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.amberAccent,
+                            side: const BorderSide(color: Colors.amberAccent),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Decline Request', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(

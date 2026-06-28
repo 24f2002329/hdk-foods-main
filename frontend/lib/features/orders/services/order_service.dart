@@ -211,4 +211,19 @@ class OrderService {
       throw Exception('Failed to submit review: ${response.body}');
     }
   }
+
+  Future<Order> requestCancellation({
+    required int orderId,
+    required String reason,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$orderId/request-cancellation/'),
+      headers: await _headers(),
+      body: jsonEncode({'reason': reason}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to request cancellation');
+  }
 }
