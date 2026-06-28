@@ -358,6 +358,13 @@ class _CustomerCard extends StatelessWidget {
                               color: Colors.grey, fontSize: 11),
                         ),
                       ],
+                      const SizedBox(width: 10),
+                      const Icon(Icons.stars_rounded,
+                          size: 12, color: Color(0xFFFF8A00)),
+                      const SizedBox(width: 4),
+                      Text('${c.loyaltyCoins} Coins',
+                          style: const TextStyle(
+                              color: Color(0xFFFF8A00), fontSize: 11, fontWeight: FontWeight.bold)),
                     ]),
                   ],
                 ),
@@ -616,6 +623,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 children: [
                   _stat('${c.orderCount}', 'Orders',
                       Icons.receipt_long_outlined, Colors.blueAccent),
+                  const SizedBox(width: 12),
+                  _stat('${c.loyaltyCoins}', 'HDK Coins',
+                      Icons.stars_rounded, const Color(0xFFFF8A00)),
                   const SizedBox(width: 12),
                   if (c.phone.isNotEmpty)
                     Expanded(

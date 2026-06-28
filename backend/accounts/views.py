@@ -201,6 +201,7 @@ def _customer_to_dict(user, order_count=None):
         "is_active": user.is_active,
         "created_at": user.created_at,
         "order_count": order_count,
+        "loyalty_coins": getattr(user, 'loyalty_coins', 0),
     }
 
 
@@ -229,6 +230,7 @@ class CustomerListView(APIView):
                 "is_active": u.is_active,
                 "created_at": u.created_at,
                 "order_count": u.order_count,
+                "loyalty_coins": getattr(u, 'loyalty_coins', 0),
             }
             for u in page
         ]
@@ -262,6 +264,7 @@ class CustomerDetailView(APIView):
             "is_active": user.is_active,
             "created_at": user.created_at,
             "order_count": Order.objects.filter(user=user).count(),
+            "loyalty_coins": getattr(user, 'loyalty_coins', 0),
             "recent_orders": OrderSerializer(recent_orders, many=True).data,
             "addresses": AddressSerializer(addresses, many=True).data,
         })

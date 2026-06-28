@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
@@ -12,6 +11,7 @@ import '../services/config_service.dart';
 import 'banners_screen.dart';
 import 'send_notification_screen.dart';
 import 'admin_reviews_screen.dart';
+import 'store_management_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -39,16 +39,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
 
   // Controllers
   final _announcement = TextEditingController();
-  final _closedMsg = TextEditingController();
-  final _scheduledClosedMsg = TextEditingController();
   final _merchantUpiId = TextEditingController();
   final _loyaltyCoinsPercentage = TextEditingController();
-  bool _isStoreOpen = true;
   bool _showRatings = true;
-  TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay _closeTime = const TimeOfDay(hour: 22, minute: 0);
-  DateTime? _scheduledStart;
-  DateTime? _scheduledEnd;
 
   @override
   void initState() {
@@ -77,8 +70,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   @override
   void dispose() {
     _announcement.dispose();
-    _closedMsg.dispose();
-    _scheduledClosedMsg.dispose();
     _merchantUpiId.dispose();
     _loyaltyCoinsPercentage.dispose();
     super.dispose();
@@ -91,24 +82,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
       if (mounted) {
         setState(() {
           _announcement.text = data['announcement'] ?? '';
-          _closedMsg.text = data['store_closed_msg'] ?? '';
-          _isStoreOpen = data['is_store_open'] ?? true;
           _showRatings = data['show_ratings'] ?? true;
-          final ot = (data['store_open_time'] as String? ?? '08:00:00').split(':');
-          final ct = (data['store_close_time'] as String? ?? '22:00:00').split(':');
-          _openTime = TimeOfDay(hour: int.parse(ot[0]), minute: int.parse(ot[1]));
-          _closeTime = TimeOfDay(hour: int.parse(ct[0]), minute: int.parse(ct[1]));
-          
-          _scheduledClosedMsg.text = data['scheduled_closed_msg'] ?? '';
           _merchantUpiId.text = data['merchant_upi_id'] ?? 'hdkfoods@axisbank';
           _loyaltyCoinsPercentage.text = (data['loyalty_coins_percentage'] ?? 10).toString();
-          _scheduledStart = data['scheduled_close_start'] != null
-              ? DateTime.parse(data['scheduled_close_start']).toLocal()
-              : null;
-          _scheduledEnd = data['scheduled_close_end'] != null
-              ? DateTime.parse(data['scheduled_close_end']).toLocal()
-              : null;
-          
           _loading = false;
         });
       }
@@ -122,14 +98,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     try {
       await _svc.updateConfig({
         'announcement': _announcement.text.trim(),
-        'store_closed_msg': _closedMsg.text.trim(),
-        'is_store_open': _isStoreOpen,
         'show_ratings': _showRatings,
-        'store_open_time': '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}:00',
-        'store_close_time': '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}:00',
-        'scheduled_closed_msg': _scheduledClosedMsg.text.trim(),
-        'scheduled_close_start': _scheduledStart?.toUtc().toIso8601String(),
-        'scheduled_close_end': _scheduledEnd?.toUtc().toIso8601String(),
         'merchant_upi_id': _merchantUpiId.text.trim(),
         'loyalty_coins_percentage': int.tryParse(_loyaltyCoinsPercentage.text.trim()) ?? 10,
       });
@@ -139,14 +108,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-  }
-
-  Future<void> _pickTime(bool isOpen) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isOpen ? _openTime : _closeTime,
-    );
-    if (picked != null) setState(() => isOpen ? _openTime = picked : _closeTime = picked);
   }
 
   @override
@@ -235,37 +196,17 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    // Store status
-                    _sectionHeader('Store Status'),
-                    _toggleTile('Store Open', _isStoreOpen, (v) => setState(() => _isStoreOpen = v)),
-                    const SizedBox(height: 12),
-                    _timeTile('Open Time', _openTime, () => _pickTime(true)),
-                    const SizedBox(height: 8),
-                    _timeTile('Close Time', _closeTime, () => _pickTime(false)),
-                    const SizedBox(height: 12),
-                    _inputField('Closed Message', _closedMsg,
-                        hint: 'e.g. We\'re closed. Back at 10 AM!'),
-                    const SizedBox(height: 24),
-
-                    // Scheduled closure
-                    _sectionHeader('Scheduled Kitchen Closure'),
-                    Text(
-                      'Set a date & time range to temporarily close the kitchen for holidays or maintenance.',
-                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                    // Store Management
+                    _sectionHeader('Store Management'),
+                    _actionCard(
+                      icon: Icons.storefront_outlined,
+                      label: 'Store Operations',
+                      subtitle: 'Manage store status, hours & scheduled closures',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const StoreManagementScreen())),
                     ),
-                    const SizedBox(height: 12),
-                    _dateTimeTile('Closure Start Time', _scheduledStart, () async {
-                      final picked = await _pickDateTime(context, _scheduledStart);
-                      if (picked != null) setState(() => _scheduledStart = picked);
-                    }, onClear: _scheduledStart != null ? () => setState(() => _scheduledStart = null) : null),
-                    const SizedBox(height: 8),
-                    _dateTimeTile('Closure End Time', _scheduledEnd, () async {
-                      final picked = await _pickDateTime(context, _scheduledEnd);
-                      if (picked != null) setState(() => _scheduledEnd = picked);
-                    }, onClear: _scheduledEnd != null ? () => setState(() => _scheduledEnd = null) : null),
-                    const SizedBox(height: 12),
-                    _inputField('Scheduled Closed Message', _scheduledClosedMsg,
-                        hint: 'e.g. Closed for scheduled maintenance. Back on Tuesday at 9 AM!'),
                     const SizedBox(height: 24),
 
                     // Direct UPI Payments
@@ -397,33 +338,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                 color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
       );
 
-  Widget _toggleTile(String label, bool value, ValueChanged<bool> onChanged) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _stroke),
-        ),
-        child: Row(children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Colors.white))),
-          Switch(value: value, onChanged: onChanged, activeThumbColor: _red, activeTrackColor: _red.withValues(alpha: 0.3)),
-        ]),
-      );
 
-  Widget _timeTile(String label, TimeOfDay time, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _stroke)),
-          child: Row(children: [
-            Expanded(child: Text(label, style: const TextStyle(color: Colors.white))),
-            Text(time.format(context), style: const TextStyle(color: _red, fontWeight: FontWeight.w700)),
-            const SizedBox(width: 8),
-            const Icon(Icons.access_time, color: Colors.grey, size: 18),
-          ]),
-        ),
-      );
 
   Widget _inputField(
     String label,
@@ -507,58 +422,21 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         ),
       );
 
-  Widget _dateTimeTile(String label, DateTime? value, VoidCallback onTap, {VoidCallback? onClear}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+
+  Widget _toggleTile(String label, bool value, ValueChanged<bool> onChanged) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _stroke)),
+          color: _card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _stroke),
+        ),
         child: Row(children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                const SizedBox(height: 4),
-                Text(
-                  value != null 
-                      ? DateFormat('MMM d, yyyy - h:mm a').format(value) 
-                      : 'Not Scheduled',
-                  style: TextStyle(
-                    color: value != null ? _red : Colors.grey[600], 
-                    fontWeight: value != null ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (onClear != null)
-            IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
-              onPressed: onClear,
-            ),
-          IconButton(
-            icon: const Icon(Icons.calendar_month, color: _red, size: 20),
-            onPressed: onTap,
-          ),
+          Expanded(child: Text(label, style: const TextStyle(color: Colors.white))),
+          Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: _red,
+              activeTrackColor: _red.withValues(alpha: 0.3)),
         ]),
       );
-
-  Future<DateTime?> _pickDateTime(BuildContext context, DateTime? initial) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: initial ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date == null) return null;
-    
-    if (!context.mounted) return null;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial ?? DateTime.now()),
-    );
-    if (time == null) return null;
-    
-    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  }
 }

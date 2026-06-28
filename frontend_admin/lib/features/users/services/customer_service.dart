@@ -12,6 +12,7 @@ class Customer {
   final bool isActive;
   final DateTime? createdAt;
   final int orderCount;
+  final int loyaltyCoins;
 
   const Customer({
     required this.id,
@@ -20,6 +21,7 @@ class Customer {
     required this.isActive,
     this.createdAt,
     required this.orderCount,
+    required this.loyaltyCoins,
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
@@ -31,6 +33,7 @@ class Customer {
             ? DateTime.tryParse(json['created_at'])
             : null,
         orderCount: json['order_count'] ?? 0,
+        loyaltyCoins: json['loyalty_coins'] ?? 0,
       );
 
   String get displayName =>
