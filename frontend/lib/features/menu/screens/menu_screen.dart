@@ -740,7 +740,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                 return GestureDetector(
                                   onTap: () {
                                     _recordRecentlyViewed(p.id);
-                                    _showProductDetails(context, p, cart, siteConfig);
+                                    _showProductDetails(context, p, cart, siteConfig, heroTag: 'recent_product_${p.id}');
                                   },
                                   child: Container(
                                     width: 240,
@@ -874,15 +874,16 @@ class _MenuScreenState extends State<MenuScreen> {
                                 onFavoriteTapped: () => _toggleFavorite(product.id),
                                 cartQuantity: cart.quantityFor(product),
                                 isStoreClosed: isStoreClosed,
+                                heroTag: 'search_product_${product.id}',
                                 onAddPressed: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'search_product_${product.id}');
                                 },
                                 onIncreasePressed: () => cart.increaseQuantity(product),
                                 onDecreasePressed: () => cart.decreaseQuantity(product),
                                 onTap: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'search_product_${product.id}');
                                 },
                               ),
                             );
@@ -918,15 +919,16 @@ class _MenuScreenState extends State<MenuScreen> {
                                 onFavoriteTapped: () => _toggleFavorite(product.id),
                                 cartQuantity: cart.quantityFor(product),
                                 isStoreClosed: isStoreClosed,
+                                heroTag: 'bestseller_product_${product.id}',
                                 onAddPressed: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'bestseller_product_${product.id}');
                                 },
                                 onIncreasePressed: () => cart.increaseQuantity(product),
                                 onDecreasePressed: () => cart.decreaseQuantity(product),
                                 onTap: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'bestseller_product_${product.id}');
                                 },
                               ),
                             );
@@ -961,15 +963,16 @@ class _MenuScreenState extends State<MenuScreen> {
                                 onFavoriteTapped: () => _toggleFavorite(product.id),
                                 cartQuantity: cart.quantityFor(product),
                                 isStoreClosed: isStoreClosed,
+                                heroTag: 'newarrival_product_${product.id}',
                                 onAddPressed: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'newarrival_product_${product.id}');
                                 },
                                 onIncreasePressed: () => cart.increaseQuantity(product),
                                 onDecreasePressed: () => cart.decreaseQuantity(product),
                                 onTap: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'newarrival_product_${product.id}');
                                 },
                               ),
                             );
@@ -1036,15 +1039,16 @@ class _MenuScreenState extends State<MenuScreen> {
                                   onFavoriteTapped: () => _toggleFavorite(product.id),
                                   cartQuantity: cart.quantityFor(product),
                                   isStoreClosed: isStoreClosed,
+                                  heroTag: 'favorite_product_${product.id}',
                                   onAddPressed: () {
                                     _recordRecentlyViewed(product.id);
-                                    _showProductDetails(context, product, cart, siteConfig);
+                                    _showProductDetails(context, product, cart, siteConfig, heroTag: 'favorite_product_${product.id}');
                                   },
                                   onIncreasePressed: () => cart.increaseQuantity(product),
                                   onDecreasePressed: () => cart.decreaseQuantity(product),
                                   onTap: () {
                                     _recordRecentlyViewed(product.id);
-                                    _showProductDetails(context, product, cart, siteConfig);
+                                    _showProductDetails(context, product, cart, siteConfig, heroTag: 'favorite_product_${product.id}');
                                   },
                                 ),
                               );
@@ -1090,15 +1094,16 @@ class _MenuScreenState extends State<MenuScreen> {
                                 onFavoriteTapped: () => _toggleFavorite(product.id),
                                 cartQuantity: cart.quantityFor(product),
                                 isStoreClosed: isStoreClosed,
+                                heroTag: 'category_${category.id}_product_${product.id}',
                                 onAddPressed: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'category_${category.id}_product_${product.id}');
                                 },
                                 onIncreasePressed: () => cart.increaseQuantity(product),
                                 onDecreasePressed: () => cart.decreaseQuantity(product),
                                 onTap: () {
                                   _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig);
+                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'category_${category.id}_product_${product.id}');
                                 },
                               ),
                             );
@@ -1209,7 +1214,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // Phase 6 & 7: Modal details with custom sizes, spice levels, and add-ons
-  void _showProductDetails(BuildContext context, Product product, CartProvider cart, SiteConfig config) {
+  void _showProductDetails(BuildContext context, Product product, CartProvider cart, SiteConfig config, {required String heroTag}) {
     double basePrice = product.price;
 
     final Map<int, List<ModifierOption>> selectedModifiersMap = {};
@@ -1256,7 +1261,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   children: [
                     const SizedBox(height: 12),
                     Container(
-                      width: 48,
+                      width: 40,
                       height: 5,
                       decoration: BoxDecoration(
                         color: _stroke,
@@ -1271,7 +1276,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         children: [
                           Hero(
-                            tag: 'product_img_${product.id}',
+                            tag: heroTag,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: CachedNetworkImage(
@@ -1735,7 +1740,7 @@ class _MenuScreenState extends State<MenuScreen> {
               )
             else
               const Text(
-                'Free',
+                '+₹0',
                 style: TextStyle(
                   color: _textSecondary,
                   fontSize: 12,
@@ -1845,6 +1850,7 @@ class _PremiumFoodCard extends StatelessWidget {
   final VoidCallback onIncreasePressed;
   final VoidCallback onDecreasePressed;
   final VoidCallback onTap;
+  final String heroTag;
 
   const _PremiumFoodCard({
     required this.product,
@@ -1856,6 +1862,7 @@ class _PremiumFoodCard extends StatelessWidget {
     required this.onIncreasePressed,
     required this.onDecreasePressed,
     required this.onTap,
+    required this.heroTag,
   });
 
   @override
@@ -1996,7 +2003,7 @@ class _PremiumFoodCard extends StatelessWidget {
                 children: [
                   // Image
                   Hero(
-                    tag: 'product_img_${product.id}',
+                    tag: heroTag,
                     child: Container(
                       width: 110,
                       height: 110,
@@ -2091,14 +2098,7 @@ class _PremiumFoodCard extends StatelessWidget {
                                 style: TextStyle(color: _textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             )
-                          : isStoreClosed
-                              ? const Center(
-                                  child: Text(
-                                    'CLOSED',
-                                    style: TextStyle(color: _textSecondary, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                )
-                              : cartQuantity > 0
+                          : cartQuantity > 0
                                   ? Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [

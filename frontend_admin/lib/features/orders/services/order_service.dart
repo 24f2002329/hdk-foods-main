@@ -270,4 +270,28 @@ class OrderService {
     final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
     throw Exception(detail);
   }
+
+  Future<List<Map<String, dynamic>>> getOrderMessages(int orderId) async {
+    final response = await http.get(
+      Uri.parse('$_base/$orderId/messages/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final list = jsonDecode(response.body) as List;
+      return list.map((e) => e as Map<String, dynamic>).toList();
+    }
+    throw Exception('Failed to load chat messages');
+  }
+
+  Future<Map<String, dynamic>> sendOrderMessage(int orderId, String message) async {
+    final response = await http.post(
+      Uri.parse('$_base/$orderId/messages/'),
+      headers: await _headers(),
+      body: jsonEncode({'message': message}),
+    );
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to send message: ${response.body}');
+  }
 }

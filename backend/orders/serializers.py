@@ -190,3 +190,24 @@ class OrderReviewSerializer(serializers.ModelSerializer):
             "comment",
             "created_at",
         ]
+
+
+from .models import OrderMessage
+
+class OrderMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source="sender.name", read_only=True)
+    sender_phone = serializers.CharField(source="sender.phone_number", read_only=True)
+
+    class Meta:
+        model = OrderMessage
+        fields = [
+            "id",
+            "order",
+            "sender",
+            "sender_name",
+            "sender_phone",
+            "message",
+            "is_admin",
+            "created_at",
+        ]
+        read_only_fields = ["sender", "is_admin"]

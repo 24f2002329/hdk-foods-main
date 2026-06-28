@@ -2045,3 +2045,67 @@ class AdminCancelOrderView(APIView):
             logger.warning(f"Could not send push notification: {e}")
 
         return Response(OrderSerializer(order).data)
+
+
+from .models import OrderMessage
+from .serializers import OrderMessageSerializer
+
+class OrderMessageListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != "admin" and order.user != request.user and order.assigned_delivery != request.user:
+            return Response({"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = OrderMessage.objects.filter(order=order).order_by("created_at")
+        serializer = OrderMessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, order_id):
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != "admin" and order.user != request.user and order.assigned_delivery != request.user:
+            return Response({"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN)
+
+        message_text = request.data.get("message", "").strip()
+        if not message_text:
+            return Response({"error": "Message cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_admin = (request.user.role == "admin")
+        msg = OrderMessage.objects.create(
+            order=order,
+            sender=request.user,
+            message=message_text,
+            is_admin=is_admin
+        )
+
+        try:
+            channel_layer = get_channel_layer()
+            if channel_layer is not None:
+                data = OrderMessageSerializer(msg).data
+                payload = {
+                    "type": "order_update",
+                    "data": {
+                        "type": "chat_message",
+                        "message": data
+                    }
+                }
+                async_to_sync(channel_layer.group_send)(f"order_{order.id}", payload)
+        except Exception as e:
+            logger.warning(f"Failed to broadcast websocket chat message: {e}")
+
+        try:
+            if is_admin:
+                send_push(order.user, "Message from Kitchen 💬", message_text)
+        except Exception as e:
+            logger.warning(f"Could not send chat push notification: {e}")
+
+        return Response(OrderMessageSerializer(msg).data, status=status.HTTP_201_CREATED)

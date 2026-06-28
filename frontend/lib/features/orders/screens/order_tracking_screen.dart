@@ -16,6 +16,7 @@ import '../models/order.dart';
 import '../services/delivery_location_service.dart';
 import '../services/order_service.dart';
 import '../widgets/modified_order_dialog.dart';
+import 'order_chat_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -76,6 +77,62 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     _wsService!.connect();
     _wsService!.stream.listen((data) {
       try {
+        if (data['type'] == 'chat_message') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: _panel,
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: _stroke),
+                ),
+                content: Row(
+                  children: [
+                    const Icon(Icons.chat_bubble_outline_rounded, color: _brandRed, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Message from Kitchen',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          Text(
+                            data['message']['message'] ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: _mutedText, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderChatScreen(
+                              orderId: widget.orderId,
+                              orderNumber: _order?.orderNumber ?? '',
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('View', style: TextStyle(color: _brandRed, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
         final order = Order.fromJson(data);
         if (mounted) _applyOrder(order);
       } catch (_) {}
@@ -743,12 +800,13 @@ class _OrderHeaderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _brandRed.withValues(alpha: 0.4)),
                 ),
-                child: Text(
-                  '#${order.orderNumber}',
-                  style: const TextStyle(
+                child: const Text(
+                  'HDK KITCHEN',
+                  style: TextStyle(
                     color: _brandRed,
                     fontWeight: FontWeight.w900,
-                    fontSize: 13,
+                    fontSize: 11,
+                    letterSpacing: 0.6,
                   ),
                 ),
               ),
@@ -1740,6 +1798,25 @@ class _NeedHelpSheet extends StatelessWidget {
             style: TextStyle(color: _mutedText, fontSize: 13),
           ),
           const SizedBox(height: 20),
+          _HelpOption(
+            icon: Icons.forum_rounded,
+            color: _brandRed,
+            label: 'Chat with Kitchen',
+            subtitle: 'Message support in real-time',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OrderChatScreen(
+                    orderId: order.id,
+                    orderNumber: order.orderNumber,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           _HelpOption(
             icon: Icons.call_rounded,
             color: Colors.greenAccent,

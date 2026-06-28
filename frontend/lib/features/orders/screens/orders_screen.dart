@@ -200,9 +200,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     Row(children: [
                                       Expanded(
                                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                          Text('Order #${order.orderNumber}',
-                                              style: const TextStyle(
-                                                  color: Colors.white, fontWeight: FontWeight.bold)),
+                                          Text(
+                                            order.items.isNotEmpty
+                                                ? order.items.map((e) => '${e.quantity}x ${e.productName}').join(', ')
+                                                : 'Meal from HDK Kitchen',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15),
+                                          ),
                                           const SizedBox(height: 4),
                                           Text(_fmtDate(order.createdAt),
                                               style: const TextStyle(color: Colors.grey, fontSize: 12)),

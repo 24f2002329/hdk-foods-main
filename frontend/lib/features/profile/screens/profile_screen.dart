@@ -292,7 +292,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: 'Help & Support',
                           onTap: _showHelp,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
+
+                        // ── Social Media & Community ──────────────────────────
+                        const Text(
+                          'Connect with Us',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _SocialButton(
+                              icon: Icons.camera_alt_outlined,
+                              label: 'Instagram',
+                              color: const Color(0xFFE1306C),
+                              onTap: () => launchUrl(Uri.parse('https://instagram.com/hungrydesikitchen')),
+                            ),
+                            _SocialButton(
+                              icon: Icons.facebook_rounded,
+                              label: 'Facebook',
+                              color: const Color(0xFF1877F2),
+                              onTap: () => launchUrl(Uri.parse('https://facebook.com/hungrydesikitchen')),
+                            ),
+                            _SocialButton(
+                              icon: Icons.chat_bubble_rounded,
+                              label: 'WhatsApp',
+                              color: const Color(0xFF25D366),
+                              onTap: () => launchUrl(Uri.parse('https://wa.me/918875775282')),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Developer Information ─────────────────────────────
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _panel,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _stroke),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.code_rounded, color: _brandRed, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Developer Information',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Developed and maintained by the HDK Foods Tech Department. For technical queries, API collaborations, or suggestions, contact developers at tech@hdkfoods.com.',
+                                style: TextStyle(color: _mutedText, fontSize: 12, height: 1.4),
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: () => launchUrl(Uri.parse('mailto:tech@hdkfoods.com')),
+                                child: const Text(
+                                  'Contact Developer',
+                                  style: TextStyle(
+                                    color: _brandRed,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
 
                         // ── Logout ─────────────────────────────────────────
                         OutlinedButton.icon(
@@ -407,6 +491,56 @@ class _HelpTile extends StatelessWidget {
             ),
             const Icon(Icons.chevron_right_rounded, color: _mutedText),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SocialButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        color: _panel,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: _stroke),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

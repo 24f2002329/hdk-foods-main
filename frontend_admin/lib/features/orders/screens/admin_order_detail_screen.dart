@@ -11,6 +11,7 @@ import '../../delivery_staff/models/delivery_staff.dart';
 import '../../delivery_staff/services/delivery_staff_service.dart';
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
+import 'admin_order_chat_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -342,7 +343,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
-            if (phone.isNotEmpty)
+            if (phone.isNotEmpty) ...[
               GestureDetector(
                 onTap: () => launchUrl(Uri.parse('tel:$phone')),
                 child: Container(
@@ -369,6 +370,42 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminOrderChatScreen(
+                      orderId: _order!.id,
+                      orderNumber: _order!.orderNumber,
+                    ),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _red.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: _red.withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          color: _red, size: 14),
+                      SizedBox(width: 4),
+                      Text('Chat',
+                          style: TextStyle(
+                              color: _red,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -463,6 +500,19 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             style: GoogleFonts.poppins(
                 color: Colors.white, fontWeight: FontWeight.w700)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
+            tooltip: 'Chat with Customer',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AdminOrderChatScreen(
+                  orderId: o.id,
+                  orderNumber: o.orderNumber,
+                ),
+              ),
+            ),
+          ),
           if (_busy)
             const Padding(
               padding: EdgeInsets.all(16),

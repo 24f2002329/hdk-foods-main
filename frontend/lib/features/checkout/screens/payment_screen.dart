@@ -216,8 +216,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Order #${widget.orderNumber}',
-                      style: const TextStyle(color: Colors.grey)),
+                  const Text('Payment for HDK Kitchen',
+                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Text('₹${widget.totalAmount.toStringAsFixed(0)}',
                       style: const TextStyle(

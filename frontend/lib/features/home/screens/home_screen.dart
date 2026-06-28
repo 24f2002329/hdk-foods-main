@@ -2419,7 +2419,7 @@ class _RecentlyOrderedSectionState extends State<_RecentlyOrderedSection> {
           SnackBar(
             backgroundColor: Colors.green,
             content: Text(
-              'Added $added products from Order #${order.orderNumber} to your cart!',
+              'Added $added items from your previous order to your cart!',
               style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
@@ -2492,7 +2492,7 @@ class _RecentlyOrderedSectionState extends State<_RecentlyOrderedSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Order #${recentOrder.orderNumber}',
+                          'Reorder Previous Meal',
                           style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),

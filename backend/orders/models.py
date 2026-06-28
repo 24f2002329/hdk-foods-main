@@ -285,3 +285,22 @@ class Coupon(models.Model):
         if self.max_discount_amount:
             amount = min(amount, self.max_discount_amount)
         return amount
+
+
+class OrderMessage(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_messages"
+    )
+    message = models.TextField()
+    is_admin = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Msg {self.id} on {self.order.order_number} by {self.sender.phone_number}"

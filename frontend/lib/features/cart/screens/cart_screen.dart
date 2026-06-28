@@ -148,14 +148,21 @@ class _CartItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _stroke),
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF1E1E1E)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -163,15 +170,15 @@ class _CartItemTile extends StatelessWidget {
                   ? const _CartImageFallback()
                   : Image.network(
                       item.product.image,
-                      width: 72,
-                      height: 72,
+                      width: 80,
+                      height: 80,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return const _CartImageFallback();
                       },
                     ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,8 +187,8 @@ class _CartItemTile extends StatelessWidget {
                     item.product.name,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -198,52 +205,80 @@ class _CartItemTile extends StatelessWidget {
                         fontSize: 11,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                   ],
-                  Text(
-                    "₹${item.unitPrice.toStringAsFixed(0)}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        onPressed: () => context
-                            .read<CartProvider>()
-                            .decreaseQuantityForCartId(item.cartId),
-                        color: _brandRed,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
                       Text(
-                        item.quantity.toString(),
+                        "₹${(item.unitPrice * item.quantity).toStringAsFixed(0)}",
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => context
-                            .read<CartProvider>()
-                            .increaseQuantityForCartId(item.cartId),
-                        color: _brandRed,
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () => context
-                            .read<CartProvider>()
-                            .removeProductByCartId(item.cartId),
-                        color: _mutedText,
-                        icon: const Icon(Icons.delete_outline),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF161616),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: const Color(0xFF262626)),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => context
+                                  .read<CartProvider>()
+                                  .decreaseQuantityForCartId(item.cartId),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1F1F1F),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.remove_rounded, color: _brandRed, size: 14),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              item.quantity.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () => context
+                                  .read<CartProvider>()
+                                  .increaseQuantityForCartId(item.cartId),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1F1F1F),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.add_rounded, color: _brandRed, size: 14),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => context
+                  .read<CartProvider>()
+                  .removeProductByCartId(item.cartId),
+              color: const Color(0xFF444444),
+              icon: const Icon(Icons.delete_outline_rounded, size: 20),
             ),
           ],
         ),
@@ -425,19 +460,39 @@ class _CartSummary extends StatelessWidget {
     this.closeTime,
   });
 
+  Widget _buildBillRow(String label, String value, {bool isFree = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: _mutedText, fontSize: 13),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isFree ? Colors.greenAccent : Colors.white,
+            fontSize: 13,
+            fontWeight: isFree ? FontWeight.bold : FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: const Border(top: BorderSide(color: _stroke)),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F0F0F),
+        border: Border(top: BorderSide(color: Color(0xFF1E1E1E))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.26),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+            color: Colors.black,
+            blurRadius: 16,
+            offset: Offset(0, -6),
           ),
         ],
       ),
@@ -445,11 +500,30 @@ class _CartSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Detailed Bill Breakdown
+          const Text(
+            "Bill Details",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildBillRow("Item Total", "₹${total.toStringAsFixed(0)}"),
+          const SizedBox(height: 8),
+          _buildBillRow("Delivery Fee", "FREE", isFree: true),
+          const SizedBox(height: 8),
+          _buildBillRow("Taxes & Charges", "₹0"),
+          const SizedBox(height: 14),
+          const Divider(color: Color(0xFF222222), thickness: 1),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Total",
+                "Grand Total",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -460,16 +534,23 @@ class _CartSummary extends StatelessWidget {
                 "₹${total.toStringAsFixed(0)}",
                 style: const TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isClosed ? Colors.grey[900] : _brandRed,
+              backgroundColor: isClosed ? const Color(0xFF222222) : _brandRed,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(0xFF222222),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 4,
             ),
             onPressed: isClosed
                 ? () {
@@ -500,7 +581,8 @@ class _CartSummary extends StatelessWidget {
               isClosed ? "Kitchen is Closed" : "Proceed to Checkout",
               style: TextStyle(
                 fontWeight: FontWeight.w900,
-                color: isClosed ? Colors.grey : Colors.white,
+                fontSize: 15,
+                color: isClosed ? Colors.grey[600] : Colors.white,
               ),
             ),
           ),
@@ -516,11 +598,11 @@ class _CartImageFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(
-      width: 72,
-      height: 72,
+      width: 80,
+      height: 80,
       child: ColoredBox(
         color: _panelAlt,
-        child: Icon(Icons.restaurant_rounded, color: _brandRed),
+        child: Icon(Icons.restaurant_rounded, color: _brandRed, size: 28),
       ),
     );
   }
