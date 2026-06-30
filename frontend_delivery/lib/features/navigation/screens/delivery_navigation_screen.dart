@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../features/orders/models/order.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../services/directions_service.dart';
 import 'payment_collection_screen.dart';
 

@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../orders/models/order.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/screens/order_tracking_screen.dart';
 import '../../orders/widgets/modified_order_dialog.dart';
-import '../../../shared/widgets/lottie_or.dart';
 import 'order_status_screens.dart';
 import 'payment_screen.dart';
 

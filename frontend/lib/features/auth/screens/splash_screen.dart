@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../accounts/services/user_service.dart';
 import '../../home/screens/home_screen.dart';
 import 'name_collection_screen.dart';

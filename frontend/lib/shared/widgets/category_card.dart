@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../models/category.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;

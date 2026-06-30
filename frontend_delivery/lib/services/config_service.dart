@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../core/config/api_config.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class KitchenConfig {
   final String name;

@@ -6,11 +6,13 @@ class TokenStorage {
   static Future<void> saveTokens({
     required String access,
     required String refresh,
-    required String role,
+    String? role,
   }) async {
     await _storage.write(key: 'access', value: access);
     await _storage.write(key: 'refresh', value: refresh);
-    await _storage.write(key: 'role', value: role);
+    if (role != null) {
+      await _storage.write(key: 'role', value: role);
+    }
   }
 
   static Future<String?> getAccessToken() async =>
@@ -25,5 +27,22 @@ class TokenStorage {
     await _storage.delete(key: 'access');
     await _storage.delete(key: 'refresh');
     await _storage.delete(key: 'role');
+  }
+
+  static Future<void> setOnboardingComplete() async {
+    await _storage.write(
+      key: "onboarding_complete",
+      value: "true",
+    );
+  }
+
+  static Future<bool> hasCompletedOnboarding() async {
+    final value = await _storage.read(key: "onboarding_complete");
+    return value == "true";
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final token = await _storage.read(key: "access");
+    return token != null && token.isNotEmpty;
   }
 }

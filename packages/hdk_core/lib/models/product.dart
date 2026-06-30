@@ -17,35 +17,47 @@ class Category {
 
 class Product {
   final int id;
-  final int categoryId;
+  final int? categoryId;
   final String categoryName;
   final String name;
   final String description;
   final double price;
+  final double? strikePrice;
+  final String promoTag;
   final String image;
   final bool isAvailable;
   final bool isFeatured;
   final bool isAddon;
   final int preparationTime;
+  final double rating;
   final List<ModifierGroup> modifierGroups;
 
   Product({
     required this.id,
-    required this.categoryId,
+    this.categoryId,
     this.categoryName = '',
     required this.name,
     this.description = '',
     required this.price,
+    this.strikePrice,
+    this.promoTag = "",
     this.image = '',
     this.isAvailable = true,
     this.isFeatured = false,
     this.isAddon = false,
     this.preparationTime = 15,
-    required this.modifierGroups,
+    this.rating = 0.0,
+    this.modifierGroups = const [],
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     final cat = json['category'];
+    final int? catId = cat is Map
+        ? cat['id'] as int?
+        : (cat is int ? cat : (json['category_id'] as int?));
+
+    final String catName = cat is Map ? (cat['name'] ?? '') : '';
+
     final rawModifiers = json['modifier_groups'] as List? ?? [];
     final modifierGroups = rawModifiers
         .map((m) => ModifierGroup.fromJson(m as Map<String, dynamic>))
@@ -53,32 +65,54 @@ class Product {
 
     return Product(
       id: json['id'],
-      categoryId: cat is Map ? cat['id'] : (json['category_id'] ?? 0),
-      categoryName: cat is Map ? (cat['name'] ?? '') : '',
+      categoryId: catId,
+      categoryName: catName,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      price: double.tryParse('${json['price']}') ?? 0,
+      price: double.tryParse('${json['price']}') ?? 0.0,
+      strikePrice: json['strike_price'] != null
+          ? double.tryParse(json['strike_price'].toString())
+          : null,
+      promoTag: json['promo_tag'] ?? '',
       image: json['image'] ?? '',
       isAvailable: json['is_available'] ?? true,
       isFeatured: json['is_featured'] ?? false,
       isAddon: json['is_addon'] ?? false,
       preparationTime: json['preparation_time'] ?? 15,
+      rating: double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
       modifierGroups: modifierGroups,
     );
   }
 
-  Product copyWith({bool? isAvailable}) => Product(
+  Product copyWith({
+    bool? isAvailable,
+    String? name,
+    double? price,
+    String? image,
+    String? description,
+    bool? isFeatured,
+    bool? isAddon,
+    int? preparationTime,
+    int? categoryId,
+    String? categoryName,
+    double? rating,
+    List<ModifierGroup>? modifierGroups,
+  }) =>
+      Product(
         id: id,
-        categoryId: categoryId,
-        categoryName: categoryName,
-        name: name,
-        description: description,
-        price: price,
-        image: image,
+        categoryId: categoryId ?? this.categoryId,
+        categoryName: categoryName ?? this.categoryName,
+        name: name ?? this.name,
+        description: description ?? this.description,
+        price: price ?? this.price,
+        strikePrice: strikePrice,
+        promoTag: promoTag,
+        image: image ?? this.image,
         isAvailable: isAvailable ?? this.isAvailable,
-        isFeatured: isFeatured,
-        isAddon: isAddon,
-        preparationTime: preparationTime,
-        modifierGroups: modifierGroups,
+        isFeatured: isFeatured ?? this.isFeatured,
+        isAddon: isAddon ?? this.isAddon,
+        preparationTime: preparationTime ?? this.preparationTime,
+        rating: rating ?? this.rating,
+        modifierGroups: modifierGroups ?? this.modifierGroups,
       );
 }

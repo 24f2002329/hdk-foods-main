@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../services/notification_service.dart';
-import '../../../core/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

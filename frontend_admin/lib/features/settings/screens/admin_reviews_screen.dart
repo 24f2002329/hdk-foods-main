@@ -4,10 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../core/config/api_config.dart';
-import '../../../core/storage/token_storage.dart';
-import '../../../core/widgets/error_retry.dart';
-import '../../../core/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

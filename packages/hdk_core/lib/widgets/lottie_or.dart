@@ -3,8 +3,7 @@ import 'package:lottie/lottie.dart';
 
 /// Renders a Lottie asset animation, gracefully falling back to [fallback]
 /// (the previous static icon / spinner) when the `.json` file is missing or
-/// fails to load. This lets the UI ship before the animation files are added —
-/// see `assets/animations/README.md` for the expected filenames.
+/// fails to load.
 class LottieOr extends StatelessWidget {
   final String asset;
   final Widget fallback;
@@ -31,8 +30,6 @@ class LottieOr extends StatelessWidget {
       height: height,
       repeat: repeat,
       fit: fit,
-      // If the asset isn't bundled yet (or is invalid), show the fallback
-      // instead of a red error box.
       errorBuilder: (context, error, stackTrace) => SizedBox(
         width: width,
         height: height,

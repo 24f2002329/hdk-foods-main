@@ -424,6 +424,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.8"
+  hdk_core:
+    dependency: "direct main"
+    description:
+      path: "../packages/hdk_core"
+      relative: true
+    source: path
+    version: "1.0.0"
   hooks:
     dependency: transitive
     description:

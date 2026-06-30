@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../core/config/api_config.dart';
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class NotificationModel {
   final int id;

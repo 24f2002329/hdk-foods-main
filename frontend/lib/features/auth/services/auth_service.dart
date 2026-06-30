@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../core/config/api_config.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class AuthService {
   /// Returns the verificationId on success, null on failure.

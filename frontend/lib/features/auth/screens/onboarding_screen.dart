@@ -2,7 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../home/screens/home_screen.dart';
 import 'login_screen.dart';
 

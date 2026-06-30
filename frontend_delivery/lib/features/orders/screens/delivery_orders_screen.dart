@@ -5,15 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/services/order_websocket_service.dart';
-import '../models/order.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../services/order_service.dart';
 import '../../navigation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
 import '../services/notification_service.dart';
 import 'notification_screen.dart';
-import '../../../../core/widgets/error_retry.dart';
-import '../../../../core/widgets/hdk_preloader.dart';
-import '../../../../core/widgets/lottie_or.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/home_router.dart';
 import 'login_screen.dart';

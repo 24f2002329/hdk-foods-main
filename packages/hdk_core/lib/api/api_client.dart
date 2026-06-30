@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import 'config/api_config.dart';
-import 'storage/token_storage.dart';
+import 'api_config.dart';
+import '../services/token_storage.dart';
 
 /// Central HTTP client that handles 401 → token refresh → retry automatically.
 /// All service classes should use this instead of calling http directly for

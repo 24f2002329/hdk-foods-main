@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  hdk_core:
+    path: ../packages/hdk_core
   cupertino_icons: ^1.0.8
   http: ^1.6.0
   http_parser: ^4.0.0

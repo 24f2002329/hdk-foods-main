@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/admin_home.dart';
-import '../../../core/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});

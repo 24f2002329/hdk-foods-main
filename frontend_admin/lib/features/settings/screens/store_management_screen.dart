@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../services/config_service.dart';
-import '../../../core/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

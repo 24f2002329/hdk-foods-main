@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smart_auth/smart_auth.dart';
 
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../accounts/services/user_service.dart';
 import '../screens/name_collection_screen.dart';
 import '../services/auth_service.dart';

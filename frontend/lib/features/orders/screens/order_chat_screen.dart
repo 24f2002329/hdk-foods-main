@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/order_service.dart';
-import '../../../shared/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

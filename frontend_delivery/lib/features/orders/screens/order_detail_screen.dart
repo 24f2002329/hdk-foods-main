@@ -4,16 +4,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/widgets/error_retry.dart';
-import '../../../core/widgets/hdk_preloader.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../../services/location_tracking_service.dart';
 import '../../navigation/screens/delivery_navigation_screen.dart';
 import '../../navigation/screens/payment_collection_screen.dart';
-import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../delivery_staff/models/delivery_staff.dart';
 import '../../delivery_staff/services/delivery_staff_service.dart';
-import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
 
 const _red = Color(0xFFFF1E1E);

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../shared/models/category.dart';
-import '../../../shared/models/product.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../../shared/widgets/product_row.dart';
 import '../../cart/services/cart_provider.dart';
 

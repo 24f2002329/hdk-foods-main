@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../shared/models/product.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../services/product_service.dart';
 import '../../cart/services/cart_provider.dart';
-import '../../../shared/widgets/hdk_preloader.dart';
 
 class HomeProductsSection extends StatefulWidget {
   const HomeProductsSection({super.key});

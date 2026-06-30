@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-import '../../../core/config/api_config.dart';
-import '../../../core/storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class AdminConfigService {
   static final String _base = ApiConfig.baseUrl;

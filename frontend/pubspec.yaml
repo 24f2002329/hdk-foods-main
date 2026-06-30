@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  hdk_core:
+    path: ../packages/hdk_core
 
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.0

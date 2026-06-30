@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/widgets/error_retry.dart';
-import '../../../core/widgets/hdk_preloader.dart';
-import '../../orders/models/order.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
 import '../services/customer_service.dart';
 

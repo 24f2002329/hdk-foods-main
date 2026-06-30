@@ -2,9 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../../core/config/api_config.dart';
-import '../../../shared/models/product.dart';
-import '../../../shared/models/category.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class ProductService {
   static Future<List<Product>> getProducts() async {

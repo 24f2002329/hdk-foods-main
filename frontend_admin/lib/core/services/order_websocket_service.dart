@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../config/api_config.dart';
-import '../storage/token_storage.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 abstract class _ReconnectingWebSocket {
   final _controller = StreamController<Map<String, dynamic>>.broadcast();

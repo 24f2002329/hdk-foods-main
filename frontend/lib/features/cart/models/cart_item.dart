@@ -1,4 +1,4 @@
-import '../../../shared/models/product.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 class SelectedModifier {
   final String groupName;

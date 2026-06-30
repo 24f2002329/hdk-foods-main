@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../shared/widgets/lottie_or.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _surface = Color(0xFF050505);
 const _brandRed = Color(0xFFFF1E1E);

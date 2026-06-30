@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/storage/token_storage.dart';
-import '../../../core/widgets/error_retry.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../../shared/widgets/login_prompt_widget.dart';
-import '../../../shared/widgets/hdk_preloader.dart';
-import '../../accounts/models/user.dart';
 import '../../accounts/services/user_service.dart';
 import '../../orders/screens/orders_screen.dart';
 import '../../address/screens/address_screen.dart';

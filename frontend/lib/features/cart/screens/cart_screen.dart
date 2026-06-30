@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/storage/token_storage.dart';
-import '../../../shared/models/product.dart';
+import 'package:hdk_core/hdk_core.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../checkout/screens/kitchen_closed_screen.dart';
 import '../../home/services/config_service.dart';

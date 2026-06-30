@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../models/product.dart';
+import 'package:hdk_core/hdk_core.dart';
 import 'fly_to_cart.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
