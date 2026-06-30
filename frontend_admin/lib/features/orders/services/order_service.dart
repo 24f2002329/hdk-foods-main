@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/order.dart';
+import '../models/review.dart';
 
 class OrderService {
   static final String _base = "${ApiConfig.baseUrl}/orders";
@@ -293,5 +294,31 @@ class OrderService {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
     throw Exception('Failed to send message: ${response.body}');
+  }
+
+  Future<List<OrderReviewModel>> getOrderReviews() async {
+    final response = await http.get(
+      Uri.parse('$_base/admin/reviews/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      final list = body is List ? body : body['results'] as List;
+      return list.map((e) => OrderReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load order reviews');
+  }
+
+  Future<List<ProductReviewModel>> getProductReviews() async {
+    final response = await http.get(
+      Uri.parse('$_base/admin/product-reviews/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      final list = body is List ? body : body['results'] as List;
+      return list.map((e) => ProductReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception('Failed to load dish reviews');
   }
 }

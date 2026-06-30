@@ -30,7 +30,8 @@ from .serializers import (
     SelectPaymentSerializer,
     UpdateDeliveryLocationSerializer,
     UpdateStatusSerializer,
-    OrderReviewSerializer
+    OrderReviewSerializer,
+    ProductReviewSerializer
 )
 
 from django.utils import timezone
@@ -1748,6 +1749,8 @@ class UpdateDeliveryLocationView(APIView):
             "delivery_location_updated_at"
         ])
 
+        _broadcast_order(order, "order_update")
+
         return Response({"detail": "Location updated."})
 
 
@@ -1991,6 +1994,22 @@ class AdminReviewsListView(generics.ListAPIView):
             return self.get_paginated_response(serializer.data)
 
         serializer = OrderReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+
+class AdminProductReviewsListView(generics.ListAPIView):
+    """Admin: list all product/dish reviews submitted by customers (paginated)."""
+    permission_classes = [IsAdmin]
+    pagination_class = OrderPagination
+
+    def get(self, request):
+        reviews = ProductReview.objects.all().order_by("-created_at")
+        page = self.paginate_queryset(reviews)
+        if page is not None:
+            serializer = ProductReviewSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ProductReviewSerializer(reviews, many=True)
         return Response(serializer.data)
 
 

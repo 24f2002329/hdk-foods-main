@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import '../../orders/models/order.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
 import '../services/customer_service.dart';
@@ -213,7 +214,7 @@ class _CustomerManagementScreenState
         ),
       ),
       body: _loading && _all.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null && _all.isEmpty
               ? ErrorRetryWidget(error: _error!, onRetry: _refresh)
               : filtered.isEmpty
@@ -245,7 +246,7 @@ class _CustomerManagementScreenState
                           if (i == filtered.length) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(child: CircularProgressIndicator(color: _red)),
+                              child: Center(child: HdkPreloader(width: 50, height: 50)),
                             );
                           }
                           return _CustomerCard(
@@ -542,7 +543,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _buildBody(),

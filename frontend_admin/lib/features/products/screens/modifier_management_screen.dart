@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/error_retry.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -113,7 +114,7 @@ class _ModifierGroupsManagementScreenState
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _groups.isEmpty
@@ -405,10 +406,7 @@ class _ModifierGroupEditorScreenState extends State<ModifierGroupEditorScreen> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Center(
-                child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(color: _red, strokeWidth: 2)),
+                child: HdkPreloader(width: 20, height: 20),
               ),
             )
           else

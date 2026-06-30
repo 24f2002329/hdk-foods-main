@@ -105,6 +105,8 @@ class Order {
   final String cancellationReason;
   final bool? cancellationApproved;
   final String refundStatus;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
 
   Order({
     required this.id,
@@ -137,6 +139,8 @@ class Order {
     this.cancellationReason = '',
     this.cancellationApproved,
     this.refundStatus = '',
+    this.deliveryLatitude,
+    this.deliveryLongitude,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -184,6 +188,12 @@ class Order {
       cancellationReason: json['cancellation_reason'] ?? '',
       cancellationApproved: json['cancellation_approved'],
       refundStatus: json['refund_status'] ?? '',
+      deliveryLatitude: json['delivery_latitude'] != null
+          ? double.tryParse('${json['delivery_latitude']}')
+          : null,
+      deliveryLongitude: json['delivery_longitude'] != null
+          ? double.tryParse('${json['delivery_longitude']}')
+          : null,
     );
   }
 }

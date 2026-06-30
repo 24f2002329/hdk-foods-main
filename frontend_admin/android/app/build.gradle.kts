@@ -1,8 +1,29 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+fun googleMapsApiKey(): String {
+    val fromDartDefines = providers.gradleProperty("dart-defines").orNull
+        ?.split(",")
+        ?.mapNotNull { encoded: String ->
+            runCatching {
+                String(Base64.getDecoder().decode(encoded))
+            }.getOrNull()
+        }
+        ?.firstOrNull { decoded: String ->
+            decoded.startsWith("GOOGLE_MAPS_API_KEY=")
+        }
+        ?.substringAfter("=")
+
+    return fromDartDefines
+        ?: providers.gradleProperty("GOOGLE_MAPS_API_KEY").orNull
+        ?: providers.environmentVariable("GOOGLE_MAPS_API_KEY").orNull
+        ?: ""
 }
 
 android {
@@ -25,6 +46,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey()
     }
 
     buildTypes {

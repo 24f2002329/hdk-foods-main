@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
@@ -295,15 +296,11 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                         if (_deliveryType == 'delivery') ...[
                           if (_loadingCustomer) ...[
                             const SizedBox(height: 12),
-                            const Center(
+                            Center(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: _red),
-                                  ),
+                                children: const [
+                                  HdkPreloader(width: 20, height: 20),
                                   SizedBox(width: 10),
                                   Text('Loading customer addresses…', style: TextStyle(color: Colors.grey, fontSize: 12)),
                                 ],
@@ -571,7 +568,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                     ),
                     Expanded(
                       child: _saving
-                          ? const Center(child: CircularProgressIndicator(color: _red))
+                          ? const Center(child: HdkPreloader(width: 40, height: 40))
                           : ElevatedButton(
                               onPressed: _submit,
                               style: ElevatedButton.styleFrom(
@@ -884,7 +881,7 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : Column(
               children: [
                 // Search Bar

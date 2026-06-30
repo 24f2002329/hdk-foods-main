@@ -18,12 +18,16 @@ import '../../orders/models/order.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/screens/admin_order_detail_screen.dart';
 import '../../orders/screens/admin_create_order_screen.dart';
+import 'kds_screen.dart';
+import 'dispatch_screen.dart';
+import 'sentiment_dashboard_screen.dart';
 import '../../products/models/product.dart';
 import '../../products/services/product_service.dart';
 import '../../products/screens/modifier_management_screen.dart';
 import '../../settings/screens/site_config_screen.dart';
 import '../../settings/services/notification_service.dart';
 import '../../settings/screens/notification_screen.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -41,39 +45,19 @@ class AdminHome extends StatefulWidget {
 
 class _AdminHomeState extends State<AdminHome> {
   int _index = 0;
-  late final PageController _pageController;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onNavTap(int i) {
-    setState(() => _index = i);
-    _pageController.animateToPage(
-      i,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
+  void _onNavTap(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const ClampingScrollPhysics(),
-        onPageChanged: (i) => setState(() => _index = i),
+      body: IndexedStack(
+        index: _index,
         children: const [
           _DashboardTab(),
-          _ActiveOrdersTab(),
+          KdsScreen(),
+          DispatchScreen(),
+          SentimentDashboardScreen(),
           _OrdersTab(),
           _ProductsTab(),
           SiteConfigScreen(),
@@ -90,9 +74,17 @@ class _AdminHomeState extends State<AdminHome> {
               selectedIcon: Icon(Icons.dashboard, color: _red),
               label: 'Dashboard'),
           NavigationDestination(
-              icon: Icon(Icons.bolt_outlined),
-              selectedIcon: Icon(Icons.bolt, color: _red),
-              label: 'Active'),
+              icon: Icon(Icons.soup_kitchen_outlined),
+              selectedIcon: Icon(Icons.soup_kitchen, color: _red),
+              label: 'KDS'),
+          NavigationDestination(
+              icon: Icon(Icons.local_shipping_outlined),
+              selectedIcon: Icon(Icons.local_shipping, color: _red),
+              label: 'Dispatch'),
+          NavigationDestination(
+              icon: Icon(Icons.sentiment_satisfied_alt_outlined),
+              selectedIcon: Icon(Icons.sentiment_satisfied_alt, color: _red),
+              label: 'Sentiment'),
           NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long, color: _red),
@@ -579,7 +571,7 @@ class _DashboardTabState extends State<_DashboardTab>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
@@ -1145,7 +1137,7 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _orders.isEmpty
@@ -1363,7 +1355,7 @@ class _OrdersTabState extends State<_OrdersTab>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
@@ -1553,7 +1545,7 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : total == 0
@@ -1837,7 +1829,7 @@ class _ProductsTabState extends State<_ProductsTab>
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
@@ -1892,11 +1884,10 @@ class _ProductsTabState extends State<_ProductsTab>
                               toggling
                                   ? const SizedBox(
                                       width: 36, height: 36,
-                                      child: Padding(
-                                        padding: EdgeInsets.all(8),
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2, color: _red),
-                                      ))
+                                      child: Center(
+                                        child: HdkPreloader(width: 20, height: 20),
+                                      ),
+                                    )
                                   : Switch(
                                       value: p.isAvailable,
                                       onChanged: (_) => _toggle(p),
@@ -1982,7 +1973,7 @@ class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementS
         child: const Icon(Icons.person_add, color: Colors.white),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _staff.isEmpty
@@ -2113,7 +2104,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -2424,9 +2415,8 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                     const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
-                        color: _red,
-                        strokeWidth: 2,
+                      child: Center(
+                        child: HdkPreloader(width: 18, height: 18),
                       ),
                     ),
                 ],
@@ -3018,9 +3008,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const SizedBox(
-                          width: 20, height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: _red)),
+                      const Center(
+                        child: HdkPreloader(width: 20, height: 20),
+                      ),
                       if (_uploadingImage)
                         const Text('Uploading...', style: TextStyle(color: Colors.grey, fontSize: 10)),
                     ],
@@ -3142,11 +3132,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     child: _creatingCategory
                         ? const Padding(
                             padding: EdgeInsets.all(14),
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: _red),
+                            child: Center(
+                              child: HdkPreloader(width: 22, height: 22),
                             ),
                           )
                         : IconButton.filled(
@@ -3197,10 +3184,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Center(
-                  child: SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _red),
-                  ),
+                  child: HdkPreloader(width: 20, height: 20),
                 ),
               )
             else if (_allModifierGroups.isEmpty)
@@ -3421,10 +3405,9 @@ class _CreateDeliveryStaffScreenState
                 minimumSize: const Size.fromHeight(52),
               ),
               child: _saving
-                  ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                  ? const Center(
+                      child: HdkPreloader(width: 20, height: 20),
+                    )
                   : const Text('Create Account',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),

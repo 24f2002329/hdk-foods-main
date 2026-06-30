@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/config_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -95,8 +96,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
             ElevatedButton.icon(
               onPressed: _sending ? null : _send,
               icon: _sending
-                  ? const SizedBox(width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const Center(child: HdkPreloader(width: 30, height: 30))
                   : const Icon(Icons.send_rounded),
               label: const Text('Send to All Customers',
                   style: TextStyle(fontWeight: FontWeight.bold)),

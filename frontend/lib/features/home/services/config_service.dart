@@ -11,6 +11,9 @@ class SiteConfig {
   final String storeClosedMsg;
   final bool showRatings;
   final int loyaltyCoinsPercentage;
+  final String kitchenName;
+  final double kitchenLat;
+  final double kitchenLng;
 
   const SiteConfig({
     this.announcement = '',
@@ -20,6 +23,9 @@ class SiteConfig {
     this.storeClosedMsg = "We're closed right now. See you soon!",
     this.showRatings = true,
     this.loyaltyCoinsPercentage = 10,
+    this.kitchenName = 'HDK Foods Kitchen',
+    this.kitchenLat = 25.9233,
+    this.kitchenLng = 73.6646,
   });
 
   factory SiteConfig.fromJson(Map<String, dynamic> json) => SiteConfig(
@@ -30,6 +36,9 @@ class SiteConfig {
         storeClosedMsg: json['store_closed_msg'] ?? "We're closed right now.",
         showRatings: json['show_ratings'] ?? true,
         loyaltyCoinsPercentage: json['loyalty_coins_percentage'] ?? 10,
+        kitchenName: json['kitchen_name'] ?? 'HDK Foods Kitchen',
+        kitchenLat: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.9233,
+        kitchenLng: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.6646,
       );
 
   bool get isCurrentlyOpen {

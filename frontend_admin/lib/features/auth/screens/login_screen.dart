@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../orders/screens/admin_home.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -114,11 +115,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ElevatedButton(
                   onPressed: _loading ? null : _login,
                   child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2))
+                      ? const Center(child: HdkPreloader(width: 35, height: 35))
                       : const Text('Sign In',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                 ),

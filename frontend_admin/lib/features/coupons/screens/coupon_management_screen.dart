@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import '../../orders/services/order_service.dart';
 
 const _red = Color(0xFFFF1E1E);
@@ -218,7 +219,7 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
         label: const Text('New Coupon', style: TextStyle(color: Colors.white)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : _coupons.isEmpty

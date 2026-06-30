@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Coupon, Order, OrderItem, OrderReview
+from .models import Coupon, Order, OrderItem, OrderReview, ProductReview
 
 
 
@@ -211,3 +211,26 @@ class OrderMessageSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["sender", "is_admin"]
+
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_phone = serializers.CharField(source="customer.phone_number", read_only=True)
+    order_number = serializers.CharField(source="order.order_number", read_only=True)
+
+    class Meta:
+        model = ProductReview
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "customer",
+            "customer_name",
+            "customer_phone",
+            "order",
+            "order_number",
+            "rating",
+            "comment",
+            "created_at",
+        ]

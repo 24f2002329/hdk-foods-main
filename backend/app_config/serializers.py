@@ -17,6 +17,9 @@ class SiteConfigSerializer(serializers.ModelSerializer):
             "scheduled_closed_msg",
             "merchant_upi_id",
             "loyalty_coins_percentage",
+            "kitchen_name",
+            "kitchen_latitude",
+            "kitchen_longitude",
         ]
 
     def to_representation(self, instance):

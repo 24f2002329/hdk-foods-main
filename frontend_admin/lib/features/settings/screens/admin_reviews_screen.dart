@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -172,7 +173,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _fetch)
               : _reviews.isEmpty
@@ -202,7 +203,7 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
                           if (index == _reviews.length) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: CircularProgressIndicator(color: _red)),
+                              child: Center(child: HdkPreloader(width: 50, height: 50)),
                             );
                           }
 

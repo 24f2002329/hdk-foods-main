@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/config_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -86,7 +87,7 @@ class _BannersScreenState extends State<BannersScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _banners.isEmpty
               ? Center(
                   child: Column(
@@ -288,7 +289,9 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
         actions: [
           _saving || _uploadingImage
               ? const Padding(padding: EdgeInsets.all(16),
-                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: _red)))
+                  child: Center(
+                    child: HdkPreloader(width: 20, height: 20),
+                  ))
               : TextButton(onPressed: _save, child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold))),
         ],
       ),

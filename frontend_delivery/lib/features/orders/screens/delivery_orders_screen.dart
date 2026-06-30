@@ -58,6 +58,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     // notifications before WebSocket is available.
     _fcmSub = FirebaseMessaging.onMessage.listen((msg) {
       _load(silent: true);
+      _handleIncomingOrderPush(msg);
     });
   }
 
@@ -78,6 +79,97 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       ),
     );
     _load();
+  }
+
+  void _handleIncomingOrderPush(RemoteMessage msg) async {
+    final orderIdStr = msg.data['order_id']?.toString();
+    if (orderIdStr == null) return;
+    final orderId = int.tryParse(orderIdStr);
+    if (orderId == null) return;
+
+    try {
+      final order = await _service.getOrder(orderId);
+      if (!mounted) return;
+
+      final viewPressed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: _panel,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const LottieOr(
+                asset: 'assets/animations/out_for_delivery.json',
+                width: 180,
+                height: 180,
+                fallback: Icon(Icons.delivery_dining, size: 64, color: _red),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'New Delivery Assigned!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Order #${order.orderNumber}',
+                style: const TextStyle(
+                  color: _red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (order.address != null)
+                Text(
+                  order.address!.lineOne,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Dismiss', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _red,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('View Order', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (viewPressed == true && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderDetailScreen(order: order, role: 'delivery'),
+          ),
+        );
+        _load();
+      }
+    } catch (_) {}
   }
 
   int _unreadNotificationCount = 0;

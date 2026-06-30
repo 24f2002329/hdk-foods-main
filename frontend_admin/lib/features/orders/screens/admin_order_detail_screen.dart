@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../../delivery_staff/models/delivery_staff.dart';
@@ -669,7 +670,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     if (_loading) {
       return const Scaffold(
         backgroundColor: _surface,
-        body: Center(child: CircularProgressIndicator(color: _red)),
+        body: Center(child: HdkPreloader()),
       );
     }
     if (_order == null) {

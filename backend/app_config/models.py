@@ -28,6 +28,11 @@ class SiteConfig(models.Model):
     # Loyalty Coins
     loyalty_coins_percentage = models.PositiveIntegerField(default=10, help_text="Loyalty coins percentage of order value (e.g. 5 means 5%)")
 
+    # Kitchen / Restaurant location (used on map across all apps)
+    kitchen_name     = models.CharField(max_length=100, default="HDK Foods Kitchen", help_text="Display name for the kitchen on maps")
+    kitchen_latitude = models.DecimalField(max_digits=10, decimal_places=7, default="25.9233000", help_text="Kitchen GPS latitude")
+    kitchen_longitude = models.DecimalField(max_digits=10, decimal_places=7, default="73.6646000", help_text="Kitchen GPS longitude")
+
     class Meta:
         verbose_name = "Site Configuration"
 

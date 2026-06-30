@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../services/config_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -152,10 +153,8 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
           _saving
               ? const Padding(
                   padding: EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _red),
+                  child: Center(
+                    child: HdkPreloader(width: 20, height: 20),
                   ),
                 )
               : TextButton(
@@ -165,7 +164,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? Center(
                   child: Column(

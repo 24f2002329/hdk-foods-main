@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 
@@ -74,7 +75,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
@@ -127,8 +128,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                               ? const SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child: CircularProgressIndicator(
-                                      color: _red, strokeWidth: 2))
+                                  child: Center(child: HdkPreloader(width: 24, height: 24)))
                               : Switch(
                                   value: p.isAvailable,
                                   activeThumbColor: _red,

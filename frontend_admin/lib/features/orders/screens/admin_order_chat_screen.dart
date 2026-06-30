@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/order_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -169,7 +170,7 @@ class _AdminOrderChatScreenState extends State<AdminOrderChatScreen> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: _brandRed))
+                ? const Center(child: HdkPreloader())
                 : _error != null
                     ? Center(
                         child: Padding(
