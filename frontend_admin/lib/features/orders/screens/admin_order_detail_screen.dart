@@ -86,6 +86,20 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     }
   }
 
+  Future<void> _markCodPaid() async {
+    if (_order == null) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await _svc.markCodPaid(_order!.id);
+      setState(() => _order = updated);
+      _snack('COD payment marked as paid.');
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _confirm() async {
     final prepTime = await _prepTimeDialog();
     if (prepTime == null) return;
@@ -595,6 +609,39 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     ),
   );
 
+  Widget _paymentWarning(Order order) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amberAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.amberAccent,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _paymentBlockMessage(order),
+              style: const TextStyle(
+                color: Colors.amberAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _paymentMethodEditor(Order order) {
     Widget chip(String method, String label, IconData icon) {
       final selected = order.paymentMethod == method;
@@ -680,10 +727,20 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     }
     if (s == 'out_for_delivery') {
       final order = _order!;
+      if (!_canMarkDelivered(order)) {
+        buttons.add(_paymentWarning(order));
+        buttons.add(const SizedBox(height: 10));
+        if (order.paymentMethod == 'cod') {
+          buttons.add(
+            _btn('Mark COD as Paid', Colors.amberAccent, _markCodPaid),
+          );
+          buttons.add(const SizedBox(height: 10));
+        }
+      }
       buttons.add(
         _btn(
-          _canMarkDelivered(order) ? 'Mark Delivered' : 'Payment Pending',
-          _canMarkDelivered(order) ? Colors.greenAccent : Colors.grey,
+          'Mark Delivered',
+          Colors.greenAccent,
           _canMarkDelivered(order)
               ? () => _updateStatus('delivered')
               : () => _snack(_paymentBlockMessage(order)),
@@ -1318,7 +1375,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               'Payment',
               '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}',
             ),
-            if (_canEditPaymentMethod(o)) _paymentMethodEditor(o),
+            if (_canEditPaymentMethod(o) && o.paymentMethod == 'online')
+              _paymentMethodEditor(o),
             if (o.deliveryNotes.isNotEmpty)
               _infoRow('Delivery Notes', o.deliveryNotes),
             if (o.estimatedPreparationTime != null)

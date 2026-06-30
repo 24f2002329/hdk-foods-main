@@ -177,6 +177,18 @@ class OrderService {
     throw Exception(_errorDetail(response));
   }
 
+  Future<Order> markCodPaid(int id) async {
+    final response = await http.patch(
+      Uri.parse('$_base/$id/admin-payment-method/'),
+      headers: await _headers(),
+      body: jsonEncode({'action': 'mark_paid'}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    throw Exception(_errorDetail(response));
+  }
+
   /// Admin force-override to any status (with automatic loyalty coin correction).
   Future<Order> overrideStatus(int id, String status) async {
     final response = await http.patch(

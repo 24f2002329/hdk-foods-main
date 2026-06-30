@@ -1777,9 +1777,16 @@ class GetDeliveryLocationView(APIView):
 
     def get(self, request, pk):
         try:
-            order = Order.objects.get(pk=pk, user=request.user)
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # RBAC Check: Only the placing customer, assigned driver, or admin can track the location
+        if not (request.user == order.user or request.user == order.assigned_delivery or request.user.role == "admin"):
+            return Response(
+                {"detail": "You do not have permission to view this order's location."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         if order.delivery_latitude is None:
             return Response({"available": False})
@@ -2239,7 +2246,8 @@ class OrderMessageListCreateView(APIView):
         if request.user.role != "admin" and order.user != request.user and order.assigned_delivery != request.user:
             return Response({"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN)
 
-        message_text = request.data.get("message", "").strip()
+        from authentication.utils import sanitize_text
+        message_text = sanitize_text(request.data.get("message", "").strip())
         if not message_text:
             return Response({"error": "Message cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2344,16 +2352,37 @@ class AdminPaymentMethodView(APIView):
 
         serializer = AdminPaymentMethodSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        method = serializer.validated_data["payment_method"]
+        action = serializer.validated_data.get("action", "change_method")
 
+        if order.status in ("delivered", "cancelled", "rejected"):
+            return Response(
+                {"detail": "Payment cannot be changed after order is terminal."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if action == "mark_paid":
+            if order.payment_method != "cod":
+                return Response(
+                    {"detail": "Only COD orders can be marked paid manually."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if order.payment_status == "paid":
+                return Response(OrderSerializer(order).data)
+            order.payment_status = "paid"
+            order.payment_id = order.payment_id or f"COD-{order.order_number}"
+            order.save(update_fields=["payment_status", "payment_id", "updated_at"])
+            _broadcast_order(order)
+            return Response(OrderSerializer(order).data)
+
+        method = serializer.validated_data.get("payment_method")
+        if not method:
+            return Response(
+                {"detail": "payment_method is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if order.payment_status == "paid":
             return Response(
                 {"detail": "Payment method cannot be changed after payment is paid."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if order.status in ("delivered", "cancelled", "rejected"):
-            return Response(
-                {"detail": "Payment method cannot be changed after order is terminal."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

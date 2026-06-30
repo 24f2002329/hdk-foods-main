@@ -72,7 +72,9 @@ class ProductListView(generics.ListAPIView):
 
     def get_queryset(self):
         if self.request.query_params.get('all') == '1':
-            return Product.objects.all().order_by('category', 'name')
+            user = self.request.user
+            if user.is_authenticated and user.role == 'admin':
+                return Product.objects.all().order_by('category', 'name')
         # Customers see available, non-add-on products in the menu.
         return Product.objects.filter(
             is_available=True, is_addon=False

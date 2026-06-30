@@ -10,6 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "phone_number", "name", "role", "loyalty_coins"]
         read_only_fields = ["id", "phone_number", "role", "loyalty_coins"]
 
+    def validate_name(self, value):
+        from authentication.utils import sanitize_text
+        return sanitize_text(value)
+
 
 class DeliveryStaffSerializer(serializers.ModelSerializer):
     """Delivery user list — includes the default flag."""
@@ -62,3 +66,11 @@ class AddressSerializer(
         read_only_fields = [
             "id"
         ]
+
+    def validate(self, data):
+        from authentication.utils import sanitize_text
+        for field in ["label", "house", "street", "landmark", "city", "pincode"]:
+            if field in data and isinstance(data[field], str):
+                data[field] = sanitize_text(data[field])
+        return data
+

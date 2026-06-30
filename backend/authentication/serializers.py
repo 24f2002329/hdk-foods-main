@@ -26,3 +26,7 @@ class VerifyOTPSerializer(serializers.Serializer):
     firebase_token = (
         serializers.CharField()
     )
+
+
+class SendSMSSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()

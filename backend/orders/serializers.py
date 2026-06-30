@@ -71,7 +71,13 @@ class SelectPaymentSerializer(serializers.Serializer):
 
 class AdminPaymentMethodSerializer(serializers.Serializer):
     payment_method = serializers.ChoiceField(
-        choices=["cod", "online"]
+        choices=["cod", "online"],
+        required=False,
+    )
+    action = serializers.ChoiceField(
+        choices=["change_method", "mark_paid"],
+        required=False,
+        default="change_method",
     )
 
 
