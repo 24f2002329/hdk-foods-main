@@ -10,14 +10,14 @@ class KitchenConfig {
 
   const KitchenConfig({
     this.name = 'HDK Foods Kitchen',
-    this.latitude = 25.9233,
-    this.longitude = 73.6646,
+    this.latitude = 25.861067,
+    this.longitude = 73.749343,
   });
 
   factory KitchenConfig.fromJson(Map<String, dynamic> json) => KitchenConfig(
         name: json['kitchen_name'] ?? 'HDK Foods Kitchen',
-        latitude: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.9233,
-        longitude: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.6646,
+        latitude: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.861067,
+        longitude: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.749343,
       );
 }
 

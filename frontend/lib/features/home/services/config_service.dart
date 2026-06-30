@@ -24,8 +24,8 @@ class SiteConfig {
     this.showRatings = true,
     this.loyaltyCoinsPercentage = 10,
     this.kitchenName = 'HDK Foods Kitchen',
-    this.kitchenLat = 25.9233,
-    this.kitchenLng = 73.6646,
+    this.kitchenLat = 25.861067,
+    this.kitchenLng = 73.749343,
   });
 
   factory SiteConfig.fromJson(Map<String, dynamic> json) => SiteConfig(
@@ -37,8 +37,8 @@ class SiteConfig {
         showRatings: json['show_ratings'] ?? true,
         loyaltyCoinsPercentage: json['loyalty_coins_percentage'] ?? 10,
         kitchenName: json['kitchen_name'] ?? 'HDK Foods Kitchen',
-        kitchenLat: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.9233,
-        kitchenLng: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.6646,
+        kitchenLat: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.861067,
+        kitchenLng: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.749343,
       );
 
   bool get isCurrentlyOpen {

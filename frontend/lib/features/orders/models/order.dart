@@ -104,6 +104,9 @@ class Order {
   final int coinsRedeemed;
   final int coinsEarned;
 
+  // Wrong delivery correction
+  final bool notReceivedReported;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -127,6 +130,7 @@ class Order {
     this.refundStatus = '',
     this.coinsRedeemed = 0,
     this.coinsEarned = 0,
+    this.notReceivedReported = false,
   });
 
   bool get isOnlinePaymentPending =>
@@ -175,6 +179,7 @@ class Order {
       refundStatus: json['refund_status'] ?? '',
       coinsRedeemed: json['coins_redeemed'] ?? 0,
       coinsEarned: json['coins_earned'] ?? 0,
+      notReceivedReported: json['not_received_reported'] ?? false,
     );
   }
 }

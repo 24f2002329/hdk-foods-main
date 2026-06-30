@@ -108,6 +108,9 @@ class Order {
   final double? deliveryLatitude;
   final double? deliveryLongitude;
 
+  // Wrong delivery correction
+  final bool notReceivedReported;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -141,6 +144,7 @@ class Order {
     this.refundStatus = '',
     this.deliveryLatitude,
     this.deliveryLongitude,
+    this.notReceivedReported = false,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -194,6 +198,7 @@ class Order {
       deliveryLongitude: json['delivery_longitude'] != null
           ? double.tryParse('${json['delivery_longitude']}')
           : null,
+      notReceivedReported: json['not_received_reported'] ?? false,
     );
   }
 }

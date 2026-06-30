@@ -257,4 +257,16 @@ class OrderService {
     }
     throw Exception('Failed to send message: ${response.body}');
   }
+
+  Future<Order> reportNotReceived(int orderId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$orderId/report-not-received/'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['detail'] ?? 'Failed to report');
+  }
 }

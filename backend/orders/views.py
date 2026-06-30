@@ -19,6 +19,7 @@ from authentication.firebase import send_push, send_push_to_role
 from .models import Coupon, Order, OrderItem, OrderReview, ProductReview
 from .serializers import (
     AcknowledgeChangesSerializer,
+    AdminPaymentMethodSerializer,
     ApplyDiscountSerializer,
     AssignDeliverySerializer,
     ConfirmOrderSerializer,
@@ -40,6 +41,15 @@ from threading import Timer
 
 from django.db.models import Sum, Count, F, Avg, Q
 from django.db.models.functions import TruncDate, ExtractHour
+
+
+def _delivery_block_reason(order):
+    if order.payment_status != "paid":
+        method = (order.payment_method or "cod").upper()
+        status_text = (order.payment_status or "pending").upper()
+        return f"Cannot mark delivered while payment is {method} | {status_text}. Collect or confirm payment first."
+    return None
+
 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
@@ -852,6 +862,12 @@ class UpdateOrderStatusView(APIView):
             )
 
         if new_status == 'delivered' and order.status != 'delivered':
+            block_reason = _delivery_block_reason(order)
+            if block_reason:
+                return Response(
+                    {"detail": block_reason},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             from app_config.models import SiteConfig
             percentage = SiteConfig.get().loyalty_coins_percentage
             earned = int((order.total_amount * percentage) // 100)
@@ -2266,3 +2282,175 @@ class OrderMessageListCreateView(APIView):
             logger.warning(f"Could not send chat push notification: {e}")
 
         return Response(OrderMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+
+class ReportNotReceivedView(APIView):
+    """
+    Customer reports that their order was marked delivered but they
+    didn't actually receive it. Flags the order and notifies admin.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.user != request.user:
+            return Response({"detail": "Not your order."}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.status != "delivered":
+            return Response(
+                {"detail": "You can only report non-receipt for delivered orders."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if order.not_received_reported:
+            return Response({"detail": "Already reported."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.not_received_reported = True
+        order.not_received_reported_at = timezone.now()
+        order.save(update_fields=["not_received_reported", "not_received_reported_at"])
+
+        # Alert admin via push notification
+        try:
+            send_push_to_role(
+                "admin",
+                f"⚠️ Order Not Received – #{order.order_number}",
+                f"{order.user.name or order.user.phone_number} says they didn't receive their order.",
+                data={"order_id": str(order.id), "type": "order"},
+            )
+        except Exception as e:
+            logger.warning(f"Could not send not-received push: {e}")
+
+        # Broadcast updated order so admin dashboard refreshes
+        _broadcast_order(order)
+
+        return Response(OrderSerializer(order).data)
+
+
+class AdminPaymentMethodView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not (hasattr(request.user, "role") and request.user.role == "admin"):
+            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AdminPaymentMethodSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        method = serializer.validated_data["payment_method"]
+
+        if order.payment_status == "paid":
+            return Response(
+                {"detail": "Payment method cannot be changed after payment is paid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if order.status in ("delivered", "cancelled", "rejected"):
+            return Response(
+                {"detail": "Payment method cannot be changed after order is terminal."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.payment_method = method
+        order.payment_status = "pending"
+        if method == "cod":
+            order.cashfree_order_id = ""
+            order.payment_session_id = ""
+        order.save(update_fields=[
+            "payment_method",
+            "payment_status",
+            "cashfree_order_id",
+            "payment_session_id",
+            "updated_at",
+        ])
+        _broadcast_order(order)
+        return Response(OrderSerializer(order).data)
+
+
+class AdminOverrideStatusView(APIView):
+    """
+    Admin can force-set an order to ANY status, bypassing the normal
+    delivery-staff-only / step-by-step restrictions. Useful for correcting
+    wrongly-marked deliveries or other operator errors.
+
+    Handles loyalty coin corrections automatically:
+    - If overriding AWAY from 'delivered': reverses any coins earned.
+    - If overriding TO 'delivered' from a non-delivered state: awards coins.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not (hasattr(request.user, "role") and request.user.role == "admin"):
+            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+
+        new_status = request.data.get("status", "").strip()
+        valid_statuses = [s[0] for s in Order.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return Response(
+                {"detail": f"Invalid status. Choose from: {', '.join(valid_statuses)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        old_status = order.status
+
+        # ── Loyalty coin corrections ───────────────────────────────────────────
+        # If we're un-delivering (moving away from delivered), reverse earned coins.
+        if old_status == "delivered" and new_status != "delivered":
+            if order.coins_earned > 0:
+                customer = order.user
+                customer.loyalty_coins = max(0, getattr(customer, "loyalty_coins", 0) - order.coins_earned)
+                customer.save(update_fields=["loyalty_coins"])
+                order.coins_earned = 0
+
+        # If we're re-delivering (moving to delivered from non-delivered), award coins.
+        if new_status == "delivered" and old_status != "delivered":
+            block_reason = _delivery_block_reason(order)
+            if block_reason:
+                return Response(
+                    {"detail": block_reason},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            from app_config.models import SiteConfig
+            percentage = SiteConfig.get().loyalty_coins_percentage
+            earned = int((order.total_amount * percentage) // 100)
+            if earned > 0:
+                customer = order.user
+                customer.loyalty_coins = getattr(customer, "loyalty_coins", 0) + earned
+                customer.save(update_fields=["loyalty_coins"])
+                order.coins_earned = earned
+
+        # If overriding away from delivered, also clear not_received flag
+        # (fresh state so customer can re-report if needed after re-delivery).
+        if old_status == "delivered" and new_status != "delivered":
+            order.not_received_reported = False
+            order.not_received_reported_at = None
+
+        order.status = new_status
+        order.save()
+
+        # Push notification to customer
+        _push_map = {
+            "preparing": ("Kitchen is preparing your order 👨‍🍳", "Your food is being freshly prepared!"),
+            "out_for_delivery": ("On the way! 🛵", f"Order #{order.order_number} is out for delivery."),
+            "delivered": ("Order Delivered! 🎉", "Rate your food and share your feedback ⭐"),
+            "confirmed": ("Order Confirmed ✅", f"Your order #{order.order_number} has been confirmed."),
+        }
+        if new_status in _push_map:
+            title, body = _push_map[new_status]
+            send_push(order.user, title, body, {"order_id": str(order.id), "type": "order"})
+
+        _broadcast_order(order)
+
+        return Response(OrderSerializer(order).data)
+

@@ -19,8 +19,7 @@ class OrderService {
   }
 
   Future<List<Order>> _getList(String url) async {
-    final response =
-        await http.get(Uri.parse(url), headers: await _headers());
+    final response = await http.get(Uri.parse(url), headers: await _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       // Handle paginated response {count, results, ...} and plain list
@@ -41,7 +40,9 @@ class OrderService {
   /// Paginated all-orders. Returns raw {count, results, next, previous}.
   Future<Map<String, dynamic>> getAllOrdersPaged({int page = 1}) async {
     final response = await http.get(
-        Uri.parse('$_base/?page=$page'), headers: await _headers());
+      Uri.parse('$_base/?page=$page'),
+      headers: await _headers(),
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
@@ -49,8 +50,9 @@ class OrderService {
   }
 
   Future<Map<String, dynamic>> getAnalytics({int days = 30}) async {
-    final uri = Uri.parse('$_base/admin/analytics/')
-        .replace(queryParameters: {'days': days.toString()});
+    final uri = Uri.parse(
+      '$_base/admin/analytics/',
+    ).replace(queryParameters: {'days': days.toString()});
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -62,7 +64,9 @@ class OrderService {
 
   Future<List<Map<String, dynamic>>> getCoupons() async {
     final response = await http.get(
-        Uri.parse('$_base/coupons/'), headers: await _headers());
+      Uri.parse('$_base/coupons/'),
+      headers: await _headers(),
+    );
     if (response.statusCode == 200) {
       return (jsonDecode(response.body) as List)
           .map((e) => e as Map<String, dynamic>)
@@ -85,7 +89,9 @@ class OrderService {
 
   Future<Map<String, dynamic>> toggleCoupon(int id) async {
     final response = await http.patch(
-        Uri.parse('$_base/coupons/$id/toggle/'), headers: await _headers());
+      Uri.parse('$_base/coupons/$id/toggle/'),
+      headers: await _headers(),
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
@@ -94,7 +100,9 @@ class OrderService {
 
   Future<void> deleteCoupon(int id) async {
     final response = await http.delete(
-        Uri.parse('$_base/coupons/$id/'), headers: await _headers());
+      Uri.parse('$_base/coupons/$id/'),
+      headers: await _headers(),
+    );
     if (response.statusCode != 204) {
       throw Exception('Failed to delete coupon');
     }
@@ -102,8 +110,9 @@ class OrderService {
 
   Future<Order> getOrder(int id) async {
     final response = await http.get(
-        Uri.parse('$_base/$id/'),
-        headers: await _headers());
+      Uri.parse('$_base/$id/'),
+      headers: await _headers(),
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -134,6 +143,16 @@ class OrderService {
     throw Exception('Failed to reject: ${response.body}');
   }
 
+  String _errorDetail(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['detail'] != null) {
+        return body['detail'].toString();
+      }
+    } catch (_) {}
+    return response.body;
+  }
+
   Future<Order> updateStatus(int id, String status) async {
     final response = await http.patch(
       Uri.parse('$_base/$id/status/'),
@@ -143,7 +162,32 @@ class OrderService {
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to update status: ${response.body}');
+    throw Exception(_errorDetail(response));
+  }
+
+  Future<Order> updatePaymentMethod(int id, String method) async {
+    final response = await http.patch(
+      Uri.parse('$_base/$id/admin-payment-method/'),
+      headers: await _headers(),
+      body: jsonEncode({'payment_method': method}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    throw Exception(_errorDetail(response));
+  }
+
+  /// Admin force-override to any status (with automatic loyalty coin correction).
+  Future<Order> overrideStatus(int id, String status) async {
+    final response = await http.patch(
+      Uri.parse('$_base/$id/override-status/'),
+      headers: await _headers(),
+      body: jsonEncode({'status': status}),
+    );
+    if (response.statusCode == 200) {
+      return Order.fromJson(jsonDecode(response.body));
+    }
+    throw Exception(_errorDetail(response));
   }
 
   Future<Order> assignDelivery(int orderId, int deliveryUserId) async {
@@ -160,8 +204,7 @@ class OrderService {
 
   Future<List<Order>> getOrders() => getAllOrders();
 
-  Future<Order> applyDiscount(
-      int orderId, double amount, String reason) async {
+  Future<Order> applyDiscount(int orderId, double amount, String reason) async {
     final response = await http.patch(
       Uri.parse('$_base/$orderId/apply-discount/'),
       headers: await _headers(),
@@ -188,8 +231,9 @@ class OrderService {
   }
 
   Future<Map<String, dynamic>> getDashboard({String period = 'today'}) async {
-    final uri = Uri.parse('$_base/admin/dashboard/')
-        .replace(queryParameters: {'period': period});
+    final uri = Uri.parse(
+      '$_base/admin/dashboard/',
+    ).replace(queryParameters: {'period': period});
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -199,8 +243,7 @@ class OrderService {
 
   /// Edit order items before confirmation (chef/admin only).
   /// [items] is a list of {product_id, quantity}.
-  Future<Order> editItems(
-      int orderId, List<Map<String, dynamic>> items) async {
+  Future<Order> editItems(int orderId, List<Map<String, dynamic>> items) async {
     final response = await http.patch(
       Uri.parse('$_base/$orderId/edit-items/'),
       headers: await _headers(),
@@ -222,13 +265,17 @@ class OrderService {
       return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }
     final body = jsonDecode(response.body);
-    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    final detail = body is Map
+        ? (body['detail'] ?? response.body)
+        : response.body;
     throw Exception(detail);
   }
 
   Future<Map<String, dynamic>> getCustomerInfo(String phone) async {
     final response = await http.get(
-      Uri.parse('$_base/admin/customer-info/?phone=${Uri.encodeComponent(phone)}'),
+      Uri.parse(
+        '$_base/admin/customer-info/?phone=${Uri.encodeComponent(phone)}',
+      ),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {
@@ -251,7 +298,9 @@ class OrderService {
       return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }
     final body = jsonDecode(response.body);
-    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    final detail = body is Map
+        ? (body['detail'] ?? response.body)
+        : response.body;
     throw Exception(detail);
   }
 
@@ -268,7 +317,9 @@ class OrderService {
       return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }
     final body = jsonDecode(response.body);
-    final detail = body is Map ? (body['detail'] ?? response.body) : response.body;
+    final detail = body is Map
+        ? (body['detail'] ?? response.body)
+        : response.body;
     throw Exception(detail);
   }
 
@@ -284,7 +335,10 @@ class OrderService {
     throw Exception('Failed to load chat messages');
   }
 
-  Future<Map<String, dynamic>> sendOrderMessage(int orderId, String message) async {
+  Future<Map<String, dynamic>> sendOrderMessage(
+    int orderId,
+    String message,
+  ) async {
     final response = await http.post(
       Uri.parse('$_base/$orderId/messages/'),
       headers: await _headers(),
@@ -304,7 +358,9 @@ class OrderService {
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       final list = body is List ? body : body['results'] as List;
-      return list.map((e) => OrderReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => OrderReviewModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to load order reviews');
   }
@@ -317,7 +373,9 @@ class OrderService {
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
       final list = body is List ? body : body['results'] as List;
-      return list.map((e) => ProductReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => ProductReviewModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to load dish reviews');
   }

@@ -242,24 +242,28 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Review Sentiment Analytics',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 26,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Review Sentiment Analytics',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 26,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Monitor customer satisfaction trends and culinary quality signals',
-                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Monitor customer satisfaction trends and culinary quality signals',
+                        style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                        softWrap: true,
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.grey),
@@ -299,116 +303,153 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
               const SizedBox(height: 12),
             ],
 
-            // Top Stats Row
-            Row(
-              children: [
-                _buildStatCard('Average Rating', '${avgRating.toStringAsFixed(1)} ★', Icons.star, Colors.amber),
-                const SizedBox(width: 16),
-                _buildStatCard('Total Reviews', '${_productReviews.length}', Icons.rate_review, Colors.blue),
-                const SizedBox(width: 16),
-                _buildStatCard('Positive Sentiment', '$positivePct%', Icons.sentiment_satisfied, Colors.green),
-                const SizedBox(width: 16),
-                _buildStatCard('Action Required', '$negativeCount', Icons.assignment_late, _red),
-              ],
+            // Top Stats Grid (responsive 2x2 on phone, 4-col on tablet)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 600;
+                if (isNarrow) {
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          _buildStatCard('Avg Rating', '${avgRating.toStringAsFixed(1)} ★', Icons.star, Colors.amber),
+                          const SizedBox(width: 12),
+                          _buildStatCard('Total Reviews', '${_productReviews.length}', Icons.rate_review, Colors.blue),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildStatCard('Positive', '$positivePct%', Icons.sentiment_satisfied, Colors.green),
+                          const SizedBox(width: 12),
+                          _buildStatCard('Action Req.', '$negativeCount', Icons.assignment_late, _red),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    _buildStatCard('Average Rating', '${avgRating.toStringAsFixed(1)} ★', Icons.star, Colors.amber),
+                    const SizedBox(width: 16),
+                    _buildStatCard('Total Reviews', '${_productReviews.length}', Icons.rate_review, Colors.blue),
+                    const SizedBox(width: 16),
+                    _buildStatCard('Positive Sentiment', '$positivePct%', Icons.sentiment_satisfied, Colors.green),
+                    const SizedBox(width: 16),
+                    _buildStatCard('Action Required', '$negativeCount', Icons.assignment_late, _red),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 32),
 
             // Charts Section
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Rating Trends Over Time
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    height: 350,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _card,
-                      border: Border.all(color: _stroke),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Rating Trend (Last 7 Days)',
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 24),
-                        Expanded(child: _buildTrendLineChart()),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 600;
 
-                // Sentiment Donut Chart
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 350,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _card,
-                      border: Border.all(color: _stroke),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sentiment Breakout',
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: PieChart(
-                            PieChartData(
-                              sectionsSpace: 4,
-                              centerSpaceRadius: 60,
-                              sections: [
-                                PieChartSectionData(
-                                  color: Colors.green,
-                                  value: positivePct.toDouble(),
-                                  title: '$positivePct%',
-                                  radius: 20,
-                                  titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
-                                PieChartSectionData(
-                                  color: Colors.amber,
-                                  value: neutralPct.toDouble(),
-                                  title: '$neutralPct%',
-                                  radius: 20,
-                                  titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
-                                PieChartSectionData(
-                                  color: _red,
-                                  value: negativePct.toDouble(),
-                                  title: '$negativePct%',
-                                  radius: 20,
-                                  titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
+                final lineChart = Container(
+                  height: 280,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _card,
+                    border: Border.all(color: _stroke),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rating Trend (Last 7 Days)',
+                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 24),
+                      Expanded(child: _buildTrendLineChart()),
+                    ],
+                  ),
+                );
+
+                final donutChart = Container(
+                  height: 280,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _card,
+                    border: Border.all(color: _stroke),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sentiment Breakout',
+                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: PieChart(
+                          PieChartData(
+                            sectionsSpace: 4,
+                            centerSpaceRadius: 50,
+                            sections: [
+                              PieChartSectionData(
+                                color: Colors.green,
+                                value: positivePct.toDouble(),
+                                title: '$positivePct%',
+                                radius: 20,
+                                titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                              PieChartSectionData(
+                                color: Colors.amber,
+                                value: neutralPct.toDouble(),
+                                title: '$neutralPct%',
+                                radius: 20,
+                                titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                              PieChartSectionData(
+                                color: _red,
+                                value: negativePct.toDouble(),
+                                title: '$negativePct%',
+                                radius: 20,
+                                titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildLegendItem('Positive', Colors.green),
-                            const SizedBox(width: 12),
-                            _buildLegendItem('Neutral', Colors.amber),
-                            const SizedBox(width: 12),
-                            _buildLegendItem('Negative', _red),
-                          ],
-                        )
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 16,
+                        runSpacing: 6,
+                        children: [
+                          _buildLegendItem('Positive', Colors.green),
+                          _buildLegendItem('Neutral', Colors.amber),
+                          _buildLegendItem('Negative', _red),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    children: [
+                      lineChart,
+                      const SizedBox(height: 16),
+                      donutChart,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: lineChart),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 2, child: donutChart),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 32),
 
@@ -424,9 +465,10 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title + Filters
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Tab Buttons Row
                       Row(
                         children: [
                           TextButton(
@@ -440,7 +482,7 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 8),
                           TextButton(
                             onPressed: () => setState(() => _showDishReviews = false),
                             child: Text(
@@ -454,34 +496,37 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      // Search & Filter Row
                       Row(
                         children: [
                           // Search Bar
-                          SizedBox(
-                            width: 250,
-                            height: 40,
-                            child: TextField(
-                              onChanged: (v) => setState(() => _searchQuery = v),
-                              style: const TextStyle(color: Colors.white, fontSize: 13),
-                              decoration: InputDecoration(
-                                hintText: _showDishReviews
-                                    ? 'Search dish name, comments...'
-                                    : 'Search order ID, comments...',
-                                hintStyle: const TextStyle(color: Colors.grey),
-                                prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: _stroke),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: _red),
+                          Expanded(
+                            child: SizedBox(
+                              height: 40,
+                              child: TextField(
+                                onChanged: (v) => setState(() => _searchQuery = v),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: _showDishReviews
+                                      ? 'Search dish name, comments...'
+                                      : 'Search order ID, comments...',
+                                  hintStyle: const TextStyle(color: Colors.grey),
+                                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: _stroke),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: _red),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
 
                           // Star Rating filter dropdown
                           Container(
@@ -570,15 +615,21 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          titleText,
-                                          style: GoogleFonts.poppins(
-                                              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                        Flexible(
+                                          child: Text(
+                                            titleText,
+                                            style: GoogleFonts.poppins(
+                                                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text(
-                                          'Order #$orderNumber',
-                                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                        Flexible(
+                                          child: Text(
+                                            'Order #$orderNumber',
+                                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -612,7 +663,9 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
 
                               // Actions Side
                               if (isAlert)
-                                Row(
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: [
                                     OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
@@ -623,7 +676,6 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                                       label: const Text('Issue Coupon', style: TextStyle(color: _red, fontSize: 12)),
                                       onPressed: () => _showIssueCouponDialog(customerName, customerId),
                                     ),
-                                    const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.grey.shade900,
@@ -659,33 +711,38 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _card,
           border: Border.all(color: _stroke),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12)),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ],
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

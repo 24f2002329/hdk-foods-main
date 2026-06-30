@@ -188,6 +188,7 @@ class UpdateOrderStatusTest(BaseOrderTest):
     def test_delivery_marks_own_order_delivered(self):
         order = self._create_order()
         order.status = "out_for_delivery"
+        order.payment_status = "paid"
         order.assigned_delivery = self.delivery
         order.save()
         _auth(self.client, self.delivery)
@@ -198,6 +199,22 @@ class UpdateOrderStatusTest(BaseOrderTest):
         )
         self.assertEqual(res.status_code, 200)
 
+    def test_unpaid_order_cannot_be_marked_delivered(self):
+        order = self._create_order()
+        order.status = "out_for_delivery"
+        order.payment_method = "online"
+        order.payment_status = "pending"
+        order.assigned_delivery = self.delivery
+        order.save()
+        _auth(self.client, self.delivery)
+        res = self.client.patch(
+            f"/api/orders/{order.id}/status/",
+            {"status": "delivered"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Cannot mark delivered", res.data["detail"])
+
     def test_dynamic_loyalty_coins_earned(self):
         from app_config.models import SiteConfig
         # Configure loyalty coins percentage as 5%
@@ -207,6 +224,7 @@ class UpdateOrderStatusTest(BaseOrderTest):
 
         order = self._create_order()
         order.status = "out_for_delivery"
+        order.payment_status = "paid"
         order.assigned_delivery = self.delivery
         order.save()
 
@@ -229,6 +247,7 @@ class UpdateOrderStatusTest(BaseOrderTest):
 
         order2 = self._create_order()
         order2.status = "out_for_delivery"
+        order2.payment_status = "paid"
         order2.assigned_delivery = self.delivery
         order2.save()
 

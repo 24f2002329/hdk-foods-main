@@ -30,7 +30,8 @@ class DispatchScreen extends StatefulWidget {
   State<DispatchScreen> createState() => _DispatchScreenState();
 }
 
-class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAliveClientMixin {
+class _DispatchScreenState extends State<DispatchScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -46,11 +47,12 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
   AdminOrderWebSocketService? _ws;
   bool _isBusy = false;
 
-  // Selected Order for manual assignment
-  Order? _selectedOrder;
+  // Multi-select for batch assignment
+  final Set<int> _selectedOrderIds = {};
+  bool _assignPanelOpen = false;
 
   // Kitchen location — loaded from SiteConfig, defaults to Sojat Road
-  LatLng _kitchenLocation = const LatLng(25.866, 73.752);
+  LatLng _kitchenLocation = const LatLng(25.861067, 73.749343);
   String _kitchenName = 'HDK Foods Kitchen';
 
   // Map state
@@ -77,7 +79,10 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
     _loadKitchenConfig();
     _loadData();
 
-    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) => _loadData(silent: true));
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _loadData(silent: true),
+    );
 
     // Connect WebSocket
     _ws = AdminOrderWebSocketService();
@@ -99,14 +104,16 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
       if (mounted) {
         setState(() {
           _kitchenName = data['kitchen_name'] as String? ?? 'HDK Foods Kitchen';
-          final lat = double.tryParse(data['kitchen_latitude']?.toString() ?? '') ?? 25.9233;
-          final lng = double.tryParse(data['kitchen_longitude']?.toString() ?? '') ?? 73.6646;
+          final lat =
+              double.tryParse(data['kitchen_latitude']?.toString() ?? '') ??
+              25.861067;
+          final lng =
+              double.tryParse(data['kitchen_longitude']?.toString() ?? '') ??
+              73.749343;
           _kitchenLocation = LatLng(lat, lng);
         });
         _syncMapMarkers();
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(_kitchenLocation),
-        );
+        _mapController?.animateCamera(CameraUpdate.newLatLng(_kitchenLocation));
       }
     } catch (_) {}
   }
@@ -121,7 +128,9 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
   }
 
   void _startRadarAnimation() {
-    _radarAnimationTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    _radarAnimationTimer = Timer.periodic(const Duration(milliseconds: 50), (
+      timer,
+    ) {
       if (mounted) {
         setState(() {
           _radarAngle = (_radarAngle + 0.03) % (2 * math.pi);
@@ -149,12 +158,12 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
 
       if (mounted) {
         setState(() {
-          // Keep only orders that are unassigned and need delivery or currently out for delivery
-          _orders = allOrders.where((o) => [
-                'confirmed',
-                'preparing',
-                'out_for_delivery'
-              ].contains(o.status)).toList();
+          // Unassigned queue: only 'preparing' (food is being made) + active out_for_delivery trips
+          _orders = allOrders
+              .where(
+                (o) => ['preparing', 'out_for_delivery'].contains(o.status),
+              )
+              .toList();
           _drivers = allDrivers;
 
           _syncMapMarkers();
@@ -188,14 +197,17 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
 
       // 2. Active Trips and Deliveries
       for (var order in _orders) {
-        final destLat = order.address?.latitude ?? _kitchenLocation.latitude + 0.01;
-        final destLng = order.address?.longitude ?? _kitchenLocation.longitude + 0.01;
+        final destLat =
+            order.address?.latitude ?? _kitchenLocation.latitude + 0.01;
+        final destLng =
+            order.address?.longitude ?? _kitchenLocation.longitude + 0.01;
         final dest = LatLng(destLat, destLng);
 
         if (order.status == 'out_for_delivery') {
           // Driver Marker (Green/Orange based on status)
           final driverLat = order.deliveryLatitude ?? _kitchenLocation.latitude;
-          final driverLng = order.deliveryLongitude ?? _kitchenLocation.longitude;
+          final driverLng =
+              order.deliveryLongitude ?? _kitchenLocation.longitude;
           final driverLoc = LatLng(driverLat, driverLng);
 
           _googleMarkers.add(
@@ -203,7 +215,9 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
               markerId: MarkerId('driver_${order.id}'),
               position: driverLoc,
               infoWindow: InfoWindow(title: 'Driver for #${order.orderNumber}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen,
+              ),
             ),
           );
 
@@ -212,8 +226,12 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
             Marker(
               markerId: MarkerId('cust_${order.id}'),
               position: dest,
-              infoWindow: InfoWindow(title: 'Delivery for #${order.orderNumber}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+              infoWindow: InfoWindow(
+                title: 'Delivery for #${order.orderNumber}',
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueOrange,
+              ),
             ),
           );
 
@@ -232,8 +250,12 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
             Marker(
               markerId: MarkerId('unassigned_${order.id}'),
               position: dest,
-              infoWindow: InfoWindow(title: 'Unassigned Order #${order.orderNumber}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+              infoWindow: InfoWindow(
+                title: 'Unassigned Order #${order.orderNumber}',
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueYellow,
+              ),
             ),
           );
         }
@@ -302,18 +324,29 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
     }
   }
 
-  // --- Dispatch Assign Action ---
+  // --- Dispatch Assign Action (multi-order) ---
 
-  Future<void> _assignDriver(Order order, DeliveryStaff driver) async {
+  Future<void> _assignDriverToOrders(
+    List<Order> orders,
+    DeliveryStaff driver,
+  ) async {
     setState(() => _isBusy = true);
+    int count = 0;
     try {
-      await _orderSvc.assignDelivery(order.id, driver.id);
-      await _orderSvc.updateStatus(order.id, 'out_for_delivery');
+      for (final order in orders) {
+        await _orderSvc.assignDelivery(order.id, driver.id);
+        await _orderSvc.updateStatus(order.id, 'out_for_delivery');
+        count++;
+      }
       _loadData(silent: true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Order #${order.orderNumber} successfully assigned to ${driver.name}'),
+            content: Text(
+              count == 1
+                  ? 'Order #${orders.first.orderNumber} assigned to ${driver.name}'
+                  : '$count orders assigned to ${driver.name}',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -324,7 +357,8 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
       if (mounted) {
         setState(() {
           _isBusy = false;
-          _selectedOrder = null;
+          _selectedOrderIds.clear();
+          _assignPanelOpen = false;
         });
       }
     }
@@ -333,23 +367,33 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
   // --- Auto Assign Engine ---
 
   Future<void> _triggerAutoAssign() async {
-    final unassigned = _orders.where((o) => o.assignedDelivery == null).toList();
+    // Only auto-assign 'preparing' orders
+    final unassigned = _orders
+        .where((o) => o.assignedDelivery == null && o.status == 'preparing')
+        .toList();
     if (unassigned.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No unassigned orders found.'), backgroundColor: _red),
+        const SnackBar(
+          content: Text('No preparing orders ready to dispatch.'),
+          backgroundColor: _red,
+        ),
       );
       return;
     }
 
     setState(() => _isBusy = true);
 
-    // Filter available drivers (those who don't have an active out_for_delivery order right now)
+    // Available = drivers not currently out_for_delivery
     final busyDriverIds = _orders
-        .where((o) => o.status == 'out_for_delivery' && o.assignedDelivery != null)
+        .where(
+          (o) => o.status == 'out_for_delivery' && o.assignedDelivery != null,
+        )
         .map((o) => o.assignedDelivery!)
         .toSet();
 
-    final availableDrivers = _drivers.where((d) => !busyDriverIds.contains(d.id)).toList();
+    final availableDrivers = _drivers
+        .where((d) => !busyDriverIds.contains(d.id))
+        .toList();
 
     if (availableDrivers.isEmpty) {
       setState(() => _isBusy = false);
@@ -365,10 +409,8 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
     int assignCount = 0;
     for (int i = 0; i < unassigned.length; i++) {
       if (i >= availableDrivers.length) break;
-
       final order = unassigned[i];
       final driver = availableDrivers[i];
-
       try {
         await _orderSvc.assignDelivery(order.id, driver.id);
         await _orderSvc.updateStatus(order.id, 'out_for_delivery');
@@ -381,7 +423,9 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
       setState(() => _isBusy = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Auto-Assign complete! Paired $assignCount orders with available partners.'),
+          content: Text(
+            'Auto-Assign complete! Dispatched $assignCount orders.',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -393,6 +437,20 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: $msg'), backgroundColor: _red),
     );
+  }
+
+  void _setSidebarCollapsed(bool collapsed) {
+    if (_sidebarCollapsed == collapsed) return;
+    setState(() => _sidebarCollapsed = collapsed);
+  }
+
+  void _handleSidebarSwipeEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity < -220) {
+      _setSidebarCollapsed(true);
+    } else if (velocity > 220) {
+      _setSidebarCollapsed(false);
+    }
   }
 
   @override
@@ -413,11 +471,24 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
       );
     }
 
-    final unassigned = _orders.where((o) => o.assignedDelivery == null).toList();
-    // Sort unassigned orders by oldest first
-    unassigned.sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
+    // Only 'preparing' orders are dispatachable (confirmed = kitchen hasn't started yet)
+    final unassigned =
+        _orders
+            .where((o) => o.assignedDelivery == null && o.status == 'preparing')
+            .toList()
+          ..sort(
+            (a, b) => (a.createdAt ?? DateTime.now()).compareTo(
+              b.createdAt ?? DateTime.now(),
+            ),
+          );
 
-    final activeTrips = _orders.where((o) => o.status == 'out_for_delivery').toList();
+    final selectedOrders = unassigned
+        .where((o) => _selectedOrderIds.contains(o.id))
+        .toList();
+
+    final activeTrips = _orders
+        .where((o) => o.status == 'out_for_delivery')
+        .toList();
 
     return Scaffold(
       backgroundColor: _surface,
@@ -435,90 +506,185 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
             clipBehavior: Clip.hardEdge,
             child: _sidebarCollapsed
                 ? const SizedBox.shrink()
-                : SizedBox(
-                    width: 300,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Sidebar Header
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Dispatch Feed',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 18,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.refresh, color: Colors.grey),
-                                onPressed: () => _loadData(),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Auto Assign Trigger Button
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _red,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(Icons.bolt, color: Colors.white),
-                              label: Text(
-                                'Auto-Assign Drivers',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              onPressed: _isBusy ? null : _triggerAutoAssign,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(color: _stroke),
-
-                        // Manual Assignment Drawer / View
-                        if (_selectedOrder != null) ...[
-                          _buildManualAssignView(),
-                        ] else ...[
-                          // Main Queue List
-                          Expanded(
-                            child: ListView(
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragEnd: _handleSidebarSwipeEnd,
+                    child: SizedBox(
+                      width: 300,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Sidebar Header
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSectionHeader('Unassigned Orders (${unassigned.length})'),
-                                if (unassigned.isEmpty)
-                                  _buildEmptyState('No pending deliveries')
-                                else
-                                  ...unassigned.map((o) => _buildOrderFeedItem(o)),
-
-                                const Divider(color: _stroke, height: 24),
-
-                                _buildSectionHeader('Active Trips (${activeTrips.length})'),
-                                if (activeTrips.isEmpty)
-                                  _buildEmptyState('No active trips on road')
-                                else
-                                  ...activeTrips.map((o) => _buildActiveTripItem(o)),
+                                Expanded(
+                                  child: Text(
+                                    'Dispatch Feed',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.refresh,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () => _loadData(),
+                                ),
                               ],
                             ),
                           ),
+
+                          // Auto Assign Trigger Button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.bolt,
+                                  color: Colors.white,
+                                ),
+                                label: Text(
+                                  'Auto-Assign Drivers',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                onPressed: _isBusy ? null : _triggerAutoAssign,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(color: _stroke),
+
+                          // Assign Panel (driver picker) or queue
+                          if (_assignPanelOpen)
+                            _buildAssignPanel(selectedOrders)
+                          else
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Selection action bar
+                                  if (_selectedOrderIds.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${_selectedOrderIds.length} selected',
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => setState(
+                                              () => _selectedOrderIds.clear(),
+                                            ),
+                                            child: const Text(
+                                              'Clear',
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _red,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                  ),
+                                              minimumSize: const Size(0, 34),
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            onPressed: () => setState(
+                                              () => _assignPanelOpen = true,
+                                            ),
+                                            child: Text(
+                                              'Dispatch (${_selectedOrderIds.length})',
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.white,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                  // Main Queue List
+                                  Expanded(
+                                    child: ListView(
+                                      children: [
+                                        _buildSectionHeader(
+                                          'Ready to Dispatch (${unassigned.length})',
+                                        ),
+                                        if (unassigned.isEmpty)
+                                          _buildEmptyState(
+                                            'No orders in preparation yet',
+                                          )
+                                        else
+                                          ...unassigned.map(
+                                            (o) => _buildOrderFeedItem(
+                                              o,
+                                              selected: _selectedOrderIds
+                                                  .contains(o.id),
+                                            ),
+                                          ),
+
+                                        const Divider(
+                                          color: _stroke,
+                                          height: 24,
+                                        ),
+
+                                        _buildSectionHeader(
+                                          'Active Trips (${activeTrips.length})',
+                                        ),
+                                        if (activeTrips.isEmpty)
+                                          _buildEmptyState(
+                                            'No active trips on road',
+                                          )
+                                        else
+                                          ...activeTrips.map(
+                                            (o) => _buildActiveTripItem(o),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
           ),
@@ -529,12 +695,37 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
               children: [
                 _useGoogleMap ? _buildGoogleMap() : _buildRadarSimulation(),
 
+                if (_sidebarCollapsed)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onHorizontalDragEnd: _handleSidebarSwipeEnd,
+                      onTap: () => _setSidebarCollapsed(false),
+                      child: Container(
+                        width: 18,
+                        color: Colors.transparent,
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 4,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 // Collapse / Expand toggle button
                 Positioned(
                   top: 56,
                   left: 8,
                   child: GestureDetector(
-                    onTap: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+                    onTap: () => _setSidebarCollapsed(!_sidebarCollapsed),
                     child: Container(
                       width: 48,
                       height: 48,
@@ -568,16 +759,25 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
                     child: Card(
                       color: _card,
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(color: _red, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: _red,
+                                strokeWidth: 2,
+                              ),
                             ),
                             SizedBox(width: 10),
-                            Text('Syncing assignment...', style: TextStyle(color: Colors.white)),
+                            Text(
+                              'Syncing assignment...',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ],
                         ),
                       ),
@@ -634,7 +834,11 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
                     color: _red,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: _red.withValues(alpha: 0.8), blurRadius: 16, spreadRadius: 4),
+                      BoxShadow(
+                        color: _red.withValues(alpha: 0.8),
+                        blurRadius: 16,
+                        spreadRadius: 4,
+                      ),
                     ],
                   ),
                   child: const Icon(Icons.store, color: Colors.white, size: 10),
@@ -654,12 +858,17 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: entity.isDriver ? Colors.greenAccent : Colors.orangeAccent,
+                        color: entity.isDriver
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (entity.isDriver ? Colors.greenAccent : Colors.orangeAccent)
-                                .withValues(alpha: 0.6),
+                            color:
+                                (entity.isDriver
+                                        ? Colors.greenAccent
+                                        : Colors.orangeAccent)
+                                    .withValues(alpha: 0.6),
                             blurRadius: 10,
                           ),
                         ],
@@ -708,56 +917,87 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
     );
   }
 
-  Widget _buildOrderFeedItem(Order order) {
-    return Card(
-      color: _surface,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: _stroke),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '#${order.orderNumber}',
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+  Widget _buildOrderFeedItem(Order order, {bool selected = false}) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (selected) {
+          _selectedOrderIds.remove(order.id);
+        } else {
+          _selectedOrderIds.add(order.id);
+        }
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? _red.withValues(alpha: 0.12) : _surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? _red : _stroke,
+            width: selected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Checkbox
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 22,
+                height: 22,
+                margin: const EdgeInsets.only(right: 10, top: 2),
+                decoration: BoxDecoration(
+                  color: selected ? _red : Colors.transparent,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                    color: selected ? _red : Colors.grey.shade700,
+                    width: 1.5,
+                  ),
                 ),
-                Text(
-                  '₹${order.totalAmount.toStringAsFixed(0)}',
-                  style: GoogleFonts.poppins(color: _red, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              order.address?.lineOne ?? 'No Address Details',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 32,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: _red),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => setState(() => _selectedOrder = order),
-                child: Text(
-                  'Assign Partner',
-                  style: GoogleFonts.poppins(color: _red, fontSize: 12, fontWeight: FontWeight.bold),
+                child: selected
+                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                    : null,
+              ),
+              // Order Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '#${order.orderNumber}',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '₹${order.totalAmount.toStringAsFixed(0)}',
+                          style: GoogleFonts.poppins(
+                            color: _red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      order.address?.lineOne ?? 'No Address Details',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -765,8 +1005,15 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
 
   Widget _buildActiveTripItem(Order order) {
     // Find driver name
-    final driver = _drivers.firstWhere((d) => d.id == order.assignedDelivery,
-        orElse: () => DeliveryStaff(id: 0, name: 'Unknown Driver', phoneNumber: '', isDefaultDelivery: false));
+    final driver = _drivers.firstWhere(
+      (d) => d.id == order.assignedDelivery,
+      orElse: () => DeliveryStaff(
+        id: 0,
+        name: 'Unknown Driver',
+        phoneNumber: '',
+        isDefaultDelivery: false,
+      ),
+    );
 
     return Card(
       color: _surface,
@@ -778,11 +1025,17 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
       child: ListTile(
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => AdminOrderDetailScreen(orderId: order.id)),
+          MaterialPageRoute(
+            builder: (_) => AdminOrderDetailScreen(orderId: order.id),
+          ),
         ),
         title: Text(
           '#${order.orderNumber} ➔ ${driver.name}',
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
         ),
         subtitle: Text(
           order.address?.lineOne ?? 'Sojat Road',
@@ -790,67 +1043,208 @@ class _DispatchScreenState extends State<DispatchScreen> with AutomaticKeepAlive
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(color: Colors.grey, fontSize: 11),
         ),
-        trailing: const Icon(Icons.local_shipping, color: Colors.greenAccent, size: 20),
+        trailing: const Icon(
+          Icons.local_shipping,
+          color: Colors.greenAccent,
+          size: 20,
+        ),
       ),
     );
   }
 
-  Widget _buildManualAssignView() {
-    final order = _selectedOrder!;
-    // Find online/available drivers
+  Widget _buildAssignPanel(List<Order> selectedOrders) {
     final busyDriverIds = _orders
-        .where((o) => o.status == 'out_for_delivery' && o.assignedDelivery != null)
+        .where(
+          (o) => o.status == 'out_for_delivery' && o.assignedDelivery != null,
+        )
         .map((o) => o.assignedDelivery!)
         .toSet();
 
-    final available = _drivers.where((d) => !busyDriverIds.contains(d.id)).toList();
+    final available = _drivers
+        .where((d) => !busyDriverIds.contains(d.id))
+        .toList();
+    final all = _drivers;
 
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => setState(() => _selectedOrder = null),
+                  onPressed: () => setState(() => _assignPanelOpen = false),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Assign #${order.orderNumber}',
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pick a Delivery Partner',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        '${selectedOrders.length} order(s) will be dispatched',
+                        style: GoogleFonts.poppins(color: _red, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+
+          // Selected orders summary chips
+          if (selectedOrders.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: selectedOrders
+                    .map(
+                      (o) => Chip(
+                        label: Text(
+                          '#${o.orderNumber}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                        backgroundColor: _red.withValues(alpha: 0.2),
+                        side: const BorderSide(color: _red),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+
+          const SizedBox(height: 8),
           const Divider(color: _stroke),
+
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Text(
-              'Available Delivery Partners (${available.length})',
-              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+              'Available Partners (${available.length} of ${all.length})',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
+
           Expanded(
             child: available.isEmpty
-                ? _buildEmptyState('No partners available. Click "Auto Assign" or wait.')
+                ? _buildEmptyState('All partners are currently busy.')
                 : ListView.builder(
                     itemCount: available.length,
                     itemBuilder: (context, index) {
                       final driver = available[index];
-                      return ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          child: Icon(Icons.person, color: Colors.white),
+                      // Count how many active trips this driver already has
+                      final activeTripCount = _orders
+                          .where(
+                            (o) =>
+                                o.status == 'out_for_delivery' &&
+                                o.assignedDelivery == driver.id,
+                          )
+                          .length;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
                         ),
-                        title: Text(driver.name, style: const TextStyle(color: Colors.white)),
-                        subtitle: Text(driver.phoneNumber, style: const TextStyle(color: Colors.grey)),
-                        trailing: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: _red),
-                          onPressed: () => _assignDriver(order, driver),
-                          child: const Text('Assign'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _stroke),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: activeTripCount == 0
+                                  ? Colors.green
+                                  : Colors.orange,
+                              child: Text(
+                                driver.name.substring(0, 1).toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    driver.name,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    activeTripCount == 0
+                                        ? 'Available'
+                                        : '$activeTripCount trip(s) active',
+                                    style: TextStyle(
+                                      color: activeTripCount == 0
+                                          ? Colors.green
+                                          : Colors.orange,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _red,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                minimumSize: const Size(0, 34),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: _isBusy
+                                  ? null
+                                  : () => _assignDriverToOrders(
+                                      selectedOrders,
+                                      driver,
+                                    ),
+                              child: Text(
+                                'Dispatch',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -888,8 +1282,16 @@ class _RadarGridPainter extends CustomPainter {
     }
 
     // Draw grid lines
-    canvas.drawLine(Offset(center.dx - radius, center.dy), Offset(center.dx + radius, center.dy), linePaint);
-    canvas.drawLine(Offset(center.dx, center.dy - radius), Offset(center.dx, center.dy + radius), linePaint);
+    canvas.drawLine(
+      Offset(center.dx - radius, center.dy),
+      Offset(center.dx + radius, center.dy),
+      linePaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy - radius),
+      Offset(center.dx, center.dy + radius),
+      linePaint,
+    );
 
     // Draw scanning sweep
     final sweepPaint = Paint()
@@ -909,7 +1311,8 @@ class _RadarGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RadarGridPainter oldDelegate) => oldDelegate.angle != angle;
+  bool shouldRepaint(covariant _RadarGridPainter oldDelegate) =>
+      oldDelegate.angle != angle;
 }
 
 // Simulated data model helper

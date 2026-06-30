@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../services/config_service.dart';
@@ -23,7 +24,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
   bool _saving = false;
   String? _error;
 
-  // Controllers & States
+  // Store Hours & Status
   final _closedMsg = TextEditingController();
   final _scheduledClosedMsg = TextEditingController();
   bool _isStoreOpen = true;
@@ -31,6 +32,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
   TimeOfDay _closeTime = const TimeOfDay(hour: 22, minute: 0);
   DateTime? _scheduledStart;
   DateTime? _scheduledEnd;
+
+  // Kitchen Location
+  final _kitchenName = TextEditingController();
+  final _kitchenLat = TextEditingController();
+  final _kitchenLng = TextEditingController();
+  GoogleMapController? _mapController;
+  static const double _defaultLat = 25.9233;
+  static const double _defaultLng = 73.6646;
 
   @override
   void initState() {
@@ -42,6 +51,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
   void dispose() {
     _closedMsg.dispose();
     _scheduledClosedMsg.dispose();
+    _kitchenName.dispose();
+    _kitchenLat.dispose();
+    _kitchenLng.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -69,6 +82,10 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               ? DateTime.parse(data['scheduled_close_end']).toLocal()
               : null;
 
+          _kitchenName.text = data['kitchen_name'] ?? 'HDK Foods Kitchen';
+          _kitchenLat.text = (data['kitchen_latitude'] ?? _defaultLat).toString();
+          _kitchenLng.text = (data['kitchen_longitude'] ?? _defaultLng).toString();
+
           _loading = false;
         });
       }
@@ -93,6 +110,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         'scheduled_closed_msg': _scheduledClosedMsg.text.trim(),
         'scheduled_close_start': _scheduledStart?.toUtc().toIso8601String(),
         'scheduled_close_end': _scheduledEnd?.toUtc().toIso8601String(),
+        'kitchen_name': _kitchenName.text.trim(),
+        'kitchen_latitude': _kitchenLat.text.trim(),
+        'kitchen_longitude': _kitchenLng.text.trim(),
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,6 +127,23 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  double get _parsedLat => double.tryParse(_kitchenLat.text) ?? _defaultLat;
+  double get _parsedLng => double.tryParse(_kitchenLng.text) ?? _defaultLng;
+
+  void _onMapTap(LatLng pos) {
+    setState(() {
+      _kitchenLat.text = pos.latitude.toStringAsFixed(7);
+      _kitchenLng.text = pos.longitude.toStringAsFixed(7);
+    });
+    _mapController?.animateCamera(CameraUpdate.newLatLng(pos));
+  }
+
+  void _recenterMap() {
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(LatLng(_parsedLat, _parsedLng), 15),
+    );
   }
 
   Future<void> _pickTime(bool isOpen) async {
@@ -212,6 +249,121 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                     const SizedBox(height: 12),
                     _inputField('Scheduled Closed Message', _scheduledClosedMsg,
                         hint: 'e.g. Closed for scheduled maintenance. Back on Tuesday at 9 AM!'),
+                    const SizedBox(height: 32),
+
+                    // Kitchen Location
+                    _sectionHeader('Kitchen Location (Map Pin)'),
+                    Text(
+                      'Set your kitchen\'s location on the map. Customers use this to track deliveries and get directions.',
+                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                    ),
+                    const SizedBox(height: 12),
+                    _inputField('Kitchen Display Name', _kitchenName,
+                        hint: 'e.g. HDK Foods Kitchen', maxLines: 1),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(
+                        child: _inputField(
+                          'Latitude',
+                          _kitchenLat,
+                          hint: 'e.g. 25.9233',
+                          maxLines: 1,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _inputField(
+                          'Longitude',
+                          _kitchenLng,
+                          hint: 'e.g. 73.6646',
+                          maxLines: 1,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 12),
+
+                    // Map preview
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 220,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: _stroke),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Stack(
+                          children: [
+                            GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: LatLng(_parsedLat, _parsedLng),
+                                zoom: 15,
+                              ),
+                              onMapCreated: (c) => _mapController = c,
+                              onTap: _onMapTap,
+                              markers: {
+                                Marker(
+                                  markerId: const MarkerId('kitchen'),
+                                  position: LatLng(_parsedLat, _parsedLng),
+                                  infoWindow: InfoWindow(
+                                    title: _kitchenName.text.isEmpty
+                                        ? 'Kitchen'
+                                        : _kitchenName.text,
+                                  ),
+                                ),
+                              },
+                              myLocationButtonEnabled: false,
+                              zoomControlsEnabled: false,
+                              mapType: MapType.normal,
+                            ),
+                            // Tap hint
+                            Positioned(
+                              top: 10,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.touch_app_rounded, color: Colors.white, size: 13),
+                                      SizedBox(width: 5),
+                                      Text('Tap map to move pin',
+                                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Recenter button
+                            Positioned(
+                              bottom: 10,
+                              right: 10,
+                              child: GestureDetector(
+                                onTap: _recenterMap,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _card,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: _stroke),
+                                  ),
+                                  child: const Icon(Icons.my_location_rounded, color: _red, size: 18),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -259,9 +411,19 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         ),
       );
 
-  Widget _inputField(String label, TextEditingController ctrl, {String hint = ''}) => TextFormField(
+  Widget _inputField(
+    String label,
+    TextEditingController ctrl, {
+    String hint = '',
+    int maxLines = 2,
+    TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
+  }) =>
+      TextFormField(
         controller: ctrl,
-        maxLines: 2,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        onChanged: onChanged,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,

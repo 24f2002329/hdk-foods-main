@@ -36,7 +36,10 @@ from .views import (
     RequestCancellationView,
     AdminHandleCancellationView,
     AdminCancelOrderView,
-    OrderMessageListCreateView
+    OrderMessageListCreateView,
+    ReportNotReceivedView,
+    AdminOverrideStatusView,
+    AdminPaymentMethodView,
 )
 
 from accounts.views import AdminCustomerInfoView
@@ -67,6 +70,9 @@ urlpatterns = [
     path("<int:pk>/request-cancellation/", RequestCancellationView.as_view()),
     path("<int:pk>/admin-handle-cancellation/", AdminHandleCancellationView.as_view()),
     path("<int:pk>/admin-cancel/", AdminCancelOrderView.as_view()),
+    path("<int:pk>/report-not-received/", ReportNotReceivedView.as_view()),
+    path("<int:pk>/override-status/", AdminOverrideStatusView.as_view()),
+    path("<int:pk>/admin-payment-method/", AdminPaymentMethodView.as_view()),
     path("<int:order_id>/messages/", OrderMessageListCreateView.as_view()),
     path("delivery/", DeliveryOrdersView.as_view()),
     path("pending/", PendingOrdersView.as_view()),

@@ -42,9 +42,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   final _announcement = TextEditingController();
   final _merchantUpiId = TextEditingController();
   final _loyaltyCoinsPercentage = TextEditingController();
-  final _kitchenName = TextEditingController();
-  final _kitchenLat = TextEditingController();
-  final _kitchenLng = TextEditingController();
   bool _showRatings = true;
 
   @override
@@ -76,9 +73,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     _announcement.dispose();
     _merchantUpiId.dispose();
     _loyaltyCoinsPercentage.dispose();
-    _kitchenName.dispose();
-    _kitchenLat.dispose();
-    _kitchenLng.dispose();
     super.dispose();
   }
 
@@ -92,9 +86,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           _showRatings = data['show_ratings'] ?? true;
           _merchantUpiId.text = data['merchant_upi_id'] ?? 'hdkfoods@axisbank';
           _loyaltyCoinsPercentage.text = (data['loyalty_coins_percentage'] ?? 10).toString();
-          _kitchenName.text = data['kitchen_name'] ?? 'HDK Foods Kitchen';
-          _kitchenLat.text = (data['kitchen_latitude'] ?? '25.9233').toString();
-          _kitchenLng.text = (data['kitchen_longitude'] ?? '73.6646').toString();
           _loading = false;
         });
       }
@@ -111,9 +102,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         'show_ratings': _showRatings,
         'merchant_upi_id': _merchantUpiId.text.trim(),
         'loyalty_coins_percentage': int.tryParse(_loyaltyCoinsPercentage.text.trim()) ?? 10,
-        'kitchen_name': _kitchenName.text.trim(),
-        'kitchen_latitude': _kitchenLat.text.trim(),
-        'kitchen_longitude': _kitchenLng.text.trim(),
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
     } catch (e) {
@@ -215,40 +203,12 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                     _actionCard(
                       icon: Icons.storefront_outlined,
                       label: 'Store Operations',
-                      subtitle: 'Manage store status, hours & scheduled closures',
+                      subtitle: 'Store hours, closures & kitchen location',
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (_) => const StoreManagementScreen())),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Kitchen Location
-                    _sectionHeader('Kitchen Location (Map Pin)'),
-                    _inputField('Kitchen Display Name', _kitchenName,
-                        hint: 'e.g. HDK Foods Kitchen', maxLines: 1),
-                    const SizedBox(height: 10),
-                    Row(children: [
-                      Expanded(
-                        child: _inputField(
-                          'Latitude',
-                          _kitchenLat,
-                          hint: 'e.g. 25.9233',
-                          maxLines: 1,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _inputField(
-                          'Longitude',
-                          _kitchenLng,
-                          hint: 'e.g. 73.6646',
-                          maxLines: 1,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                        ),
-                      ),
-                    ]),
                     const SizedBox(height: 24),
 
                     // Direct UPI Payments

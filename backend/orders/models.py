@@ -144,6 +144,10 @@ class Order(models.Model):
     coins_redeemed = models.IntegerField(default=0)
     coins_earned = models.IntegerField(default=0)
 
+    # Customer "I didn't receive my order" report (raised after wrongly-marked delivered)
+    not_received_reported = models.BooleanField(default=False)
+    not_received_reported_at = models.DateTimeField(null=True, blank=True)
+
     # Snapshot of total_amount before the first staff modification.
     # Used to re-base discounts so applying a second discount doesn't
     # double-count.

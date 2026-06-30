@@ -400,77 +400,59 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
         const Divider(color: _stroke, height: 24),
 
-        // ── Footer: total · items + payment chip ──
+        // ── Footer: total · items + payment / reorder actions ──
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              '₹${order.totalAmount.toStringAsFixed(0)} · ${order.items.length} item(s)',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _paymentStatusColor(
-                  order.paymentStatus,
-                  isOnlinePending: order.isOnlinePaymentPending,
-                ).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
-                style: TextStyle(
-                  color: _paymentStatusColor(
-                    order.paymentStatus,
-                    isOnlinePending: order.isOnlinePaymentPending,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '₹${order.totalAmount.toStringAsFixed(0)} · ${order.items.length} item(s)',
+                    style: const TextStyle(color: Colors.grey),
                   ),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _paymentStatusColor(
+                          order.paymentStatus,
+                          isOnlinePending: order.isOnlinePaymentPending,
+                        ).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
+                        style: TextStyle(
+                          color: _paymentStatusColor(
+                            order.paymentStatus,
+                            isOnlinePending: order.isOnlinePaymentPending,
+                          ),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (order.status == 'cancelled' || order.status == 'delivered') ...[
+              const SizedBox(width: 12),
+              _OrderCardReorderButton(
+                loading: reordering,
+                enabled: order.items.isNotEmpty && _reorderingId == null,
+                onPressed: () => _reorder(order),
+              ),
+            ],
           ],
         ),
-        // ── Reorder button ──
-        if (order.status == 'cancelled' || order.status == 'delivered') ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: OutlinedButton.icon(
-              onPressed: (order.items.isEmpty || _reorderingId != null)
-                  ? null
-                  : () => _reorder(order),
-              icon: reordering
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        color: _brandRed,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.refresh_rounded, size: 18),
-              label: Text(reordering ? 'Adding…' : 'Reorder'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _brandRed,
-                disabledForegroundColor: Colors.grey,
-                side: BorderSide(
-                  color: _reorderingId != null
-                      ? _stroke
-                      : _brandRed.withValues(alpha: 0.6),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -560,6 +542,67 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 },
               ),
             ),
+    );
+  }
+}
+
+class _OrderCardReorderButton extends StatelessWidget {
+  final bool loading;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _OrderCardReorderButton({
+    required this.loading,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: enabled ? _brandRed.withValues(alpha: 0.12) : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(
+          color: enabled ? _brandRed.withValues(alpha: 0.6) : _stroke,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onPressed : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 15,
+                  height: 15,
+                  child: CircularProgressIndicator(
+                    color: _brandRed,
+                    strokeWidth: 2,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.refresh_rounded,
+                  size: 16,
+                  color: enabled ? _brandRed : Colors.grey,
+                ),
+              const SizedBox(width: 7),
+              Text(
+                loading ? 'Adding' : 'Reorder',
+                style: TextStyle(
+                  color: enabled ? _brandRed : Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

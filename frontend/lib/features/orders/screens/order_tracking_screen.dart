@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
@@ -14,6 +15,9 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 import '../../../core/services/order_websocket_service.dart';
 import '../../../core/widgets/error_retry.dart';
+import '../../cart/screens/cart_screen.dart';
+import '../../cart/services/cart_provider.dart';
+import '../../home/services/product_service.dart';
 import '../models/order.dart';
 import '../services/delivery_location_service.dart';
 import '../services/order_service.dart';
@@ -73,6 +77,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   bool _modifiedDialogShown = false;
   int? _queuePosition;
   bool _reviewSubmitted = false;
+  bool _isReordering = false;
   DeliveryLocation? _deliveryLocation;
 
   late AnimationController _stepAnim;
@@ -308,6 +313,56 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _reorder(Order order) async {
+    if (order.items.isEmpty || _isReordering) return;
+    setState(() => _isReordering = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final products = await ProductService.getProducts();
+      final byId = {for (final p in products) p.id: p};
+      if (!mounted) return;
+      final cart = context.read<CartProvider>();
+      cart.clearCart();
+      int added = 0;
+      int missing = 0;
+      for (final line in order.items) {
+        final product = line.productId != null ? byId[line.productId] : null;
+        if (product == null || !product.isAvailable) {
+          missing++;
+          continue;
+        }
+        cart.addProduct(product, quantity: line.quantity, haptic: false);
+        added++;
+      }
+      if (added > 0) HapticFeedback.mediumImpact();
+      if (added == 0) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('These items are no longer available.')),
+        );
+        return;
+      }
+      if (missing > 0) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('$added item(s) added · $missing unavailable'),
+            backgroundColor: _panel,
+          ),
+        );
+      }
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CartScreen()),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not reorder. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isReordering = false);
+    }
   }
 
   Future<void> _payOnline() async {
@@ -812,6 +867,36 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   currentStatus: order.status,
                   animation: _stepAnim,
                 ),
+
+          if (order.status == 'delivered') ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _CompactReorderButton(
+                loading: _isReordering,
+                enabled: order.items.isNotEmpty && !_isReordering,
+                onTap: () => _reorder(order),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _NotReceivedCard(
+              order: order,
+              onReport: () async {
+                try {
+                  final updated = await _orderService.reportNotReceived(
+                    order.id,
+                  );
+                  if (mounted) _applyOrder(updated);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+            ),
+          ],
 
           const SizedBox(height: 20),
 
@@ -1736,7 +1821,7 @@ class _AddressMapCardState extends State<_AddressMapCard>
     final isOut = widget.isOutForDelivery;
     final hasAddrCoords = addr.latitude != null && addr.longitude != null;
     final hasLiveLoc = isOut && loc != null;
-    final showMap = hasAddrCoords || hasLiveLoc;
+    final showMap = isOut; // Map only shown while actively out for delivery
 
     final Set<Marker> markers = {};
     if (hasAddrCoords) {
@@ -2434,6 +2519,194 @@ class _PremiumReviewHeaderCard extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+// ── Compact Reorder Button ───────────────────────────────────────────────────
+class _CompactReorderButton extends StatelessWidget {
+  final bool loading;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _CompactReorderButton({
+    required this.loading,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: enabled ? _brandRed.withValues(alpha: 0.14) : _panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(
+          color: enabled ? _brandRed.withValues(alpha: 0.55) : _stroke,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _brandRed,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.refresh_rounded,
+                  size: 17,
+                  color: enabled ? _brandRed : _mutedText,
+                ),
+              const SizedBox(width: 8),
+              Text(
+                loading ? 'Adding...' : 'Reorder',
+                style: TextStyle(
+                  color: enabled ? Colors.white : _mutedText,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Not Received Card ────────────────────────────────────────────────────────
+class _NotReceivedCard extends StatefulWidget {
+  final Order order;
+  final Future<void> Function() onReport;
+  const _NotReceivedCard({required this.order, required this.onReport});
+
+  @override
+  State<_NotReceivedCard> createState() => _NotReceivedCardState();
+}
+
+class _NotReceivedCardState extends State<_NotReceivedCard> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final reported = widget.order.notReceivedReported;
+
+    return Material(
+      color: _panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: reported ? Colors.orange.withValues(alpha: 0.5) : _stroke,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          radius: 20,
+          backgroundColor: reported
+              ? Colors.orange.withValues(alpha: 0.15)
+              : const Color(0xFF1A1A1A),
+          child: Icon(
+            reported ? Icons.hourglass_top_rounded : Icons.help_outline_rounded,
+            color: reported ? Colors.orange : _mutedText,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          reported ? 'Report Submitted' : "Didn't receive your order?",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+        subtitle: Text(
+          reported
+              ? 'Our team has been alerted and will look into it.'
+              : "Tap to alert our team — we'll look into it right away.",
+          style: const TextStyle(color: _mutedText, fontSize: 11),
+        ),
+        trailing: reported
+            ? const Text(
+                'REPORTED',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              )
+            : (_loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _brandRed,
+                      ),
+                    )
+                  : const Icon(Icons.chevron_right_rounded, color: _mutedText)),
+        onTap: reported || _loading
+            ? null
+            : () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: _panel,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: _stroke),
+                    ),
+                    title: const Text(
+                      'Report Non-Receipt?',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    content: const Text(
+                      "This will alert our team that you didn't receive your order. They will investigate and correct it.",
+                      style: TextStyle(color: _mutedText, fontSize: 13),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: _mutedText),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text(
+                          'Report',
+                          style: TextStyle(
+                            color: _brandRed,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true || !mounted) return;
+                setState(() => _loading = true);
+                try {
+                  await widget.onReport();
+                } finally {
+                  if (mounted) setState(() => _loading = false);
+                }
+              },
+      ),
     );
   }
 }

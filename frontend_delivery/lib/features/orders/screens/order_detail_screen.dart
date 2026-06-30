@@ -25,8 +25,7 @@ class OrderDetailScreen extends StatefulWidget {
   final Order order;
   final String role;
 
-  const OrderDetailScreen(
-      {super.key, required this.order, required this.role});
+  const OrderDetailScreen({super.key, required this.order, required this.role});
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
@@ -47,10 +46,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _startTrackingIfNeeded() {
-    if (widget.role == 'delivery' &&
-        _order.status == 'out_for_delivery') {
-      _locationTracker =
-          LocationTrackingService(orderId: _order.id);
+    if (widget.role == 'delivery' && _order.status == 'out_for_delivery') {
+      _locationTracker = LocationTrackingService(orderId: _order.id);
       _locationTracker!.start();
     }
   }
@@ -63,8 +60,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   // ── Confirm ──────────────────────────────────────────────────────────────
@@ -103,14 +99,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Future<void> _editItems() async {
     final updated = await showDialog<Order>(
       context: context,
-      builder: (_) =>
-          _EditItemsDialog(order: _order, service: _orderService),
+      builder: (_) => _EditItemsDialog(order: _order, service: _orderService),
     );
     if (updated != null) setState(() => _order = updated);
   }
 
   // ── Update status ────────────────────────────────────────────────────────
+  bool _canMarkDelivered(Order order) => order.paymentStatus == 'paid';
+
+  String _paymentBlockMessage(Order order) =>
+      'Collect or confirm payment first (${order.paymentMethod.toUpperCase()} | ${order.paymentStatus.toUpperCase()}).';
+
   Future<void> _updateStatus(String s) async {
+    if (s == 'delivered' && !_canMarkDelivered(_order)) {
+      _snack(_paymentBlockMessage(_order));
+      return;
+    }
     setState(() => _busy = true);
     try {
       final updated = await _orderService.updateStatus(_order.id, s);
@@ -160,8 +164,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       if (result.deliveryUserId != null) {
         await _orderService.assignDelivery(_order.id, result.deliveryUserId!);
       }
-      final updated =
-          await _orderService.updateStatus(_order.id, 'out_for_delivery');
+      final updated = await _orderService.updateStatus(
+        _order.id,
+        'out_for_delivery',
+      );
       setState(() => _order = updated);
       _snack('Marked out for delivery.');
     } catch (e) {
@@ -178,17 +184,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Prep Time',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('Prep Time', style: TextStyle(color: Colors.white)),
         content: StatefulBuilder(
           builder: (_, ss) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('$prepTime min',
-                  style: const TextStyle(
-                      color: _red,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                '$prepTime min',
+                style: const TextStyle(
+                  color: _red,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Slider(
                 min: 5,
                 max: 90,
@@ -202,9 +210,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _red),
             onPressed: () => Navigator.pop(ctx, prepTime),
@@ -221,8 +229,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Reject Order',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Reject Order',
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: ctrl,
           style: const TextStyle(color: Colors.white),
@@ -234,12 +244,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, ctrl.text),
             child: const Text('Reject'),
           ),
@@ -251,113 +260,127 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ── Helpers ───────────────────────────────────────────────────────────────
   String _label(String s) => s
       .split('_')
-      .map((w) =>
-          w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
   Color _statusColor(String s) {
     switch (s) {
-      case 'delivered': return Colors.greenAccent;
+      case 'delivered':
+        return Colors.greenAccent;
       case 'rejected':
-      case 'cancelled': return Colors.redAccent;
-      case 'pending_confirmation': return Colors.orangeAccent;
-      case 'confirmed': return Colors.blueAccent;
-      case 'preparing': return Colors.amberAccent;
-      default: return _red;
+      case 'cancelled':
+        return Colors.redAccent;
+      case 'pending_confirmation':
+        return Colors.orangeAccent;
+      case 'confirmed':
+        return Colors.blueAccent;
+      case 'preparing':
+        return Colors.amberAccent;
+      default:
+        return _red;
     }
   }
 
   Widget _infoRow(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 120,
-              child: Text(label,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            ),
-            Expanded(
-              child: Text(value,
-                  style: const TextStyle(color: Colors.white, fontSize: 13)),
-            ),
-          ],
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _customerRow(String name, String phone) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 120,
-              child: Text('Customer',
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-            ),
-            Expanded(
-              child: Text(name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13)),
-            ),
-            if (phone.isNotEmpty)
-              GestureDetector(
-                onTap: () => launchUrl(Uri.parse('tel:$phone')),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.greenAccent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: Colors.greenAccent.withValues(alpha: 0.4)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.call_rounded,
-                          color: Colors.greenAccent, size: 13),
-                      SizedBox(width: 3),
-                      Text('Call',
-                          style: TextStyle(
-                              color: Colors.greenAccent,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 120,
+          child: Text(
+            'Customer',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+        if (phone.isNotEmpty)
+          GestureDetector(
+            onTap: () => launchUrl(Uri.parse('tel:$phone')),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.greenAccent.withValues(alpha: 0.4),
                 ),
               ),
-          ],
-        ),
-      );
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.call_rounded, color: Colors.greenAccent, size: 13),
+                  SizedBox(width: 3),
+                  Text(
+                    'Call',
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 
   Widget _card(List<Widget> children) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _panel,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _stroke),
-        ),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: _panel,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _stroke),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ),
+  );
 
   Widget _btn(String label, Color color, VoidCallback onTap) => SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.black87,
-            minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-          onPressed: _busy ? null : onTap,
-          child: Text(label,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-        ),
-      );
+    width: double.infinity,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.black87,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: _busy ? null : onTap,
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    ),
+  );
 
   List<Widget> _actionButtons() {
     final s = _order.status;
@@ -372,24 +395,36 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       buttons.add(_btn('Reject Order', Colors.redAccent, _reject));
     }
     if (s == 'confirmed' && isAdmin) {
-      buttons.add(_btn('Start Preparing', Colors.amberAccent,
-          () => _updateStatus('preparing')));
+      buttons.add(
+        _btn(
+          'Start Preparing',
+          Colors.amberAccent,
+          () => _updateStatus('preparing'),
+        ),
+      );
     }
     if (s == 'preparing' && isAdmin) {
-      buttons.add(_btn('Mark Ready & Assign Delivery',
-          Colors.tealAccent, _markReadyWithAssign));
+      buttons.add(
+        _btn(
+          'Mark Ready & Assign Delivery',
+          Colors.tealAccent,
+          _markReadyWithAssign,
+        ),
+      );
     }
     if (s == 'out_for_delivery' && widget.role == 'delivery') {
-      buttons.add(_btn(
-        'Mark Delivered',
-        Colors.greenAccent,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentCollectionScreen(order: _order),
+      buttons.add(
+        _btn(
+          'Mark Delivered',
+          Colors.greenAccent,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentCollectionScreen(order: _order),
+            ),
           ),
         ),
-      ));
+      );
     }
     return buttons;
   }
@@ -412,11 +447,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Delivery Address',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16)),
+        const Text(
+          'Delivery Address',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
@@ -433,23 +471,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(addr.label.isNotEmpty ? addr.label : 'Address',
-                        style: const TextStyle(
-                            color: _red, fontWeight: FontWeight.bold)),
+                    Text(
+                      addr.label.isNotEmpty ? addr.label : 'Address',
+                      style: const TextStyle(
+                        color: _red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     if (addr.lineOne.isNotEmpty)
-                      Text(addr.lineOne,
-                          style: const TextStyle(color: Colors.white)),
+                      Text(
+                        addr.lineOne,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     if (addr.lineTwo.isNotEmpty)
-                      Text(addr.lineTwo,
-                          style: const TextStyle(color: Colors.grey)),
+                      Text(
+                        addr.lineTwo,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                   ],
                 ),
               ),
               if (hasCoords) ...[
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(12)),
+                    bottom: Radius.circular(12),
+                  ),
                   child: SizedBox(
                     height: 200,
                     child: GoogleMap(
@@ -460,8 +507,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       markers: {
                         Marker(
                           markerId: const MarkerId('delivery'),
-                          position:
-                              LatLng(addr.latitude!, addr.longitude!),
+                          position: LatLng(addr.latitude!, addr.longitude!),
                         ),
                       },
                       myLocationButtonEnabled: false,
@@ -481,20 +527,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: hasCoords ? Colors.blueAccent : Colors.grey,
+                          backgroundColor: hasCoords
+                              ? Colors.blueAccent
+                              : Colors.grey,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         icon: const Icon(Icons.navigation),
                         label: const Text('Navigate'),
                         onPressed: hasCoords
                             ? () => _openNavigation(
-                                addr.latitude!, addr.longitude!)
+                                addr.latitude!,
+                                addr.longitude!,
+                              )
                             : null,
                       ),
                     ),
-                    if (_order.status == 'out_for_delivery' && widget.role == 'delivery') ...[
+                    if (_order.status == 'out_for_delivery' &&
+                        widget.role == 'delivery') ...[
                       const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
@@ -502,14 +554,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           icon: const Icon(Icons.check_circle_outline_rounded),
                           label: const Text('Complete Delivery'),
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PaymentCollectionScreen(order: _order),
+                              builder: (_) =>
+                                  PaymentCollectionScreen(order: _order),
                             ),
                           ),
                         ),
@@ -537,17 +591,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: Text('Order #${o.orderNumber}',
-            style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(
+          'Order #${o.orderNumber}',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
         actions: [
           if (_busy)
             const Padding(
               padding: EdgeInsets.all(16),
               child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      color: _red, strokeWidth: 2)),
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(color: _red, strokeWidth: 2),
+              ),
             ),
         ],
       ),
@@ -564,9 +620,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _label(o.status),
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: _statusColor(o.status),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
+                color: _statusColor(o.status),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -575,46 +632,56 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _infoRow('Created', created),
             if (o.customerName.isNotEmpty)
               _customerRow(o.customerName, o.customerPhone),
-            _infoRow('Payment',
-                '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}'),
+            _infoRow(
+              'Payment',
+              '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}',
+            ),
             if (o.estimatedPreparationTime != null)
               _infoRow('Prep Time', '${o.estimatedPreparationTime} min'),
-            if (o.deliveryNotes.isNotEmpty)
-              _infoRow('Notes', o.deliveryNotes),
+            if (o.deliveryNotes.isNotEmpty) _infoRow('Notes', o.deliveryNotes),
           ]),
           const SizedBox(height: 16),
 
           // Items + totals
-          const Text('Items',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16)),
+          const Text(
+            'Items',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
           const SizedBox(height: 8),
           _card([
-            ...o.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text('${item.quantity}× ${item.productName}',
-                            style: const TextStyle(color: Colors.white)),
+            ...o.items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item.quantity}× ${item.productName}',
+                        style: const TextStyle(color: Colors.white),
                       ),
-                      Text(
-                        '₹${(item.price * item.quantity).toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                    Text(
+                      '₹${(item.price * item.quantity).toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const Divider(color: _stroke, height: 16),
             if (o.originalTotal != null &&
                 o.originalTotal != o.totalAmount) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Subtotal',
-                      style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const Text(
+                    'Subtotal',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                   Text(
                     '₹${o.originalTotal!.toStringAsFixed(0)}',
                     style: const TextStyle(
@@ -634,11 +701,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   Text(
                     'Discount${o.discountReason.isNotEmpty ? " (${o.discountReason})" : ""}',
                     style: const TextStyle(
-                        color: Colors.greenAccent, fontSize: 13),
+                      color: Colors.greenAccent,
+                      fontSize: 13,
+                    ),
                   ),
-                  Text('-₹${o.discountAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: Colors.greenAccent, fontSize: 13)),
+                  Text(
+                    '-₹${o.discountAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -646,16 +719,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                Text('₹${o.totalAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                        color: _red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
+                const Text(
+                  'Total',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  '₹${o.totalAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: _red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ],
             ),
           ]),
@@ -690,16 +769,17 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
   void initState() {
     super.initState();
     _items = widget.order.items
-        .map((i) => {
-              'product_id': i.productId,
-              'quantity': i.quantity,
-              'name': i.productName,
-              'price': i.price,
-            })
+        .map(
+          (i) => {
+            'product_id': i.productId,
+            'quantity': i.quantity,
+            'name': i.productName,
+            'price': i.price,
+          },
+        )
         .toList();
     if (widget.order.discountAmount > 0) {
-      _discountCtrl.text =
-          widget.order.discountAmount.toStringAsFixed(0);
+      _discountCtrl.text = widget.order.discountAmount.toStringAsFixed(0);
       _reasonCtrl.text = widget.order.discountReason;
     }
   }
@@ -712,9 +792,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
   }
 
   double get _subtotal => _items.fold(
-      0,
-      (sum, i) =>
-          sum + (i['price'] as double) * (i['quantity'] as int));
+    0,
+    (sum, i) => sum + (i['price'] as double) * (i['quantity'] as int),
+  );
 
   double get _discount {
     final v = double.tryParse(_discountCtrl.text) ?? 0;
@@ -731,17 +811,18 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       builder: (_) => const _ProductPickerSheet(),
     );
     if (picked == null) return;
-    final existing =
-        _items.indexWhere((i) => i['product_id'] == picked.id);
+    final existing = _items.indexWhere((i) => i['product_id'] == picked.id);
     if (existing >= 0) {
       setState(() => _items[existing]['quantity']++);
     } else {
-      setState(() => _items.add({
-            'product_id': picked.id,
-            'quantity': 1,
-            'name': picked.name,
-            'price': picked.price,
-          }));
+      setState(
+        () => _items.add({
+          'product_id': picked.id,
+          'quantity': 1,
+          'name': picked.name,
+          'price': picked.price,
+        }),
+      );
     }
   }
 
@@ -750,8 +831,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
     try {
       final payload = _items
           .where((i) => (i['quantity'] as int) > 0)
-          .map((i) =>
-              {'product_id': i['product_id'], 'quantity': i['quantity']})
+          .map(
+            (i) => {'product_id': i['product_id'], 'quantity': i['quantity']},
+          )
           .toList();
 
       if (payload.isEmpty) {
@@ -772,8 +854,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       if (mounted) Navigator.pop(context, updated);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -785,8 +868,10 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
     return AlertDialog(
       backgroundColor: _panel,
       contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      title: const Text('Edit Order',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      title: const Text(
+        'Edit Order',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -795,11 +880,14 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // ── Items ─────────────────────────────────────────────────
-              const Text('Items',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              const Text(
+                'Items',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
               ..._items.map((item) {
                 final qty = item['quantity'] as int;
@@ -809,39 +897,51 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(item['name'] as String,
-                            style: TextStyle(
-                                color:
-                                    qty == 0 ? Colors.grey : Colors.white,
-                                decoration: qty == 0
-                                    ? TextDecoration.lineThrough
-                                    : null)),
+                        child: Text(
+                          item['name'] as String,
+                          style: TextStyle(
+                            color: qty == 0 ? Colors.grey : Colors.white,
+                            decoration: qty == 0
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
                       ),
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.remove_circle_outline,
-                            color: Colors.redAccent, size: 22),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.redAccent,
+                          size: 22,
+                        ),
                         onPressed: qty > 0
                             ? () => setState(
-                                () => _items[idx]['quantity'] = qty - 1)
+                                () => _items[idx]['quantity'] = qty - 1,
+                              )
                             : null,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('$qty',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
+                        child: Text(
+                          '$qty',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.add_circle_outline,
-                            color: _red, size: 22),
-                        onPressed: () => setState(
-                            () => _items[idx]['quantity'] = qty + 1),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: _red,
+                          size: 22,
+                        ),
+                        onPressed: () =>
+                            setState(() => _items[idx]['quantity'] = qty + 1),
                       ),
                     ],
                   ),
@@ -852,18 +952,20 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               TextButton.icon(
                 onPressed: _addItem,
                 icon: const Icon(Icons.add, color: _red, size: 18),
-                label: const Text('Add Item',
-                    style: TextStyle(color: _red)),
+                label: const Text('Add Item', style: TextStyle(color: _red)),
               ),
 
               const Divider(color: _stroke, height: 20),
 
               // ── Discount section ───────────────────────────────────────
-              const Text('Discount (optional)',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              const Text(
+                'Discount (optional)',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -873,10 +975,12 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                       controller: _discountCtrl,
                       style: const TextStyle(color: Colors.white),
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                        decimal: true,
+                      ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'))
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
                       ],
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
@@ -886,7 +990,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                         prefixStyle: TextStyle(color: Colors.white),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -901,7 +1007,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                         hintStyle: TextStyle(color: Colors.grey),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -914,11 +1022,14 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Subtotal',
-                      style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  Text('₹${_subtotal.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 13)),
+                  const Text(
+                    'Subtotal',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  Text(
+                    '₹${_subtotal.toStringAsFixed(0)}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
               if (_discount > 0) ...[
@@ -926,12 +1037,17 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Discount',
-                        style: TextStyle(
-                            color: Colors.greenAccent, fontSize: 13)),
-                    Text('-₹${_discount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            color: Colors.greenAccent, fontSize: 13)),
+                    const Text(
+                      'Discount',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 13),
+                    ),
+                    Text(
+                      '-₹${_discount.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -939,16 +1055,22 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('New Total',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15)),
-                  Text('₹${_newTotal.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: _red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
+                  const Text(
+                    'New Total',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    '₹${_newTotal.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: _red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -958,9 +1080,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.grey))),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),
           onPressed: _saving ? null : _save,
@@ -969,7 +1091,10 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                   height: 16,
                   width: 16,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
               : const Text('Save'),
         ),
       ],
@@ -1015,7 +1140,10 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
         _loading = false;
       });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -1024,9 +1152,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       _filtered = q.isEmpty
           ? _all
           : _all
-              .where((p) =>
-                  p.name.toLowerCase().contains(q.toLowerCase()))
-              .toList();
+                .where((p) => p.name.toLowerCase().contains(q.toLowerCase()))
+                .toList();
     });
   }
 
@@ -1050,8 +1177,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -1059,11 +1187,14 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Text('Add Item',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Add Item',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.grey),
@@ -1094,54 +1225,58 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: HdkPreloader(width: 120, height: 120))
+                  ? const Center(child: HdkPreloader(width: 120, height: 120))
                   : _error != null
-                      ? ErrorRetryWidget(error: _error!, onRetry: _load)
-                      : _filtered.isEmpty
-                          ? const Center(
-                              child: Text('No items found',
-                                  style: TextStyle(color: Colors.grey)))
-                          : ListView.builder(
-                              controller: scrollCtrl,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16),
-                              itemCount: _filtered.length,
-                              itemBuilder: (_, i) {
-                                final p = _filtered[i];
-                                return ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          vertical: 6),
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: p.image.isNotEmpty
-                                        ? Image.network(
-                                            p.image,
-                                            width: 48,
-                                            height: 48,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (ctx2, e2, st2) =>
-                                                _placeholder(),
-                                          )
-                                        : _placeholder(),
-                                  ),
-                                  title: Text(p.name,
-                                      style: const TextStyle(
-                                          color: Colors.white)),
-                                  subtitle: Text(
-                                      '₹${p.price.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                          color: Colors.grey)),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.add_circle,
-                                        color: _red, size: 28),
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, p),
-                                  ),
-                                );
-                              },
+                  ? ErrorRetryWidget(error: _error!, onRetry: _load)
+                  : _filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No items found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final p = _filtered[i];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                          ),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: p.image.isNotEmpty
+                                ? Image.network(
+                                    p.image,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx2, e2, st2) =>
+                                        _placeholder(),
+                                  )
+                                : _placeholder(),
+                          ),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            '₹${p.price.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.add_circle,
+                              color: _red,
+                              size: 28,
                             ),
+                            onPressed: () => Navigator.pop(ctx, p),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -1150,11 +1285,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   }
 
   Widget _placeholder() => Container(
-        width: 48,
-        height: 48,
-        color: _surface,
-        child: const Icon(Icons.fastfood, color: Colors.grey, size: 24),
-      );
+    width: 48,
+    height: 48,
+    color: _surface,
+    child: const Icon(Icons.fastfood, color: Colors.grey, size: 24),
+  );
 }
 
 // ─── Assign & Ready Dialog ────────────────────────────────────────────────────
@@ -1170,8 +1305,7 @@ class _AssignAndReadyDialog extends StatefulWidget {
   const _AssignAndReadyDialog({required this.staff, this.initial});
 
   @override
-  State<_AssignAndReadyDialog> createState() =>
-      _AssignAndReadyDialogState();
+  State<_AssignAndReadyDialog> createState() => _AssignAndReadyDialogState();
 }
 
 class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
@@ -1180,16 +1314,18 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
   @override
   void initState() {
     super.initState();
-    _selected = widget.initial ??
-        (widget.staff.isNotEmpty ? widget.staff.first : null);
+    _selected =
+        widget.initial ?? (widget.staff.isNotEmpty ? widget.staff.first : null);
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: _panel,
-      title: const Text('Assign Delivery Person',
-          style: TextStyle(color: Colors.white)),
+      title: const Text(
+        'Assign Delivery Person',
+        style: TextStyle(color: Colors.white),
+      ),
       content: RadioGroup<int>(
         groupValue: _selected?.id,
         onChanged: (value) {
@@ -1203,15 +1339,16 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
             final sel = _selected?.id == s.id;
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Radio<int>(
-                value: s.id,
-                activeColor: _red,
+              leading: Radio<int>(value: s.id, activeColor: _red),
+              title: Text(
+                s.displayName,
+                style: const TextStyle(color: Colors.white),
               ),
-              title: Text(s.displayName,
-                  style: const TextStyle(color: Colors.white)),
               subtitle: s.isDefaultDelivery
-                  ? const Text('Default',
-                      style: TextStyle(color: _red, fontSize: 11))
+                  ? const Text(
+                      'Default',
+                      style: TextStyle(color: _red, fontSize: 11),
+                    )
                   : null,
               tileColor: sel ? _red.withValues(alpha: 0.08) : null,
               onTap: () => setState(() => _selected = s),
@@ -1223,13 +1360,14 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
         TextButton(
           onPressed: () =>
               Navigator.pop(context, _ReadyResult(deliveryUserId: null)),
-          child: const Text('Skip',
-              style: TextStyle(color: Colors.grey)),
+          child: const Text('Skip', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),
           onPressed: () => Navigator.pop(
-              context, _ReadyResult(deliveryUserId: _selected?.id)),
+            context,
+            _ReadyResult(deliveryUserId: _selected?.id),
+          ),
           child: const Text('Confirm'),
         ),
       ],

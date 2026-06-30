@@ -26,15 +26,15 @@ class PaymentCollectionScreen extends StatefulWidget {
       _PaymentCollectionScreenState();
 }
 
-class _PaymentCollectionScreenState
-    extends State<PaymentCollectionScreen> {
+class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   final OrderService _orderService = OrderService();
   bool _busy = false;
   String? _error;
 
-  bool get _requiresCollection =>
-      widget.order.paymentMethod == 'cod' &&
-      widget.order.paymentStatus != 'paid';
+  bool get _requiresCollection => widget.order.paymentStatus != 'paid';
+
+  String get _paymentBlockText =>
+      'Payment is ${widget.order.paymentMethod.toUpperCase()} | ${widget.order.paymentStatus.toUpperCase()}. Collect or confirm payment before delivery.';
 
   // Online payment collection states
   bool _isOnlinePaymentMode = false;
@@ -63,7 +63,8 @@ class _PaymentCollectionScreenState
         _loadingPaymentSession = false;
         if (res['payment_status'] == 'paid') {
           _paymentCompleted = true;
-          _transactionId = res['payment_id']?.toString() ?? res['cf_order_id']?.toString();
+          _transactionId =
+              res['payment_id']?.toString() ?? res['cf_order_id']?.toString();
           _paymentMethodDetail = 'UPI';
         }
       });
@@ -86,7 +87,8 @@ class _PaymentCollectionScreenState
       if (res['payment_status'] == 'paid') {
         setState(() {
           _paymentCompleted = true;
-          _transactionId = res['payment_id'] ?? res['order']?['payment_id'] ?? '';
+          _transactionId =
+              res['payment_id'] ?? res['order']?['payment_id'] ?? '';
           _paymentMethodDetail = 'UPI';
         });
         await _completeDelivery();
@@ -107,6 +109,10 @@ class _PaymentCollectionScreenState
   // ── Complete delivery ──────────────────────────────────────────────────────
 
   Future<void> _completeDelivery() async {
+    if (!_paymentCompleted && widget.order.paymentStatus != 'paid') {
+      setState(() => _error = _paymentBlockText);
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -145,8 +151,9 @@ class _PaymentCollectionScreenState
       }
 
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       ).timeout(const Duration(seconds: 8));
 
       final token = await TokenStorage.getAccessToken();
@@ -155,7 +162,8 @@ class _PaymentCollectionScreenState
       await http
           .post(
             Uri.parse(
-                '${ApiConfig.baseUrl}/orders/${widget.order.id}/delivery-location/'),
+              '${ApiConfig.baseUrl}/orders/${widget.order.id}/delivery-location/',
+            ),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -200,8 +208,10 @@ class _PaymentCollectionScreenState
                   children: [
                     HdkPreloader(),
                     SizedBox(height: 16),
-                    Text('Completing delivery…',
-                        style: TextStyle(color: _kMuted)),
+                    Text(
+                      'Completing delivery…',
+                      style: TextStyle(color: _kMuted),
+                    ),
                   ],
                 ),
               )
@@ -248,21 +258,25 @@ class _PaymentCollectionScreenState
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_rounded,
-                  color: _kRed, size: 16),
+              const Icon(Icons.location_on_rounded, color: _kRed, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (o.address!.lineOne.isNotEmpty)
-                      Text(o.address!.lineOne,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 13)),
+                      Text(
+                        o.address!.lineOne,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
                     if (o.address!.lineTwo.isNotEmpty)
-                      Text(o.address!.lineTwo,
-                          style: const TextStyle(
-                              color: _kMuted, fontSize: 12)),
+                      Text(
+                        o.address!.lineTwo,
+                        style: const TextStyle(color: _kMuted, fontSize: 12),
+                      ),
                   ],
                 ),
               ),
@@ -282,23 +296,32 @@ class _PaymentCollectionScreenState
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.greenAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: Colors.greenAccent.withValues(alpha: 0.4)),
+                    color: Colors.greenAccent.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_circle,
-                        color: Colors.greenAccent, size: 16),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.greenAccent,
+                      size: 16,
+                    ),
                     SizedBox(width: 6),
-                    Text('Payment Received',
-                        style: TextStyle(
-                            color: Colors.greenAccent,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      'Payment Received',
+                      style: TextStyle(
+                        color: Colors.greenAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -306,7 +329,10 @@ class _PaymentCollectionScreenState
           ),
           const SizedBox(height: 14),
           _Row(label: 'Method', value: _paymentMethodDetail ?? 'Online'),
-          _Row(label: 'Transaction ID', value: _transactionId ?? 'CF_PAYMENT_SUCCESS'),
+          _Row(
+            label: 'Transaction ID',
+            value: _transactionId ?? 'CF_PAYMENT_SUCCESS',
+          ),
           const Divider(color: _kStroke, height: 20),
           const Text(
             'Online payment confirmed. You can now complete the delivery.',
@@ -325,10 +351,18 @@ class _PaymentCollectionScreenState
             children: [
               const Text(
                 'Online Payment (Pending)',
-                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 20),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.grey,
+                  size: 20,
+                ),
                 onPressed: () {
                   setState(() {
                     _isOnlinePaymentMode = false;
@@ -348,17 +382,31 @@ class _PaymentCollectionScreenState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Collect Amount:', style: TextStyle(color: _kMuted, fontSize: 13)),
+                const Text(
+                  'Collect Amount:',
+                  style: TextStyle(color: _kMuted, fontSize: 13),
+                ),
                 Text(
                   '₹${widget.order.totalAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w900, fontSize: 20),
+                  style: const TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
           Center(
-            child: ((_paymentSession?['upi_uri'] ?? _paymentSession?['payment_link']) == null || (_paymentSession?['upi_uri'] ?? _paymentSession?['payment_link']).toString().isEmpty)
+            child:
+                ((_paymentSession?['upi_uri'] ??
+                            _paymentSession?['payment_link']) ==
+                        null ||
+                    (_paymentSession?['upi_uri'] ??
+                            _paymentSession?['payment_link'])
+                        .toString()
+                        .isEmpty)
                 ? const SizedBox(
                     width: 180,
                     height: 180,
@@ -383,7 +431,10 @@ class _PaymentCollectionScreenState
                             child: Text(
                               'Failed to load QR code. Please try again.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.black54, fontSize: 11),
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         );
@@ -393,7 +444,9 @@ class _PaymentCollectionScreenState
                         return const SizedBox(
                           width: 180,
                           height: 180,
-                          child: Center(child: HdkPreloader(width: 120, height: 120)),
+                          child: Center(
+                            child: HdkPreloader(width: 120, height: 120),
+                          ),
                         );
                       },
                     ),
@@ -424,17 +477,23 @@ class _PaymentCollectionScreenState
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Icon(Icons.check_circle_outline_rounded, size: 18),
-              label: const Text('Payment Received — Complete Delivery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              label: const Text(
+                'Payment Received — Complete Delivery',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
             ),
           ),
         ],
       );
     }
 
-    // COD cash collection card with an option to convert to online payment
+    // Payment collection card with an option to convert to online payment
     return Column(
       children: [
         _Card(
@@ -444,23 +503,32 @@ class _PaymentCollectionScreenState
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orangeAccent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                      color: Colors.orangeAccent.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.payments_rounded,
-                          color: Colors.orangeAccent, size: 16),
+                      Icon(
+                        Icons.payments_rounded,
+                        color: Colors.orangeAccent,
+                        size: 16,
+                      ),
                       SizedBox(width: 6),
-                      Text('Cash on Delivery',
-                          style: TextStyle(
-                              color: Colors.orangeAccent,
-                              fontWeight: FontWeight.bold)),
+                      Text(
+                        'Cash on Delivery',
+                        style: TextStyle(
+                          color: Colors.orangeAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -495,10 +563,12 @@ class _PaymentCollectionScreenState
         ),
         const SizedBox(height: 12),
         if (_loadingPaymentSession)
-          const Center(child: Padding(
-            padding: EdgeInsets.all(8.0),
-            child: HdkPreloader(width: 60, height: 60),
-          ))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(8.0),
+              child: HdkPreloader(width: 60, height: 60),
+            ),
+          )
         else
           SizedBox(
             width: double.infinity,
@@ -506,13 +576,23 @@ class _PaymentCollectionScreenState
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.blueAccent),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               onPressed: _initiateOnlinePayment,
-              icon: const Icon(Icons.qr_code_rounded, color: Colors.blueAccent, size: 18),
+              icon: const Icon(
+                Icons.qr_code_rounded,
+                color: Colors.blueAccent,
+                size: 18,
+              ),
               label: const Text(
                 'Collect Online Payment instead',
-                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -550,8 +630,7 @@ class _PaymentCollectionScreenState
         ? 'Complete Delivery'
         : 'Confirm Cash Payment & Deliver';
 
-    final color =
-        showDeliveredLabel ? Colors.greenAccent : Colors.orangeAccent;
+    final color = showDeliveredLabel ? Colors.greenAccent : Colors.orangeAccent;
 
     return SizedBox(
       width: double.infinity,
@@ -561,13 +640,13 @@ class _PaymentCollectionScreenState
           foregroundColor: Colors.black87,
           minimumSize: const Size.fromHeight(56),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         onPressed: _busy ? null : _completeDelivery,
         child: Text(
           label,
-          style: const TextStyle(
-              fontWeight: FontWeight.w900, fontSize: 16),
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
       ),
     );
@@ -578,8 +657,10 @@ class _PaymentCollectionScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Leave Delivery?',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Leave Delivery?',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'The order will not be marked delivered. Are you sure?',
           style: TextStyle(color: _kMuted),
@@ -587,16 +668,17 @@ class _PaymentCollectionScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Stay',
-                style: TextStyle(color: Colors.blueAccent)),
+            child: const Text(
+              'Stay',
+              style: TextStyle(color: Colors.blueAccent),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Leave',
-                style: TextStyle(color: _kRed)),
+            child: const Text('Leave', style: TextStyle(color: _kRed)),
           ),
         ],
       ),
@@ -623,8 +705,9 @@ class _Card extends StatelessWidget {
         border: Border.all(color: borderColor ?? _kStroke),
       ),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 }
@@ -645,18 +728,21 @@ class _Row extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text(label,
-                style:
-                    const TextStyle(color: _kMuted, fontSize: 13)),
+            child: Text(
+              label,
+              style: const TextStyle(color: _kMuted, fontSize: 13),
+            ),
           ),
           Expanded(
             child: Text(
               value,
-              style: valueStyle ??
+              style:
+                  valueStyle ??
                   const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
             ),
           ),
         ],

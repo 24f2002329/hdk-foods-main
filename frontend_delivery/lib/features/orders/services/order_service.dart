@@ -18,8 +18,7 @@ class OrderService {
   }
 
   Future<List<Order>> _getList(String url) async {
-    final response =
-        await http.get(Uri.parse(url), headers: await _headers());
+    final response = await http.get(Uri.parse(url), headers: await _headers());
     if (response.statusCode == 200) {
       return (jsonDecode(response.body) as List)
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
@@ -36,8 +35,9 @@ class OrderService {
 
   Future<Order> getOrder(int id) async {
     final response = await http.get(
-        Uri.parse('$_base/$id/'),
-        headers: await _headers());
+      Uri.parse('$_base/$id/'),
+      headers: await _headers(),
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -68,6 +68,16 @@ class OrderService {
     throw Exception('Failed to reject: ${response.body}');
   }
 
+  String _errorDetail(http.Response response) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['detail'] != null) {
+        return body['detail'].toString();
+      }
+    } catch (_) {}
+    return response.body;
+  }
+
   Future<Order> updateStatus(int id, String status) async {
     final response = await http.patch(
       Uri.parse('$_base/$id/status/'),
@@ -77,7 +87,7 @@ class OrderService {
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to update status: ${response.body}');
+    throw Exception(_errorDetail(response));
   }
 
   Future<Order> assignDelivery(int orderId, int deliveryUserId) async {
@@ -103,8 +113,7 @@ class OrderService {
     throw Exception('Failed to load dashboard');
   }
 
-  Future<Order> applyDiscount(
-      int orderId, double amount, String reason) async {
+  Future<Order> applyDiscount(int orderId, double amount, String reason) async {
     final response = await http.patch(
       Uri.parse('$_base/$orderId/apply-discount/'),
       headers: await _headers(),
@@ -121,8 +130,7 @@ class OrderService {
 
   /// Edit order items before confirmation (admin only).
   /// [items] is a list of {product_id, quantity}.
-  Future<Order> editItems(
-      int orderId, List<Map<String, dynamic>> items) async {
+  Future<Order> editItems(int orderId, List<Map<String, dynamic>> items) async {
     final response = await http.patch(
       Uri.parse('$_base/$orderId/edit-items/'),
       headers: await _headers(),
@@ -142,10 +150,15 @@ class OrderService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
-    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to initiate payment');
+    throw Exception(
+      jsonDecode(response.body)['detail'] ?? 'Failed to initiate payment',
+    );
   }
 
-  Future<Map<String, dynamic>> driverVerifyPayment(int orderId, {String? utr}) async {
+  Future<Map<String, dynamic>> driverVerifyPayment(
+    int orderId, {
+    String? utr,
+  }) async {
     final headers = await _headers();
     headers['Content-Type'] = 'application/json';
     final response = await http.post(
@@ -156,6 +169,8 @@ class OrderService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
-    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to verify payment');
+    throw Exception(
+      jsonDecode(response.body)['detail'] ?? 'Failed to verify payment',
+    );
   }
 }

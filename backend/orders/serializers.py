@@ -69,6 +69,12 @@ class SelectPaymentSerializer(serializers.Serializer):
     )
 
 
+class AdminPaymentMethodSerializer(serializers.Serializer):
+    payment_method = serializers.ChoiceField(
+        choices=["cod", "online"]
+    )
+
+
 class ApplyDiscountSerializer(serializers.Serializer):
     discount_amount = serializers.DecimalField(
         max_digits=10,

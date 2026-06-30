@@ -47,7 +47,12 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     setState(() => _loading = true);
     try {
       final o = await _svc.getOrder(widget.orderId);
-      if (mounted) setState(() { _order = o; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _order = o;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -56,6 +61,29 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  bool _canMarkDelivered(Order order) => order.paymentStatus == 'paid';
+
+  bool _canEditPaymentMethod(Order order) =>
+      order.paymentStatus != 'paid' &&
+      !['delivered', 'cancelled', 'rejected'].contains(order.status);
+
+  String _paymentBlockMessage(Order order) =>
+      'Collect or confirm payment first (${order.paymentMethod.toUpperCase()} | ${order.paymentStatus.toUpperCase()}).';
+
+  Future<void> _changePaymentMethod(String method) async {
+    if (_order == null || _order!.paymentMethod == method) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await _svc.updatePaymentMethod(_order!.id, method);
+      setState(() => _order = updated);
+      _snack('Payment method changed to ${method.toUpperCase()}.');
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _confirm() async {
@@ -92,13 +120,108 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     if (_order == null) return;
     final updated = await showDialog<Order>(
       context: context,
-      builder: (_) =>
-          _EditItemsDialog(order: _order!, service: _svc),
+      builder: (_) => _EditItemsDialog(order: _order!, service: _svc),
     );
     if (updated != null) setState(() => _order = updated);
   }
 
+  Future<void> _overrideStatus() async {
+    const allStatuses = [
+      ('pending_confirmation', 'Pending Confirmation', Colors.orangeAccent),
+      ('confirmed', 'Confirmed', Colors.blueAccent),
+      ('preparing', 'Preparing', Colors.amberAccent),
+      ('out_for_delivery', 'Out for Delivery', Colors.tealAccent),
+      ('delivered', 'Delivered', Colors.greenAccent),
+      ('cancelled', 'Cancelled', Colors.redAccent),
+      ('rejected', 'Rejected', Colors.redAccent),
+    ];
+
+    final current = _order?.status ?? '';
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: _panel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[700],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Override Order Status',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Select any status — coins & flags are corrected automatically.',
+              style: TextStyle(color: Colors.grey, fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            ...allStatuses.map((s) {
+              final (key, label, color) = s;
+              final isCurrent = key == current;
+              return ListTile(
+                leading: CircleAvatar(
+                  radius: 10,
+                  backgroundColor: isCurrent
+                      ? color
+                      : color.withValues(alpha: 0.3),
+                ),
+                title: Text(
+                  label,
+                  style: TextStyle(
+                    color: isCurrent ? color : Colors.white,
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                trailing: isCurrent
+                    ? const Text(
+                        'CURRENT',
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                      )
+                    : null,
+                onTap: isCurrent ? null : () => Navigator.pop(ctx, key),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (picked == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await _svc.overrideStatus(_order!.id, picked);
+      setState(() => _order = updated);
+      _snack('Status overridden to "${picked.replaceAll('_', ' ')}" ✅');
+    } catch (e) {
+      _snack('Override failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _updateStatus(String s) async {
+    if (s == 'delivered' && _order != null && !_canMarkDelivered(_order!)) {
+      _snack(_paymentBlockMessage(_order!));
+      return;
+    }
     setState(() => _busy = true);
     try {
       final updated = await _svc.updateStatus(_order!.id, s);
@@ -111,7 +234,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     }
   }
 
-  Future<String?> _cancelReasonDialog({required String title, String actionLabel = 'Cancel Order'}) {
+  Future<String?> _cancelReasonDialog({
+    required String title,
+    String actionLabel = 'Cancel Order',
+  }) {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -124,8 +250,12 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
           decoration: const InputDecoration(
             hintText: 'Enter reason for cancellation...',
             hintStyle: TextStyle(color: Colors.grey),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _red)),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: _red),
+            ),
           ),
         ),
         actions: [
@@ -151,7 +281,11 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
         reason: '',
       );
       setState(() => _order = updated);
-      _snack(action == 'approve' ? 'Cancellation approved.' : 'Cancellation request declined.');
+      _snack(
+        action == 'approve'
+            ? 'Cancellation approved.'
+            : 'Cancellation request declined.',
+      );
     } catch (e) {
       _snack(e.toString());
     } finally {
@@ -224,17 +358,19 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Prep Time',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('Prep Time', style: TextStyle(color: Colors.white)),
         content: StatefulBuilder(
           builder: (_, ss) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('$prepTime min',
-                  style: const TextStyle(
-                      color: _red,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                '$prepTime min',
+                style: const TextStyle(
+                  color: _red,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Slider(
                 min: 5,
                 max: 90,
@@ -248,9 +384,9 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _red),
             onPressed: () => Navigator.pop(ctx, prepTime),
@@ -267,8 +403,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Reject Order',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Reject Order',
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: ctrl,
           style: const TextStyle(color: Colors.white),
@@ -280,12 +418,11 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, ctrl.text),
             child: const Text('Reject'),
           ),
@@ -296,153 +433,223 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   String _label(String s) => s
       .split('_')
-      .map((w) =>
-          w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
   Color _statusColor(String s) {
     switch (s) {
-      case 'delivered': return Colors.greenAccent;
+      case 'delivered':
+        return Colors.greenAccent;
       case 'rejected':
-      case 'cancelled': return Colors.redAccent;
-      case 'pending_confirmation': return Colors.orangeAccent;
-      case 'confirmed': return Colors.blueAccent;
-      case 'preparing': return Colors.amberAccent;
-      default: return _red;
+      case 'cancelled':
+        return Colors.redAccent;
+      case 'pending_confirmation':
+        return Colors.orangeAccent;
+      case 'confirmed':
+        return Colors.blueAccent;
+      case 'preparing':
+        return Colors.amberAccent;
+      default:
+        return _red;
     }
   }
 
   Widget _infoRow(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 130,
-              child: Text(label,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            ),
-            Expanded(
-              child: Text(value,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 13)),
-            ),
-          ],
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 130,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _customerRow(String name, String phone) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 130,
-              child: Text('Customer',
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-            ),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-            if (phone.isNotEmpty) ...[
-              GestureDetector(
-                onTap: () => launchUrl(Uri.parse('tel:$phone')),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.greenAccent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: Colors.greenAccent.withValues(alpha: 0.4)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.call_rounded,
-                          color: Colors.greenAccent, size: 14),
-                      SizedBox(width: 4),
-                      Text('Call',
-                          style: TextStyle(
-                              color: Colors.greenAccent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 130,
+          child: Text(
+            'Customer',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+        if (phone.isNotEmpty) ...[
+          GestureDetector(
+            onTap: () => launchUrl(Uri.parse('tel:$phone')),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.greenAccent.withValues(alpha: 0.4),
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AdminOrderChatScreen(
-                      orderId: _order!.id,
-                      orderNumber: _order!.orderNumber,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.call_rounded, color: Colors.greenAccent, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    'Call',
+                    style: TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _red.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: _red.withValues(alpha: 0.4)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.chat_bubble_outline_rounded,
-                          color: _red, size: 14),
-                      SizedBox(width: 4),
-                      Text('Chat',
-                          style: TextStyle(
-                              color: _red,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AdminOrderChatScreen(
+                  orderId: _order!.id,
+                  orderNumber: _order!.orderNumber,
                 ),
               ),
-            ],
-          ],
-        ),
-      );
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _red.withValues(alpha: 0.4)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: _red,
+                    size: 14,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Chat',
+                    style: TextStyle(
+                      color: _red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 
   Widget _card(List<Widget> children) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _panel,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _stroke),
-        ),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children),
-      );
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: _panel,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _stroke),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ),
+  );
 
-  Widget _btn(String label, Color color, VoidCallback onTap) =>
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.black87,
-            minimumSize: const Size.fromHeight(48),
+  Widget _btn(String label, Color color, VoidCallback onTap) => SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.black87,
+        minimumSize: const Size.fromHeight(48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: _busy ? null : onTap,
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    ),
+  );
+
+  Widget _paymentMethodEditor(Order order) {
+    Widget chip(String method, String label, IconData icon) {
+      final selected = order.paymentMethod == method;
+      return Expanded(
+        child: OutlinedButton.icon(
+          onPressed: _busy || selected
+              ? null
+              : () => _changePaymentMethod(method),
+          icon: Icon(icon, size: 16),
+          label: Text(label, overflow: TextOverflow.ellipsis),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: selected ? Colors.white : _red,
+            disabledForegroundColor: selected ? Colors.white : Colors.grey,
+            backgroundColor: selected
+                ? _red.withValues(alpha: 0.18)
+                : Colors.transparent,
+            side: BorderSide(color: selected ? _red : _stroke),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-          onPressed: _busy ? null : onTap,
-          child: Text(label,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
         ),
       );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Change payment method',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              chip('cod', 'COD', Icons.payments_rounded),
+              const SizedBox(width: 8),
+              chip('online', 'Online', Icons.qr_code_rounded),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   List<Widget> _actions(String s) {
     final buttons = <Widget>[];
@@ -454,28 +661,60 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       buttons.add(_btn('Reject Order', Colors.redAccent, _reject));
     }
     if (s == 'confirmed') {
-      buttons.add(_btn('Start Preparing', Colors.amberAccent,
-          () => _updateStatus('preparing')));
+      buttons.add(
+        _btn(
+          'Start Preparing',
+          Colors.amberAccent,
+          () => _updateStatus('preparing'),
+        ),
+      );
     }
     if (s == 'preparing') {
-      buttons.add(_btn('Mark Ready & Assign Delivery',
-          Colors.tealAccent, _markReadyWithAssign));
+      buttons.add(
+        _btn(
+          'Mark Ready & Assign Delivery',
+          Colors.tealAccent,
+          _markReadyWithAssign,
+        ),
+      );
     }
     if (s == 'out_for_delivery') {
-      buttons.add(_btn('Mark Delivered', Colors.greenAccent,
-          () => _updateStatus('delivered')));
+      final order = _order!;
+      buttons.add(
+        _btn(
+          _canMarkDelivered(order) ? 'Mark Delivered' : 'Payment Pending',
+          _canMarkDelivered(order) ? Colors.greenAccent : Colors.grey,
+          _canMarkDelivered(order)
+              ? () => _updateStatus('delivered')
+              : () => _snack(_paymentBlockMessage(order)),
+        ),
+      );
     }
 
     // Direct cancellation after confirmation
-    if (s != 'pending_confirmation' && s != 'delivered' && s != 'cancelled' && s != 'rejected') {
+    if (s != 'pending_confirmation' &&
+        s != 'delivered' &&
+        s != 'cancelled' &&
+        s != 'rejected') {
       buttons.add(const SizedBox(height: 10));
       buttons.add(_btn('Cancel Order', Colors.redAccent, _adminCancelDirectly));
+    }
+    // Override Status — always visible for non-terminal statuses, but also for delivered
+    if (!['cancelled', 'rejected'].contains(s)) {
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 10));
+      buttons.add(
+        _btn('⚙️  Override Status', const Color(0xFF2A2A2A), _overrideStatus),
+      );
     }
     return buttons;
   }
 
   Future<void> _exportInvoicePdf(Order order) async {
     final pdf = pw.Document();
+
+    // Load a font that supports the ₹ (rupee) symbol
+    final fontRegular = await PdfGoogleFonts.notoSansRegular();
+    final fontBold = await PdfGoogleFonts.notoSansBold();
 
     final dateStr = order.createdAt != null
         ? DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!.toLocal())
@@ -485,6 +724,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
+        theme: pw.ThemeData.withFont(base: fontRegular, bold: fontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -499,22 +739,47 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                       pw.Text(
                         'HDK FOODS',
                         style: pw.TextStyle(
+                          font: fontBold,
                           fontSize: 24,
                           fontWeight: pw.FontWeight.bold,
                           color: PdfColor.fromHex('#FF1E1E'),
                         ),
                       ),
                       pw.SizedBox(height: 4),
-                      pw.Text('Deliciously Yours', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+                      pw.Text(
+                        'Deliciously Yours',
+                        style: pw.TextStyle(
+                          font: fontRegular,
+                          fontSize: 10,
+                          color: PdfColors.grey,
+                        ),
+                      ),
                     ],
                   ),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('INVOICE', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                        'INVOICE',
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontSize: 20,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
                       pw.SizedBox(height: 4),
-                      pw.Text('Order #${order.orderNumber}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                      pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(
+                        'Order #${order.orderNumber}',
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      pw.Text(
+                        'Date: $dateStr',
+                        style: pw.TextStyle(font: fontRegular, fontSize: 10),
+                      ),
                     ],
                   ),
                 ],
@@ -530,10 +795,29 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('CUSTOMER DETAILS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                        pw.Text(
+                          'CUSTOMER DETAILS',
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
                         pw.SizedBox(height: 6),
-                        pw.Text(order.customerName.isNotEmpty ? order.customerName : 'Walk-in Customer', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        pw.Text('Phone: ${order.customerPhone.isNotEmpty ? order.customerPhone : 'N/A'}'),
+                        pw.Text(
+                          order.customerName.isNotEmpty
+                              ? order.customerName
+                              : 'Walk-in Customer',
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.Text(
+                          'Phone: ${order.customerPhone.isNotEmpty ? order.customerPhone : 'N/A'}',
+                          style: pw.TextStyle(font: fontRegular),
+                        ),
                       ],
                     ),
                   ),
@@ -541,13 +825,31 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('DELIVERY ADDRESS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                        pw.Text(
+                          'DELIVERY ADDRESS',
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
                         pw.SizedBox(height: 6),
                         if (order.address != null) ...[
-                          pw.Text(order.address!.lineOne),
-                          if (order.address!.lineTwo.isNotEmpty) pw.Text(order.address!.lineTwo),
+                          pw.Text(
+                            order.address!.lineOne,
+                            style: pw.TextStyle(font: fontRegular),
+                          ),
+                          if (order.address!.lineTwo.isNotEmpty)
+                            pw.Text(
+                              order.address!.lineTwo,
+                              style: pw.TextStyle(font: fontRegular),
+                            ),
                         ] else ...[
-                          pw.Text('Takeaway / Dine-in'),
+                          pw.Text(
+                            'Takeaway / Dine-in',
+                            style: pw.TextStyle(font: fontRegular),
+                          ),
                         ],
                       ],
                     ),
@@ -559,13 +861,58 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               // Items Table Header
               pw.Container(
                 color: PdfColors.grey200,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 6,
+                ),
                 child: pw.Row(
                   children: [
-                    pw.Expanded(child: pw.Text('Item Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
-                    pw.Container(width: 60, child: pw.Text('Price', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
-                    pw.Container(width: 40, child: pw.Text('Qty', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
-                    pw.Container(width: 70, child: pw.Text('Total', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                    pw.Expanded(
+                      child: pw.Text(
+                        'Item Description',
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    pw.Container(
+                      width: 60,
+                      child: pw.Text(
+                        'Price',
+                        textAlign: pw.TextAlign.right,
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    pw.Container(
+                      width: 40,
+                      child: pw.Text(
+                        'Qty',
+                        textAlign: pw.TextAlign.right,
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    pw.Container(
+                      width: 70,
+                      child: pw.Text(
+                        'Total',
+                        textAlign: pw.TextAlign.right,
+                        style: pw.TextStyle(
+                          font: fontBold,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -576,16 +923,62 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                 itemBuilder: (pw.Context context, int index) {
                   final item = order.items[index];
                   return pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                     decoration: const pw.BoxDecoration(
-                      border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5)),
+                      border: pw.Border(
+                        bottom: pw.BorderSide(
+                          color: PdfColors.grey200,
+                          width: 0.5,
+                        ),
+                      ),
                     ),
                     child: pw.Row(
                       children: [
-                        pw.Expanded(child: pw.Text(item.productName, style: const pw.TextStyle(fontSize: 10))),
-                        pw.Container(width: 60, child: pw.Text('₹${item.price.toStringAsFixed(2)}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
-                        pw.Container(width: 40, child: pw.Text('${item.quantity}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
-                        pw.Container(width: 70, child: pw.Text('₹${(item.price * item.quantity).toStringAsFixed(2)}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Expanded(
+                          child: pw.Text(
+                            item.productName,
+                            style: pw.TextStyle(
+                              font: fontRegular,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        pw.Container(
+                          width: 60,
+                          child: pw.Text(
+                            '\u20B9${item.price.toStringAsFixed(2)}',
+                            textAlign: pw.TextAlign.right,
+                            style: pw.TextStyle(
+                              font: fontRegular,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        pw.Container(
+                          width: 40,
+                          child: pw.Text(
+                            '${item.quantity}',
+                            textAlign: pw.TextAlign.right,
+                            style: pw.TextStyle(
+                              font: fontRegular,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        pw.Container(
+                          width: 70,
+                          child: pw.Text(
+                            '\u20B9${(item.price * item.quantity).toStringAsFixed(2)}',
+                            textAlign: pw.TextAlign.right,
+                            style: pw.TextStyle(
+                              font: fontRegular,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -605,27 +998,69 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 10)),
-                            pw.Text('₹${order.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text(
+                              'Subtotal:',
+                              style: pw.TextStyle(
+                                font: fontRegular,
+                                fontSize: 10,
+                              ),
+                            ),
+                            pw.Text(
+                              '\u20B9${order.items.fold<double>(0, (sum, item) => sum + (item.price * item.quantity)).toStringAsFixed(2)}',
+                              style: pw.TextStyle(
+                                font: fontRegular,
+                                fontSize: 10,
+                              ),
+                            ),
                           ],
                         ),
                         if (order.discountAmount > 0) ...[
                           pw.SizedBox(height: 4),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Discount (${order.discountReason}):', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green)),
-                              pw.Text('-₹${order.discountAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green)),
+                              pw.Text(
+                                'Discount (${order.discountReason}):',
+                                style: pw.TextStyle(
+                                  font: fontRegular,
+                                  fontSize: 10,
+                                  color: PdfColors.green,
+                                ),
+                              ),
+                              pw.Text(
+                                '-\u20B9${order.discountAmount.toStringAsFixed(2)}',
+                                style: pw.TextStyle(
+                                  font: fontRegular,
+                                  fontSize: 10,
+                                  color: PdfColors.green,
+                                ),
+                              ),
                             ],
                           ),
                         ],
                         if (order.coinsRedeemed > 0) ...[
                           pw.SizedBox(height: 4),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Coins Redeemed:', style: pw.TextStyle(fontSize: 10, color: PdfColor.fromHex('#FF8A00'))),
-                              pw.Text('-₹${order.coinsRedeemed.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, color: PdfColor.fromHex('#FF8A00'))),
+                              pw.Text(
+                                'Coins Redeemed:',
+                                style: pw.TextStyle(
+                                  font: fontRegular,
+                                  fontSize: 10,
+                                  color: PdfColor.fromHex('#FF8A00'),
+                                ),
+                              ),
+                              pw.Text(
+                                '-\u20B9${order.coinsRedeemed.toStringAsFixed(2)}',
+                                style: pw.TextStyle(
+                                  font: fontRegular,
+                                  fontSize: 10,
+                                  color: PdfColor.fromHex('#FF8A00'),
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -633,8 +1068,22 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Grand Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                            pw.Text('₹${order.totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                            pw.Text(
+                              'Grand Total:',
+                              style: pw.TextStyle(
+                                font: fontBold,
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            pw.Text(
+                              '\u20B9${order.totalAmount.toStringAsFixed(2)}',
+                              style: pw.TextStyle(
+                                font: fontBold,
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -648,8 +1097,22 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               pw.Center(
                 child: pw.Column(
                   children: [
-                    pw.Text('Thank you for ordering from HDK Foods!', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('hdkfoods.in | Support: contact@hdkfoods.in', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                    pw.Text(
+                      'Thank you for ordering from HDK Foods!',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                    pw.Text(
+                      'hdkfoods.in | Support: contact@hdkfoods.in',
+                      style: pw.TextStyle(
+                        font: fontRegular,
+                        fontSize: 8,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -678,8 +1141,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
         backgroundColor: _surface,
         appBar: AppBar(backgroundColor: _surface),
         body: const Center(
-            child: Text('Order not found',
-                style: TextStyle(color: Colors.grey))),
+          child: Text('Order not found', style: TextStyle(color: Colors.grey)),
+        ),
       );
     }
     final o = _order!;
@@ -691,9 +1154,13 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Order #${o.orderNumber}',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w700)),
+        title: Text(
+          'Order #${o.orderNumber}',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
@@ -701,7 +1168,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             onPressed: () => _exportInvoicePdf(o),
           ),
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
+            icon: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              color: Colors.white,
+            ),
             tooltip: 'Chat with Customer',
             onPressed: () => Navigator.push(
               context,
@@ -717,10 +1187,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             const Padding(
               padding: EdgeInsets.all(16),
               child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      color: _red, strokeWidth: 2)),
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(color: _red, strokeWidth: 2),
+              ),
             ),
         ],
       ),
@@ -728,7 +1198,9 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // Cancellation Request Notification Card
-          if (o.cancellationRequested && o.status != 'cancelled' && o.status != 'rejected') ...[
+          if (o.cancellationRequested &&
+              o.status != 'cancelled' &&
+              o.status != 'rejected') ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -741,7 +1213,11 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.amberAccent,
+                        size: 22,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Cancellation Requested by Customer',
@@ -756,14 +1232,19 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Reason: "${o.cancellationReason}"',
-                    style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13),
+                    style: const TextStyle(
+                      color: Color(0xFFD4AF37),
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _busy ? null : () => _handleCancellation('approve'),
+                          onPressed: _busy
+                              ? null
+                              : () => _handleCancellation('approve'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
                             foregroundColor: Colors.white,
@@ -771,13 +1252,21 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Approve & Cancel', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Approve & Cancel',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: _busy ? null : () => _handleCancellation('reject'),
+                          onPressed: _busy
+                              ? null
+                              : () => _handleCancellation('reject'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.amberAccent,
                             side: const BorderSide(color: Colors.amberAccent),
@@ -785,7 +1274,13 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Decline Request', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Decline Request',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -806,9 +1301,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               _label(o.status),
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: _statusColor(o.status),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
+                color: _statusColor(o.status),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -818,8 +1314,11 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             if (o.customerName.isNotEmpty)
               _customerRow(o.customerName, o.customerPhone),
             _infoRow('Total', '₹${o.totalAmount.toStringAsFixed(0)}'),
-            _infoRow('Payment',
-                '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}'),
+            _infoRow(
+              'Payment',
+              '${o.paymentMethod.toUpperCase()} • ${o.paymentStatus.toUpperCase()}',
+            ),
+            if (_canEditPaymentMethod(o)) _paymentMethodEditor(o),
             if (o.deliveryNotes.isNotEmpty)
               _infoRow('Delivery Notes', o.deliveryNotes),
             if (o.estimatedPreparationTime != null)
@@ -828,21 +1327,27 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               _infoRow('Rejection Reason', o.rejectionReason),
           ]),
           const SizedBox(height: 16),
-          const Text('Items',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16)),
+          const Text(
+            'Items',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
           const SizedBox(height: 8),
-          _card(o.items
-              .map((item) => Padding(
+          _card(
+            o.items
+                .map(
+                  (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
-                              '${item.quantity}× ${item.productName}',
-                              style: const TextStyle(color: Colors.white)),
+                            '${item.quantity}× ${item.productName}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
                         Text(
                           '₹${(item.price * item.quantity).toStringAsFixed(0)}',
@@ -850,9 +1355,57 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                         ),
                       ],
                     ),
-                  ))
-              .toList()),
+                  ),
+                )
+                .toList(),
+          ),
           const SizedBox(height: 24),
+
+          // ── Not Received Alert ─────────────────────────────────────────
+          if (o.notReceivedReported) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A0505),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.report_problem_rounded,
+                    color: Colors.redAccent,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '⚠️  Customer Didn\'t Receive This Order',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Customer reported non-receipt. Use Override Status to correct it.',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           ..._actions(o.status),
           const SizedBox(height: 24),
         ],
@@ -882,16 +1435,17 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
   void initState() {
     super.initState();
     _items = widget.order.items
-        .map((i) => {
-              'product_id': i.productId,
-              'quantity': i.quantity,
-              'name': i.productName,
-              'price': i.price,
-            })
+        .map(
+          (i) => {
+            'product_id': i.productId,
+            'quantity': i.quantity,
+            'name': i.productName,
+            'price': i.price,
+          },
+        )
         .toList();
     if (widget.order.discountAmount > 0) {
-      _discountCtrl.text =
-          widget.order.discountAmount.toStringAsFixed(0);
+      _discountCtrl.text = widget.order.discountAmount.toStringAsFixed(0);
       _reasonCtrl.text = widget.order.discountReason;
     }
   }
@@ -904,17 +1458,16 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
   }
 
   double get _subtotal => _items.fold(
-      0,
-      (sum, i) =>
-          sum + (i['price'] as double) * (i['quantity'] as int));
+    0,
+    (sum, i) => sum + (i['price'] as double) * (i['quantity'] as int),
+  );
 
   double get _discount {
     final v = double.tryParse(_discountCtrl.text) ?? 0;
     return v.clamp(0, _subtotal);
   }
 
-  double get _newTotal =>
-      (_subtotal - _discount).clamp(0, double.infinity);
+  double get _newTotal => (_subtotal - _discount).clamp(0, double.infinity);
 
   Future<void> _addItem() async {
     final Product? picked = await showModalBottomSheet<Product>(
@@ -924,17 +1477,18 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       builder: (_) => const _ProductPickerSheet(),
     );
     if (picked == null) return;
-    final existing =
-        _items.indexWhere((i) => i['product_id'] == picked.id);
+    final existing = _items.indexWhere((i) => i['product_id'] == picked.id);
     if (existing >= 0) {
       setState(() => _items[existing]['quantity']++);
     } else {
-      setState(() => _items.add({
-            'product_id': picked.id,
-            'quantity': 1,
-            'name': picked.name,
-            'price': picked.price,
-          }));
+      setState(
+        () => _items.add({
+          'product_id': picked.id,
+          'quantity': 1,
+          'name': picked.name,
+          'price': picked.price,
+        }),
+      );
     }
   }
 
@@ -943,13 +1497,13 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
     try {
       final payload = _items
           .where((i) => (i['quantity'] as int) > 0)
-          .map((i) =>
-              {'product_id': i['product_id'], 'quantity': i['quantity']})
+          .map(
+            (i) => {'product_id': i['product_id'], 'quantity': i['quantity']},
+          )
           .toList();
       if (payload.isEmpty) throw Exception('At least one item is required.');
 
-      Order updated =
-          await widget.service.editItems(widget.order.id, payload);
+      Order updated = await widget.service.editItems(widget.order.id, payload);
       final d = _discount;
       if (d > 0) {
         updated = await widget.service.applyDiscount(
@@ -961,8 +1515,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       if (mounted) Navigator.pop(context, updated);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -974,9 +1529,10 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
     return AlertDialog(
       backgroundColor: _panel,
       contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      title: const Text('Edit Order',
-          style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold)),
+      title: const Text(
+        'Edit Order',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -984,11 +1540,14 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Items',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              const Text(
+                'Items',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
               ..._items.map((item) {
                 final qty = item['quantity'] as int;
@@ -998,41 +1557,51 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(item['name'] as String,
-                            style: TextStyle(
-                                color: qty == 0
-                                    ? Colors.grey
-                                    : Colors.white,
-                                decoration: qty == 0
-                                    ? TextDecoration.lineThrough
-                                    : null)),
+                        child: Text(
+                          item['name'] as String,
+                          style: TextStyle(
+                            color: qty == 0 ? Colors.grey : Colors.white,
+                            decoration: qty == 0
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
                       ),
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.remove_circle_outline,
-                            color: Colors.redAccent, size: 22),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.redAccent,
+                          size: 22,
+                        ),
                         onPressed: qty > 0
                             ? () => setState(
-                                () => _items[idx]['quantity'] = qty - 1)
+                                () => _items[idx]['quantity'] = qty - 1,
+                              )
                             : null,
                       ),
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('$qty',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          '$qty',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.add_circle_outline,
-                            color: _red, size: 22),
-                        onPressed: () => setState(
-                            () => _items[idx]['quantity'] = qty + 1),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: _red,
+                          size: 22,
+                        ),
+                        onPressed: () =>
+                            setState(() => _items[idx]['quantity'] = qty + 1),
                       ),
                     ],
                   ),
@@ -1041,15 +1610,17 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               TextButton.icon(
                 onPressed: _addItem,
                 icon: const Icon(Icons.add, color: _red, size: 18),
-                label: const Text('Add Item',
-                    style: TextStyle(color: _red)),
+                label: const Text('Add Item', style: TextStyle(color: _red)),
               ),
               const Divider(color: _stroke, height: 20),
-              const Text('Discount (optional)',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+              const Text(
+                'Discount (optional)',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -1058,12 +1629,13 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                     child: TextField(
                       controller: _discountCtrl,
                       style: const TextStyle(color: Colors.white),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(
-                              decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}'))
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
                       ],
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
@@ -1073,7 +1645,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                         prefixStyle: TextStyle(color: Colors.white),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -1088,7 +1662,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                         hintStyle: TextStyle(color: Colors.grey),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -1098,12 +1674,14 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Subtotal',
-                      style:
-                          TextStyle(color: Colors.grey, fontSize: 13)),
-                  Text('₹${_subtotal.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 13)),
+                  const Text(
+                    'Subtotal',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  Text(
+                    '₹${_subtotal.toStringAsFixed(0)}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
               if (_discount > 0) ...[
@@ -1111,12 +1689,17 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Discount',
-                        style: TextStyle(
-                            color: Colors.greenAccent, fontSize: 13)),
-                    Text('-₹${_discount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                            color: Colors.greenAccent, fontSize: 13)),
+                    const Text(
+                      'Discount',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 13),
+                    ),
+                    Text(
+                      '-₹${_discount.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -1124,16 +1707,22 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('New Total',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15)),
-                  Text('₹${_newTotal.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: _red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
+                  const Text(
+                    'New Total',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    '₹${_newTotal.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: _red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -1143,9 +1732,9 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.grey))),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),
           onPressed: _saving ? null : _save,
@@ -1154,7 +1743,10 @@ class _EditItemsDialogState extends State<_EditItemsDialog> {
                   height: 16,
                   width: 16,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
               : const Text('Save'),
         ),
       ],
@@ -1194,9 +1786,16 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   Future<void> _load() async {
     try {
       final list = await _svc.getProducts();
-      setState(() { _all = list; _filtered = list; _loading = false; });
+      setState(() {
+        _all = list;
+        _filtered = list;
+        _loading = false;
+      });
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -1205,9 +1804,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       _filtered = q.isEmpty
           ? _all
           : _all
-              .where(
-                  (p) => p.name.toLowerCase().contains(q.toLowerCase()))
-              .toList();
+                .where((p) => p.name.toLowerCase().contains(q.toLowerCase()))
+                .toList();
     });
   }
 
@@ -1221,8 +1819,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       builder: (ctx, scrollCtrl) => Container(
         decoration: const BoxDecoration(
           color: _panel,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -1232,8 +1829,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -1241,11 +1839,14 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Text('Add Item',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Add Item',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.grey),
@@ -1262,14 +1863,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 onChanged: _filter,
                 decoration: InputDecoration(
                   hintText: 'Search menu…',
-                  hintStyle:
-                      const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.search,
-                      color: Colors.grey),
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   filled: true,
                   fillColor: _surface,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none,
@@ -1279,60 +1877,58 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(color: _red))
+                  ? const Center(child: CircularProgressIndicator(color: _red))
                   : _error != null
-                      ? ErrorRetryWidget(error: _error!, onRetry: _load)
-                      : _filtered.isEmpty
-                          ? const Center(
-                              child: Text('No items found',
-                                  style: TextStyle(
-                                      color: Colors.grey)))
-                          : ListView.builder(
-                              controller: scrollCtrl,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16),
-                              itemCount: _filtered.length,
-                              itemBuilder: (_, i) {
-                                final p = _filtered[i];
-                                return ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          vertical: 6),
-                                  leading: ClipRRect(
-                                    borderRadius:
-                                        BorderRadius.circular(8),
-                                    child: p.image.isNotEmpty
-                                        ? Image.network(
-                                            p.image,
-                                            width: 48,
-                                            height: 48,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (ctx2, e2, st2) =>
-                                                    _placeholder(),
-                                          )
-                                        : _placeholder(),
-                                  ),
-                                  title: Text(p.name,
-                                      style: const TextStyle(
-                                          color: Colors.white)),
-                                  subtitle: Text(
-                                      '₹${p.price.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                          color: Colors.grey)),
-                                  trailing: IconButton(
-                                    icon: const Icon(
-                                        Icons.add_circle,
-                                        color: _red,
-                                        size: 28),
-                                    onPressed: () =>
-                                        Navigator.pop(ctx, p),
-                                  ),
-                                );
-                              },
+                  ? ErrorRetryWidget(error: _error!, onRetry: _load)
+                  : _filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No items found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollCtrl,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final p = _filtered[i];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                          ),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: p.image.isNotEmpty
+                                ? Image.network(
+                                    p.image,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx2, e2, st2) =>
+                                        _placeholder(),
+                                  )
+                                : _placeholder(),
+                          ),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            '₹${p.price.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.add_circle,
+                              color: _red,
+                              size: 28,
                             ),
+                            onPressed: () => Navigator.pop(ctx, p),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -1341,12 +1937,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   }
 
   Widget _placeholder() => Container(
-        width: 48,
-        height: 48,
-        color: _surface,
-        child: const Icon(Icons.fastfood,
-            color: Colors.grey, size: 24),
-      );
+    width: 48,
+    height: 48,
+    color: _surface,
+    child: const Icon(Icons.fastfood, color: Colors.grey, size: 24),
+  );
 }
 
 // ─── Assign + Ready Dialog ────────────────────────────────────────────────────
@@ -1371,16 +1966,18 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
   @override
   void initState() {
     super.initState();
-    _selected = widget.initial ??
-        (widget.staff.isNotEmpty ? widget.staff.first : null);
+    _selected =
+        widget.initial ?? (widget.staff.isNotEmpty ? widget.staff.first : null);
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: _panel,
-      title: const Text('Assign Delivery Person',
-          style: TextStyle(color: Colors.white)),
+      title: const Text(
+        'Assign Delivery Person',
+        style: TextStyle(color: Colors.white),
+      ),
       content: RadioGroup<int>(
         groupValue: _selected?.id,
         onChanged: (value) {
@@ -1394,15 +1991,16 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
             final sel = _selected?.id == s.id;
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Radio<int>(
-                value: s.id,
-                activeColor: _red,
+              leading: Radio<int>(value: s.id, activeColor: _red),
+              title: Text(
+                s.displayName,
+                style: const TextStyle(color: Colors.white),
               ),
-              title: Text(s.displayName,
-                  style: const TextStyle(color: Colors.white)),
               subtitle: s.isDefaultDelivery
-                  ? const Text('Default',
-                      style: TextStyle(color: _red, fontSize: 11))
+                  ? const Text(
+                      'Default',
+                      style: TextStyle(color: _red, fontSize: 11),
+                    )
                   : null,
               tileColor: sel ? _red.withValues(alpha: 0.08) : null,
               onTap: () => setState(() => _selected = s),
@@ -1419,7 +2017,9 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),
           onPressed: () => Navigator.pop(
-              context, _ReadyResult(deliveryUserId: _selected?.id)),
+            context,
+            _ReadyResult(deliveryUserId: _selected?.id),
+          ),
           child: const Text('Confirm'),
         ),
       ],
