@@ -3,6 +3,7 @@ import 'package:frontend/features/cart/services/cart_provider.dart';
 import 'package:frontend/shared/models/product.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test('CartProvider manages quantities, totals, and clearing', () {
     final cart = CartProvider();
     final product = Product(

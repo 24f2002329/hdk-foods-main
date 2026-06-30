@@ -16,7 +16,7 @@ from products.models import Product
 
 from authentication.permissions import IsCustomer
 from authentication.firebase import send_push, send_push_to_role
-from .models import Coupon, Order, OrderItem, OrderReview
+from .models import Coupon, Order, OrderItem, OrderReview, ProductReview
 from .serializers import (
     AcknowledgeChangesSerializer,
     ApplyDiscountSerializer,
@@ -35,6 +35,7 @@ from .serializers import (
 
 from django.utils import timezone
 from datetime import timedelta
+from threading import Timer
 
 from django.db.models import Sum, Count, F, Avg, Q
 from django.db.models.functions import TruncDate, ExtractHour
@@ -57,6 +58,37 @@ import hmac
 import hashlib
 
 logger = logging.getLogger(__name__)
+
+
+def _send_pending_online_payment_reminder(order_id):
+    try:
+        order = Order.objects.select_related("user").get(pk=order_id)
+    except Order.DoesNotExist:
+        return
+
+    if (
+        order.payment_method != "online"
+        or order.payment_status != "pending"
+        or order.status in ("delivered", "cancelled", "rejected")
+    ):
+        return
+
+    send_push(
+        order.user,
+        "Complete payment",
+        f"Your payment for order #{order.order_number} is still pending. Tap to complete it.",
+        {"order_id": str(order.id), "type": "payment_pending"},
+    )
+
+
+def _schedule_pending_online_payment_reminder(order_id):
+    reminder = Timer(
+        300,
+        _send_pending_online_payment_reminder,
+        args=(order_id,),
+    )
+    reminder.daemon = True
+    reminder.start()
 
 
 def _broadcast_order(order, event_type="order_update"):
@@ -713,6 +745,9 @@ class ConfirmOrderView(APIView):
             f"Your order #{order.order_number} is confirmed! Ready in ~{prep_time} mins.",
             {"order_id": str(order.id), "type": "order"},
         )
+
+        if order.payment_method == "online" and order.payment_status == "pending":
+            _schedule_pending_online_payment_reminder(order.id)
 
         _broadcast_order(order)
 
@@ -1586,10 +1621,19 @@ class OrderReviewView(APIView):
             return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
         try:
             review = order.review
+            product_reviews = ProductReview.objects.filter(order=order)
+            items_data = []
+            for pr in product_reviews:
+                items_data.append({
+                    "product_id": pr.product_id,
+                    "rating": pr.rating,
+                    "comment": pr.comment,
+                })
             return Response({
                 "rating": review.rating,
                 "comment": review.comment,
                 "submitted": True,
+                "items": items_data,
             })
         except OrderReview.DoesNotExist:
             return Response({"submitted": False})
@@ -1617,14 +1661,39 @@ class OrderReviewView(APIView):
             comment=comment,
         )
 
-        # Update product ratings based on all reviews for that product
+        items_reviews = request.data.get("items", [])
+        for item_data in items_reviews:
+            p_id = item_data.get("product_id")
+            p_rating = item_data.get("rating")
+            p_comment = item_data.get("comment", "")
+            if p_id and p_rating:
+                from products.models import Product
+                try:
+                    product = Product.objects.get(pk=p_id)
+                    ProductReview.objects.create(
+                        product=product,
+                        customer=request.user,
+                        order=order,
+                        rating=int(p_rating),
+                        comment=p_comment,
+                    )
+                except Product.DoesNotExist:
+                    pass
+
+        # Update product ratings based on all ProductReview instances for that product
         from products.models import Product
         from django.db.models import Avg
         for item in order.items.all():
-            avg = OrderReview.objects.filter(
-                order__items__product=item.product
-            ).aggregate(avg=Avg("rating"))["avg"] or 0
-            Product.objects.filter(pk=item.product_id).update(rating=round(avg, 1))
+            avg = ProductReview.objects.filter(
+                product=item.product
+            ).aggregate(avg=Avg("rating"))["avg"]
+            if avg is not None:
+                Product.objects.filter(pk=item.product_id).update(rating=round(avg, 1))
+            else:
+                avg_overall = OrderReview.objects.filter(
+                    order__items__product=item.product
+                ).aggregate(avg=Avg("rating"))["avg"] or 0
+                Product.objects.filter(pk=item.product_id).update(rating=round(avg_overall, 1))
 
         return Response({"detail": "Review submitted. Thank you!"}, status=status.HTTP_201_CREATED)
 

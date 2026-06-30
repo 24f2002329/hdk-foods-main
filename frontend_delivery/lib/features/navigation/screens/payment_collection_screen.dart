@@ -6,6 +6,7 @@ import '../../../core/storage/token_storage.dart';
 import '../../../features/orders/models/order.dart';
 import '../../../features/orders/screens/home_router.dart';
 import '../../../features/orders/services/order_service.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -197,7 +198,7 @@ class _PaymentCollectionScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: _kRed),
+                    HdkPreloader(),
                     SizedBox(height: 16),
                     Text('Completing delivery…',
                         style: TextStyle(color: _kMuted)),
@@ -361,7 +362,7 @@ class _PaymentCollectionScreenState
                 ? const SizedBox(
                     width: 180,
                     height: 180,
-                    child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                    child: Center(child: HdkPreloader(width: 120, height: 120)),
                   )
                 : Container(
                     padding: const EdgeInsets.all(12),
@@ -392,7 +393,7 @@ class _PaymentCollectionScreenState
                         return const SizedBox(
                           width: 180,
                           height: 180,
-                          child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                          child: Center(child: HdkPreloader(width: 120, height: 120)),
                         );
                       },
                     ),
@@ -496,7 +497,7 @@ class _PaymentCollectionScreenState
         if (_loadingPaymentSession)
           const Center(child: Padding(
             padding: EdgeInsets.all(8.0),
-            child: CircularProgressIndicator(color: Colors.blueAccent),
+            child: HdkPreloader(width: 60, height: 60),
           ))
         else
           SizedBox(

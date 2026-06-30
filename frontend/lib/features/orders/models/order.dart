@@ -129,6 +129,9 @@ class Order {
     this.coinsEarned = 0,
   });
 
+  bool get isOnlinePaymentPending =>
+      paymentMethod == 'online' && paymentStatus == 'pending';
+
   factory Order.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? [];
     final createdAtStr = json['created_at'] as String?;

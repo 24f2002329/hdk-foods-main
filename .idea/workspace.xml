@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ddabd169-5153-45d5-8f2f-e569670e66c5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/cart/services/cart_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/cart/services/cart_provider.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/checkout/screens/waiting_room_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/checkout/screens/waiting_room_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/home/screens/home_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/home/screens/home_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/menu/screens/menu_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/menu/screens/menu_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_chat_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_chat_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_tracking_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_tracking_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/orders_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/orders_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_card.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_card.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_row.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_row.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 8
+}]]></component>
+  <component name="ProjectId" id="3FqpObpctKVNpJjnXJCp29t5Rnr" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ddabd169-5153-45d5-8f2f-e569670e66c5" name="Changes" comment="" />
+      <created>1782812424130</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1782812424130</updated>
+    </task>
+    <servers />
+  </component>
+</project>

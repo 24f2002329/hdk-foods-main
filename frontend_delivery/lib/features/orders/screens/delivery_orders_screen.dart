@@ -12,6 +12,8 @@ import 'order_detail_screen.dart';
 import '../services/notification_service.dart';
 import 'notification_screen.dart';
 import '../../../../core/widgets/error_retry.dart';
+import '../../../../core/widgets/hdk_preloader.dart';
+import '../../../../core/widgets/lottie_or.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -165,15 +167,32 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _load)
               : RefreshIndicator(
                   onRefresh: _load,
                   child: _orders.isEmpty
-                      ? const Center(
-                          child: Text('No deliveries assigned',
-                              style: TextStyle(color: Colors.grey, fontSize: 16)))
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const LottieOr(
+                                asset: 'assets/animations/preloader.json',
+                                width: 150,
+                                height: 150,
+                                fallback: Icon(Icons.delivery_dining_outlined, size: 64, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text('No deliveries assigned',
+                                  style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              const Text('You will be notified when a new order is assigned.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey, fontSize: 13)),
+                            ],
+                          ),
+                        )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _orders.length,

@@ -6,6 +6,8 @@ import '../../orders/models/order.dart';
 import '../../orders/services/order_service.dart';
 import '../../orders/screens/order_tracking_screen.dart';
 import '../../orders/widgets/modified_order_dialog.dart';
+import '../../../shared/widgets/lottie_or.dart';
+import 'order_status_screens.dart';
 import 'payment_screen.dart';
 
 const _surface = Color(0xFF050505);
@@ -86,11 +88,17 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         _pollingTimer?.cancel();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Order was rejected by the restaurant.")),
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderRejectedScreen(
+                orderNumber: order.orderNumber,
+                reason: order.cancellationReason,
+                isOnlinePaid: order.paymentMethod == 'online' &&
+                    order.paymentStatus == 'paid',
+              ),
+            ),
           );
-          Navigator.pop(context);
         }
       }
     } catch (e) {
@@ -148,7 +156,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     }
 
     if (widget.paymentMethod == 'cod') {
-      // Register the COD choice, then go straight to tracking.
+      // Register the COD choice, then celebrate before tracking.
       try {
         await _orderService.selectPayment(
           orderId: currentOrder.id,
@@ -161,22 +169,31 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderTrackingScreen(orderId: currentOrder.id),
+          builder: (_) => OrderConfirmedScreen(
+            orderNumber: currentOrder.orderNumber,
+            isOnlinePayment: false,
+            nextScreenBuilder: (_) =>
+                OrderTrackingScreen(orderId: currentOrder.id),
+          ),
         ),
       );
       return;
     }
 
-    // Online -> collect payment via Cashfree.
+    // Online -> celebrate, then collect payment via Cashfree.
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => PaymentScreen(
-          orderId: currentOrder.id,
+        builder: (_) => OrderConfirmedScreen(
           orderNumber: currentOrder.orderNumber,
-          totalAmount: currentOrder.totalAmount,
-          lockedMethod: 'online',
+          isOnlinePayment: true,
+          nextScreenBuilder: (_) => PaymentScreen(
+            orderId: currentOrder.id,
+            orderNumber: currentOrder.orderNumber,
+            totalAmount: currentOrder.totalAmount,
+            lockedMethod: 'online',
+          ),
         ),
       ),
     );
@@ -264,9 +281,16 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                const SizedBox(height: 48),
-                const CircularProgressIndicator(color: Colors.orangeAccent),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+                const SizedBox(
+                  height: 140,
+                  child: LottieOr(
+                    asset: 'assets/animations/confirming_order.json',
+                    height: 140,
+                    fallback: CircularProgressIndicator(color: Colors.orangeAccent),
+                  ),
+                ),
+                const SizedBox(height: 32),
                 const Text(
                   'Need to change your order or add a note?',
                   style: TextStyle(color: Colors.grey),

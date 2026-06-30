@@ -252,6 +252,33 @@ class OrderReview(models.Model):
         return f"Review for {self.order.order_number} — {self.rating}★"
 
 
+class ProductReview(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="product_reviews"
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="product_reviews"
+    )
+    rating = models.PositiveSmallIntegerField()  # 1-5
+    comment = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('order', 'product')
+
+    def __str__(self):
+        return f"Review for {self.product.name} in {self.order.order_number} — {self.rating}★"
+
+
 class Coupon(models.Model):
     DISCOUNT_TYPE_CHOICES = [
         ('percentage', 'Percentage'),

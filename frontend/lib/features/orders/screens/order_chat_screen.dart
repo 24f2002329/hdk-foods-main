@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/order_service.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -96,6 +98,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+    HapticFeedback.lightImpact();
     _messageController.clear();
 
     // Optimistically add message
@@ -169,7 +172,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: _brandRed))
+                ? const Center(child: HdkPreloader())
                 : _error != null
                     ? Center(
                         child: Padding(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/product.dart';
+import 'fly_to_cart.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -11,7 +12,7 @@ const _panelAlt = Color(0xFF1E1E1E);
 const _stroke = Color(0xFF2A2A2A);
 const _gold = Color(0xFFFFC107);
 
-class ProductRow extends StatelessWidget {
+class ProductRow extends StatefulWidget {
   final Product product;
   final int quantity;
   final VoidCallback? onAddPressed;
@@ -28,6 +29,27 @@ class ProductRow extends StatelessWidget {
   });
 
   @override
+  State<ProductRow> createState() => _ProductRowState();
+}
+
+class _ProductRowState extends State<ProductRow> {
+  final GlobalKey _imageKey = GlobalKey();
+
+  Product get product => widget.product;
+  int get quantity => widget.quantity;
+  VoidCallback? get onAddPressed => widget.onAddPressed;
+  VoidCallback? get onIncreasePressed => widget.onIncreasePressed;
+  VoidCallback? get onDecreasePressed => widget.onDecreasePressed;
+
+  void _onAdd() {
+    final ctx = _imageKey.currentContext;
+    if (ctx != null && product.image.isNotEmpty) {
+      FlyToCart.run(sourceContext: ctx, imageUrl: product.image);
+    }
+    onAddPressed?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -42,6 +64,7 @@ class ProductRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
+              key: _imageKey,
               borderRadius: BorderRadius.circular(10),
               child: SizedBox(
                 width: 92,
@@ -119,7 +142,7 @@ class ProductRow extends StatelessWidget {
                         SizedBox(
                           height: 34,
                           child: FilledButton.icon(
-                            onPressed: onAddPressed,
+                            onPressed: onAddPressed == null ? null : _onAdd,
                             style: FilledButton.styleFrom(
                               backgroundColor: _brandRed,
                               foregroundColor: Colors.white,

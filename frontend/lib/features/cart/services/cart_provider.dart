@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../shared/models/product.dart';
@@ -38,6 +39,7 @@ class CartProvider extends ChangeNotifier {
     List<String> customizations = const [],
     double customizationPrice = 0.0,
     String? notes,
+    bool haptic = true,
   }) {
     List<SelectedModifier> finalModifiers = List.from(selectedModifiers);
     if (finalModifiers.isEmpty) {
@@ -79,26 +81,28 @@ class CartProvider extends ChangeNotifier {
     } else {
       _items[key] = existing.copyWith(quantity: existing.quantity + quantity);
     }
+    if (haptic) HapticFeedback.lightImpact();
     notifyListeners();
     _saveCart();
   }
 
-  void increaseQuantity(Product product) {
+  void increaseQuantity(Product product, {bool haptic = true}) {
     final existing = _items.values.firstWhere(
       (item) => item.product.id == product.id,
       orElse: () => CartItem(product: product, quantity: 0),
     );
     if (existing.quantity == 0) {
-      addProduct(product);
+      addProduct(product, haptic: haptic);
     } else {
-      increaseQuantityForCartId(existing.cartId);
+      increaseQuantityForCartId(existing.cartId, haptic: haptic);
     }
   }
 
-  void increaseQuantityForCartId(String cartId) {
+  void increaseQuantityForCartId(String cartId, {bool haptic = true}) {
     final existing = _items[cartId];
     if (existing == null) return;
     _items[cartId] = existing.copyWith(quantity: existing.quantity + 1);
+    if (haptic) HapticFeedback.lightImpact();
     notifyListeners();
     _saveCart();
   }
@@ -117,6 +121,7 @@ class CartProvider extends ChangeNotifier {
     } else {
       _items[cartId] = existing.copyWith(quantity: existing.quantity - 1);
     }
+    HapticFeedback.selectionClick();
     notifyListeners();
     _saveCart();
   }
@@ -131,6 +136,7 @@ class CartProvider extends ChangeNotifier {
       return false;
     });
     if (changed) {
+      HapticFeedback.selectionClick();
       notifyListeners();
       _saveCart();
     }
@@ -138,6 +144,7 @@ class CartProvider extends ChangeNotifier {
 
   void removeProductByCartId(String cartId) {
     if (_items.remove(cartId) != null) {
+      HapticFeedback.selectionClick();
       notifyListeners();
       _saveCart();
     }

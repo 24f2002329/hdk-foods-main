@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/product.dart';
+import 'fly_to_cart.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -34,6 +35,7 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> with SingleTickerProviderStateMixin {
   late AnimationController _bounceCtrl;
   late Animation<double> _scale;
+  final GlobalKey _imageKey = GlobalKey();
 
   Product get product => widget.product;
   int get quantity => widget.quantity;
@@ -59,6 +61,10 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
 
   void _onAdd() {
     _bounceCtrl.forward().then((_) => _bounceCtrl.reverse());
+    final ctx = _imageKey.currentContext;
+    if (ctx != null && product.image.isNotEmpty) {
+      FlyToCart.run(sourceContext: ctx, imageUrl: product.image);
+    }
     onAddPressed?.call();
   }
 
@@ -84,6 +90,7 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
           Stack(
             children: [
               AspectRatio(
+                key: _imageKey,
                 aspectRatio: 1.14,
                 child: product.image.isEmpty
                     ? const _ProductImageFallback()

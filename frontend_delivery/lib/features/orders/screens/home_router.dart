@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/hdk_preloader.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../auth/screens/login_screen.dart';
 import 'delivery_orders_screen.dart';
 import 'profile_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
-const _surface = Color(0xFF050505);
 
 /// Splash-routes based on stored role. Delivery role only.
 class HomeRouter extends StatefulWidget {
@@ -41,10 +41,7 @@ class _HomeRouterState extends State<HomeRouter> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Scaffold(
-        backgroundColor: _surface,
-        body: Center(child: CircularProgressIndicator(color: _red)),
-      );
+      return HdkPreloader.page();
     }
     return const _DeliveryHome();
   }

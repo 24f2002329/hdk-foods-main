@@ -5,6 +5,7 @@ import '../../../shared/models/product.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../services/product_service.dart';
 import '../../cart/services/cart_provider.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 
 class HomeProductsSection extends StatefulWidget {
   const HomeProductsSection({super.key});
@@ -30,7 +31,7 @@ class _HomeProductsSectionState extends State<HomeProductsSection> {
 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HdkPreloader(width: 100, height: 100));
         }
 
         if (snapshot.hasError) {

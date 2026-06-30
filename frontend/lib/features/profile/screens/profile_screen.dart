@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/widgets/error_retry.dart';
 import '../../../shared/widgets/login_prompt_widget.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 import '../../accounts/models/user.dart';
 import '../../accounts/services/user_service.dart';
 import '../../orders/screens/orders_screen.dart';
@@ -79,8 +80,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    await TokenStorage.logout();
-    if (mounted) Navigator.pushReplacementNamed(context, '/login');
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _panel,
+        title: const Text('Logout',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: _mutedText),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: _mutedText)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: _brandRed),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await TokenStorage.logout();
+      if (mounted) Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   Future<void> _editName() async {
@@ -193,9 +220,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         foregroundColor: Colors.white,
         title: const Text('Profile',
             style: TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          if (_isLoggedIn)
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: _brandRed),
+              tooltip: 'Logout',
+              onPressed: _logout,
+            ),
+        ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _brandRed))
+          ? const Center(child: HdkPreloader())
           : !_isLoggedIn
               ? const LoginPromptWidget(
                   icon: Icons.person_outline_rounded,
@@ -206,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : _error != null
                   ? ErrorRetryWidget(error: _error!, onRetry: _loadUser)
                   : ListView(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                       children: [
                         // ── Avatar + name ─────────────────────────────────
                         Container(
@@ -448,22 +483,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
-                        // ── Logout ─────────────────────────────────────────
-                        OutlinedButton.icon(
-                          onPressed: _logout,
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            side: const BorderSide(color: _brandRed),
-                            foregroundColor: _brandRed,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          icon: const Icon(Icons.logout_rounded),
-                          label: const Text('Logout',
-                              style: TextStyle(fontWeight: FontWeight.w900)),
-                        ),
                       ],
                     ),
     );

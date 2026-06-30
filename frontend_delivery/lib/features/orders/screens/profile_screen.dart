@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -36,13 +37,39 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
   }
 
   Future<void> _logout() async {
-    await TokenStorage.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _panel,
+        title: const Text('Logout',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: _red),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
+
+    if (confirm == true) {
+      await TokenStorage.logout();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    }
   }
 
   String _roleLabel(String? role) {
@@ -59,9 +86,16 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
       appBar: AppBar(
         title: const Text('Profile',
             style: TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: _red),
+            tooltip: 'Logout',
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _red))
+          ? const Center(child: HdkPreloader())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
@@ -122,20 +156,6 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 32),
-                OutlinedButton.icon(
-                  onPressed: _logout,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    side: const BorderSide(color: _red),
-                    foregroundColor: _red,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

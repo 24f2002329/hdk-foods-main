@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/storage/token_storage.dart';
@@ -10,6 +11,7 @@ import '../../home/services/product_service.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import 'order_tracking_screen.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -93,7 +95,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Future<void> _loadMore() async {
     if (_loading || !_hasMore) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final data = await _orderService.getMyOrdersPaged(page: _page);
       final results = (data['results'] as List)
@@ -107,12 +112,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _refresh() async {
-    setState(() { _orders.clear(); _page = 1; _hasMore = true; _error = null; });
+    setState(() {
+      _orders.clear();
+      _page = 1;
+      _hasMore = true;
+      _error = null;
+    });
     await _loadMore();
   }
 
@@ -134,19 +149,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
           missing++;
           continue;
         }
-        cart.addProduct(product, quantity: line.quantity);
+        cart.addProduct(product, quantity: line.quantity, haptic: false);
         added++;
       }
+      if (added > 0) HapticFeedback.mediumImpact();
       if (added == 0) {
-        messenger.showSnackBar(const SnackBar(
-            content: Text('These items are no longer available.')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('These items are no longer available.')),
+        );
         return;
       }
       if (missing > 0) {
-        messenger.showSnackBar(SnackBar(
-          content: Text('$added item(s) added · $missing unavailable'),
-          backgroundColor: _panel,
-        ));
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('$added item(s) added · $missing unavailable'),
+            backgroundColor: _panel,
+          ),
+        );
       }
       if (!mounted) return;
       Navigator.push(
@@ -155,7 +174,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     } catch (_) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Could not reorder. Please try again.')));
+        const SnackBar(content: Text('Could not reorder. Please try again.')),
+      );
     } finally {
       if (mounted) setState(() => _reorderingId = null);
     }
@@ -168,42 +188,120 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Color _statusColor(String s) {
     switch (s) {
-      case 'pending_confirmation': return const Color(0xFFFFB300); // amber
-      case 'confirmed': return const Color(0xFF3B9DFF);            // blue
-      case 'preparing': return const Color(0xFFB061FF);            // purple
-      case 'out_for_delivery': return const Color(0xFF00C2D1);     // cyan
-      case 'delivered': return const Color(0xFF2ECC71);            // green
-      case 'cancelled': return const Color(0xFFFF6B6B);            // soft red
-      case 'rejected': return const Color(0xFFE53935);             // deep red
-      default: return _brandRed;
+      case 'pending_confirmation':
+        return const Color(0xFFFFB300); // amber
+      case 'confirmed':
+        return const Color(0xFF3B9DFF); // blue
+      case 'preparing':
+        return const Color(0xFFB061FF); // purple
+      case 'out_for_delivery':
+        return const Color(0xFF00C2D1); // cyan
+      case 'delivered':
+        return const Color(0xFF2ECC71); // green
+      case 'cancelled':
+        return const Color(0xFFFF6B6B); // soft red
+      case 'rejected':
+        return const Color(0xFFE53935); // deep red
+      default:
+        return _brandRed;
     }
   }
 
   IconData _statusIcon(String s) {
     switch (s) {
-      case 'pending_confirmation': return Icons.hourglass_top_rounded;
-      case 'confirmed': return Icons.check_circle_outline_rounded;
-      case 'preparing': return Icons.restaurant_rounded;
-      case 'out_for_delivery': return Icons.delivery_dining_rounded;
-      case 'delivered': return Icons.task_alt_rounded;
-      case 'cancelled': return Icons.cancel_outlined;
-      case 'rejected': return Icons.block_rounded;
-      default: return Icons.receipt_long_rounded;
+      case 'pending_confirmation':
+        return Icons.hourglass_top_rounded;
+      case 'confirmed':
+        return Icons.check_circle_outline_rounded;
+      case 'preparing':
+        return Icons.restaurant_rounded;
+      case 'out_for_delivery':
+        return Icons.delivery_dining_rounded;
+      case 'delivered':
+        return Icons.task_alt_rounded;
+      case 'cancelled':
+        return Icons.cancel_outlined;
+      case 'rejected':
+        return Icons.block_rounded;
+      default:
+        return Icons.receipt_long_rounded;
     }
   }
 
-  Color _paymentStatusColor(String s) {
+  Color _paymentStatusColor(String s, {bool isOnlinePending = false}) {
+    if (isOnlinePending) return Colors.amberAccent;
     switch (s) {
-      case 'paid': return Colors.greenAccent;
-      case 'failed': return Colors.redAccent;
-      default: return Colors.grey;
+      case 'paid':
+        return Colors.greenAccent;
+      case 'failed':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
     }
+  }
+
+  Widget _paymentPendingWarning({bool compact = false}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(compact ? 12 : 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A1F05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFFFC107).withValues(alpha: 0.45),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.amberAccent,
+            size: 20,
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Payment Pending',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Complete your online payment to keep this order moving.',
+                  style: TextStyle(color: Color(0xFFFFD76A), fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _fmtDate(DateTime? d) {
     if (d == null) return '';
     final local = d.toLocal();
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final h24 = local.hour;
     final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
     final mm = local.minute.toString().padLeft(2, '0');
@@ -217,41 +315,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final remaining = order.items.length - shownItems.length;
     final reordering = _reorderingId == order.id;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // ── Header: order ref + date · status chip ──
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: Text(
-            _fmtDate(order.createdAt),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Header: order ref + date · status chip ──
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                _fmtDate(order.createdAt),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_statusIcon(order.status), color: statusColor, size: 13),
+                  const SizedBox(width: 5),
+                  Text(
+                    _statusLabel(order.status),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(_statusIcon(order.status), color: statusColor, size: 13),
-            const SizedBox(width: 5),
-            Text(_statusLabel(order.status),
-                style: TextStyle(
-                    color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
-          ]),
-        ),
-      ]),
-      const SizedBox(height: 12),
+        const SizedBox(height: 12),
 
-      // ── Dishes: max 3 small muted lines, +N more ──
-      if (shownItems.isEmpty)
-        const Text('Meal from HDK Kitchen',
-            style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12))
-      else
-        ...shownItems.map((it) => Padding(
+        // ── Dishes: max 3 small muted lines, +N more ──
+        if (shownItems.isEmpty)
+          const Text(
+            'Meal from HDK Kitchen',
+            style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
+          )
+        else
+          ...shownItems.map(
+            (it) => Padding(
               padding: const EdgeInsets.only(bottom: 3),
               child: Text(
                 '${it.quantity}× ${it.productName}',
@@ -259,64 +377,102 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
               ),
-            )),
-      if (remaining > 0)
-        Padding(
-          padding: const EdgeInsets.only(top: 1),
-          child: Text(
-            '+$remaining more item${remaining > 1 ? 's' : ''}',
-            style: const TextStyle(
-                color: Color(0xFF6E6E6E), fontSize: 11, fontStyle: FontStyle.italic),
+            ),
           ),
-        ),
+        if (remaining > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
+              '+$remaining more item${remaining > 1 ? 's' : ''}',
+              style: const TextStyle(
+                color: Color(0xFF6E6E6E),
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
 
-      const Divider(color: _stroke, height: 24),
+        if (order.isOnlinePaymentPending &&
+            !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
+          const SizedBox(height: 12),
+          _paymentPendingWarning(compact: true),
+        ],
 
-      // ── Footer: total · items + payment chip ──
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('₹${order.totalAmount.toStringAsFixed(0)} · ${order.items.length} item(s)',
-            style: const TextStyle(color: Colors.grey)),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-              color: _paymentStatusColor(order.paymentStatus).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12)),
-          child: Text(
-              '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
-              style: TextStyle(
-                  color: _paymentStatusColor(order.paymentStatus),
+        const Divider(color: _stroke, height: 24),
+
+        // ── Footer: total · items + payment chip ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '₹${order.totalAmount.toStringAsFixed(0)} · ${order.items.length} item(s)',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _paymentStatusColor(
+                  order.paymentStatus,
+                  isOnlinePending: order.isOnlinePaymentPending,
+                ).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${order.paymentMethod.toUpperCase()} • ${order.paymentStatus.toUpperCase()}',
+                style: TextStyle(
+                  color: _paymentStatusColor(
+                    order.paymentStatus,
+                    isOnlinePending: order.isOnlinePaymentPending,
+                  ),
                   fontSize: 10,
-                  fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-      ]),
-      const SizedBox(height: 12),
-
-      // ── Reorder button ──
-      SizedBox(
-        width: double.infinity,
-        height: 40,
-        child: OutlinedButton.icon(
-          onPressed: (order.items.isEmpty || _reorderingId != null)
-              ? null
-              : () => _reorder(order),
-          icon: reordering
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(color: _brandRed, strokeWidth: 2))
-              : const Icon(Icons.refresh_rounded, size: 18),
-          label: Text(reordering ? 'Adding…' : 'Reorder'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _brandRed,
-            disabledForegroundColor: Colors.grey,
-            side: BorderSide(
-                color: _reorderingId != null ? _stroke : _brandRed.withValues(alpha: 0.6)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        // ── Reorder button ──
+        if (order.status == 'cancelled' || order.status == 'delivered') ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: OutlinedButton.icon(
+              onPressed: (order.items.isEmpty || _reorderingId != null)
+                  ? null
+                  : () => _reorder(order),
+              icon: reordering
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: _brandRed,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(reordering ? 'Adding…' : 'Reorder'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _brandRed,
+                disabledForegroundColor: Colors.grey,
+                side: BorderSide(
+                  color: _reorderingId != null
+                      ? _stroke
+                      : _brandRed.withValues(alpha: 0.6),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
-    ]);
+        ],
+      ],
+    );
   }
 
   @override
@@ -326,62 +482,84 @@ class _OrdersScreenState extends State<OrdersScreen> {
       appBar: AppBar(
         backgroundColor: _surface,
         foregroundColor: Colors.white,
-        title: const Text('Orders', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Orders',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
       body: !_isLoggedIn
           ? const LoginPromptWidget(
               icon: Icons.receipt_long_outlined,
               title: 'Your Orders',
-              subtitle: 'Login to view your order history and track deliveries.',
+              subtitle:
+                  'Login to view your order history and track deliveries.',
             )
           : _orders.isEmpty && _loading
-              ? const Center(child: CircularProgressIndicator(color: _brandRed))
-              : _orders.isEmpty && _error != null
-                  ? Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Text(_error!, style: const TextStyle(color: Colors.redAccent),
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 12),
-                        TextButton(onPressed: _refresh,
-                            child: const Text('Retry', style: TextStyle(color: _brandRed))),
-                      ]))
-                  : _orders.isEmpty
-                      ? const Center(child: Text('No orders yet',
-                          style: TextStyle(color: Colors.grey, fontSize: 16)))
-                      : RefreshIndicator(
-                          onRefresh: _refresh,
-                          color: _brandRed,
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _orders.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == _orders.length) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  child: Center(child: CircularProgressIndicator(color: _brandRed)),
-                                );
-                              }
-                              final order = _orders[index];
-                              return GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => OrderTrackingScreen(orderId: order.id)),
-                                ),
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                      color: _panel,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: _stroke)),
-                                  child: _buildOrderCard(order),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+          ? const Center(child: HdkPreloader())
+          : _orders.isEmpty && _error != null
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.redAccent),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _refresh,
+                    child: const Text(
+                      'Retry',
+                      style: TextStyle(color: _brandRed),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : _orders.isEmpty
+          ? const Center(
+              child: Text(
+                'No orders yet',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              color: _brandRed,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: _orders.length + (_hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _orders.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: HdkPreloader(width: 50, height: 50)),
+                    );
+                  }
+                  final order = _orders[index];
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderTrackingScreen(orderId: order.id),
+                      ),
+                    ),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _panel,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _stroke),
+                      ),
+                      child: _buildOrderCard(order),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

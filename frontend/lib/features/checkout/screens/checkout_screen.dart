@@ -10,6 +10,7 @@ import '../../orders/services/order_service.dart';
 import 'kitchen_closed_screen.dart';
 import 'waiting_room_screen.dart';
 import '../../../shared/widgets/congratulations_overlay.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -305,7 +306,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoadingAddresses
-          ? const Center(child: CircularProgressIndicator(color: _brandRed))
+          ? const Center(child: HdkPreloader())
           : _addressError != null
               ? Center(child: Text(_addressError!, style: const TextStyle(color: Colors.red)))
               : SingleChildScrollView(
@@ -536,10 +537,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ],
                                 ),
                               ),
-                              Switch(
-                                value: _redeemCoins,
-                                activeColor: const Color(0xFFFF8A00),
-                                activeTrackColor: const Color(0xFFFF8A00).withValues(alpha: 0.2),
+                                Switch(
+                                  value: _redeemCoins,
+                                  activeThumbColor: const Color(0xFFFF8A00),
+                                  activeTrackColor: const Color(0xFFFF8A00).withValues(alpha: 0.2),
                                 inactiveTrackColor: const Color(0xFF2A2A2A),
                                 onChanged: (val) {
                                   setState(() => _redeemCoins = val);
@@ -630,7 +631,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ? const SafeArea(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Center(heightFactor: 1, child: CircularProgressIndicator(color: _brandRed)),
+                child: Center(heightFactor: 1, child: HdkPreloader(width: 50, height: 50)),
               ))
           : SafeArea(
               child: Padding(

@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/customer_address.dart';
 import '../services/address_service.dart';
 import 'location_picker_screen.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 
 const _brandOrange = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -123,7 +124,7 @@ class _AddressScreenState extends State<AddressScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: _brandOrange),
+              child: HdkPreloader(),
             );
           }
 

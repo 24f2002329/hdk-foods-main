@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/category.dart';
 import '../../../shared/models/product.dart';
 import '../../cart/services/cart_provider.dart';
+import '../../../shared/widgets/fly_to_cart.dart';
 import '../../cart/models/cart_item.dart';
 import '../../home/services/product_service.dart';
 import '../../home/services/config_service.dart';
@@ -26,8 +27,14 @@ const _gold = Color(0xFFFFC107);
 
 class MenuScreen extends StatefulWidget {
   final int? initialCategoryId;
+  final int? initialProductId;
   final bool autofocusSearch;
-  const MenuScreen({super.key, this.initialCategoryId, this.autofocusSearch = false});
+  const MenuScreen({
+    super.key,
+    this.initialCategoryId,
+    this.initialProductId,
+    this.autofocusSearch = false,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -73,7 +80,32 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     _selectedCategoryId = widget.initialCategoryId;
-    dataFuture = _load();
+    dataFuture = _load().then((data) {
+      if (widget.initialProductId != null) {
+        Product? product;
+        try {
+          product = data.products.firstWhere((p) => p.id == widget.initialProductId);
+        } catch (_) {}
+        if (product != null) {
+          if (product.categoryId != null) {
+            _selectedCategoryId = product.categoryId;
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              final cart = context.read<CartProvider>();
+              _showProductDetails(
+                context,
+                product!,
+                cart,
+                data.config,
+                heroTag: 'home_product_${product.id}',
+              );
+            }
+          });
+        }
+      }
+      return data;
+    });
     _loadFavorites();
     _loadAddons();
     if (widget.autofocusSearch) {
@@ -1541,14 +1573,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                             ),
                                             GestureDetector(
                                               onTap: () {
+                                                FlyToCart.run(sourceContext: context, imageUrl: addonItem.image);
                                                 cart.addProduct(addonItem);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Added ${addonItem.name} to cart!'),
-                                                    duration: const Duration(seconds: 1),
-                                                    backgroundColor: _brandRed,
-                                                  ),
-                                                );
                                               },
                                               child: Container(
                                                 padding: const EdgeInsets.all(4),
@@ -1641,6 +1667,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                         }
                                       }
 
+                                      FlyToCart.run(sourceContext: context, imageUrl: product.image);
                                       cart.addProduct(
                                         product,
                                         quantity: 1,
@@ -1649,23 +1676,6 @@ class _MenuScreenState extends State<MenuScreen> {
                                       );
 
                                       Navigator.pop(context);
-
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Added ${product.name} to cart!'),
-                                          backgroundColor: _brandRed,
-                                          duration: const Duration(seconds: 2),
-                                          action: SnackBarAction(
-                                            label: 'VIEW CART',
-                                            textColor: Colors.white,
-                                            onPressed: () {
-                                              Navigator.of(context, rootNavigator: true).push(
-                                                MaterialPageRoute(builder: (_) => const CartScreen()),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      );
                                     },
                               child: Text(
                                 !product.isAvailable

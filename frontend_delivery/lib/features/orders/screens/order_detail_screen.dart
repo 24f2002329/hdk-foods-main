@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/error_retry.dart';
+import '../../../core/widgets/hdk_preloader.dart';
 import '../../../services/location_tracking_service.dart';
 import '../../navigation/screens/delivery_navigation_screen.dart';
 import '../../navigation/screens/payment_collection_screen.dart';
@@ -1094,7 +1095,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(color: _red))
+                      child: HdkPreloader(width: 120, height: 120))
                   : _error != null
                       ? ErrorRetryWidget(error: _error!, onRetry: _load)
                       : _filtered.isEmpty

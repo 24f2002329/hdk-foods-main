@@ -203,11 +203,16 @@ class OrderService {
     required int orderId,
     required int rating,
     String comment = '',
+    List<Map<String, dynamic>> items = const [],
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/$orderId/review/'),
       headers: await _headers(),
-      body: jsonEncode({'rating': rating, 'comment': comment}),
+      body: jsonEncode({
+        'rating': rating,
+        'comment': comment,
+        'items': items,
+      }),
     );
     if (response.statusCode != 201) {
       throw Exception('Failed to submit review: ${response.body}');

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
@@ -17,7 +18,10 @@ import '../models/order.dart';
 import '../services/delivery_location_service.dart';
 import '../services/order_service.dart';
 import '../widgets/modified_order_dialog.dart';
+import '../../../shared/widgets/lottie_or.dart';
+import '../../../shared/widgets/hdk_preloader.dart';
 import 'order_chat_screen.dart';
+import 'premium_review_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -43,9 +47,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   bool _isProcessingPayment = false;
 
   static const List<Map<String, dynamic>> _steps = [
-    {'key': 'confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle_outline_rounded},
-    {'key': 'preparing', 'label': 'Preparing', 'icon': Icons.restaurant_rounded},
-    {'key': 'out_for_delivery', 'label': 'Out for Delivery', 'icon': Icons.delivery_dining_rounded},
+    {
+      'key': 'confirmed',
+      'label': 'Order Confirmed',
+      'icon': Icons.check_circle_outline_rounded,
+    },
+    {
+      'key': 'preparing',
+      'label': 'Preparing',
+      'icon': Icons.restaurant_rounded,
+    },
+    {
+      'key': 'out_for_delivery',
+      'label': 'Out for Delivery',
+      'icon': Icons.delivery_dining_rounded,
+    },
     {'key': 'delivered', 'label': 'Delivered', 'icon': Icons.home_rounded},
   ];
 
@@ -57,7 +73,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   bool _modifiedDialogShown = false;
   int? _queuePosition;
   bool _reviewSubmitted = false;
-  bool _reviewLoading = false;
   DeliveryLocation? _deliveryLocation;
 
   late AnimationController _stepAnim;
@@ -91,7 +106,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 ),
                 content: Row(
                   children: [
-                    const Icon(Icons.chat_bubble_outline_rounded, color: _brandRed, size: 20),
+                    const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: _brandRed,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -100,13 +119,20 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                         children: [
                           const Text(
                             'Message from Kitchen',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                           Text(
                             data['message']['message'] ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: _mutedText, fontSize: 12),
+                            style: const TextStyle(
+                              color: _mutedText,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -124,7 +150,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           ),
                         );
                       },
-                      child: const Text('View', style: TextStyle(color: _brandRed, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'View',
+                        style: TextStyle(
+                          color: _brandRed,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -155,11 +187,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   void _applyOrder(Order order) {
     if (!mounted) return;
+    final statusAdvanced = _order != null && _order!.status != order.status;
     setState(() {
       _order = order;
       _loading = false;
       _error = null;
     });
+    if (statusAdvanced) HapticFeedback.mediumImpact();
     _stepAnim.forward(from: 0);
 
     if (order.isModifiedByStaff &&
@@ -173,7 +207,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent && mounted) setState(() { _loading = true; _error = null; });
+    if (!silent && mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       var order = await _orderService.getOrder(widget.orderId);
 
@@ -218,8 +257,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
       if (order.status == 'out_for_delivery') {
         try {
-          final loc = await _deliveryLocationService
-              .getDeliveryLocation(widget.orderId);
+          final loc = await _deliveryLocationService.getDeliveryLocation(
+            widget.orderId,
+          );
           if (mounted) setState(() => _deliveryLocation = loc);
         } catch (_) {}
       } else {
@@ -240,14 +280,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   Future<void> _onPaymentVerify(String orderId) async {
     try {
-      final updated = await _orderService.verifyPayment(orderId: widget.orderId);
+      final updated = await _orderService.verifyPayment(
+        orderId: widget.orderId,
+      );
       if (!mounted) return;
       setState(() {
         _order = updated;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment successful!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payment successful!')));
       _load(silent: true);
     } catch (e) {
       _showError('Payment captured but verification failed. $e');
@@ -263,9 +305,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _payOnline() async {
@@ -320,7 +362,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cancellation request submitted successfully.')),
+          const SnackBar(
+            content: Text('Cancellation request submitted successfully.'),
+          ),
         );
       }
     } catch (e) {
@@ -382,10 +426,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 const SizedBox(height: 8),
                 const Text(
                   'Please provide a reason for cancelling. If you paid online, a refund will be processed upon approval.',
-                  style: TextStyle(
-                    color: Color(0xFFB8B8B8),
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: Color(0xFFB8B8B8), fontSize: 13),
                 ),
                 const SizedBox(height: 16),
                 StatefulBuilder(
@@ -395,24 +436,35 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                       children: [
                         TextField(
                           controller: reasonCtrl,
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                           maxLines: 3,
                           onChanged: (val) {
                             setModalState(() {});
                           },
                           decoration: InputDecoration(
-                            hintText: 'e.g., I ordered the wrong item / entered incorrect address...',
-                            hintStyle: const TextStyle(color: Color(0xFF555555), fontSize: 13),
+                            hintText:
+                                'e.g., I ordered the wrong item / entered incorrect address...',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF555555),
+                              fontSize: 13,
+                            ),
                             filled: true,
                             fillColor: const Color(0xFF1E1E1E),
                             contentPadding: const EdgeInsets.all(16),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF2A2A2A),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFFF1E1E)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFFF1E1E),
+                              ),
                             ),
                           ),
                         ),
@@ -424,7 +476,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                                 onPressed: () => Navigator.pop(ctx),
                                 child: const Text(
                                   'Keep Order',
-                                  style: TextStyle(color: Color(0xFFB8B8B8), fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Color(0xFFB8B8B8),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -441,9 +496,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFFF1E1E),
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor: const Color(0xFF333333),
-                                  disabledForegroundColor: const Color(0xFF666666),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  disabledBackgroundColor: const Color(
+                                    0xFF333333,
+                                  ),
+                                  disabledForegroundColor: const Color(
+                                    0xFF666666,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -476,14 +537,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
     if (accepted == null || !mounted) return;
     try {
-      await _orderService.acknowledgeChanges(orderId: order.id, accepted: accepted);
+      await _orderService.acknowledgeChanges(
+        orderId: order.id,
+        accepted: accepted,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(accepted
-              ? 'Order accepted! Tracking updated.'
-              : 'Order cancelled. Refund in 3–5 business days.'),
-          duration: Duration(seconds: accepted ? 3 : 6),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              accepted
+                  ? 'Order accepted! Tracking updated.'
+                  : 'Order cancelled. Refund in 3–5 business days.',
+            ),
+            duration: Duration(seconds: accepted ? 3 : 6),
+          ),
+        );
       }
       _load();
     } catch (e) {
@@ -510,14 +578,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('Track Order',
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text(
+          'Track Order',
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+        ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _brandRed))
+          ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : _buildBody(_order!),
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : _buildBody(_order!),
     );
   }
 
@@ -534,6 +604,28 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         children: [
           _OrderHeaderCard(order: order),
 
+          // ── Review card at the top ──────────────────────────────────────
+          if (order.status == 'delivered') ...[
+            const SizedBox(height: 12),
+            _PremiumReviewHeaderCard(
+              order: order,
+              submitted: _reviewSubmitted,
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PremiumReviewScreen(order: order),
+                  ),
+                );
+                if (result == true) {
+                  setState(() {
+                    _reviewSubmitted = true;
+                  });
+                }
+              },
+            ),
+          ],
+
           // ── Cancellation Section Card ─────────────────────────────────
           if (order.cancellationRequested) ...[
             const SizedBox(height: 12),
@@ -549,7 +641,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 20),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.amberAccent,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Cancellation Requested',
@@ -564,13 +660,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   const SizedBox(height: 8),
                   Text(
                     'You requested to cancel this order: "${order.cancellationReason}"',
-                    style: const TextStyle(color: Color(0xFFE2B93B), fontSize: 12),
+                    style: const TextStyle(
+                      color: Color(0xFFE2B93B),
+                      fontSize: 12,
+                    ),
                   ),
-                  if (order.refundStatus.isNotEmpty && order.refundStatus != 'not_applicable') ...[
+                  if (order.refundStatus.isNotEmpty &&
+                      order.refundStatus != 'not_applicable') ...[
                     const SizedBox(height: 8),
                     Text(
                       'Online Refund Status: ${order.refundStatus.toUpperCase()}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ],
@@ -582,25 +686,43 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   (order.paymentMethod == 'online' &&
                       order.paymentStatus != 'paid')) &&
               order.paymentStatus != 'paid' &&
-              !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
+              ![
+                'delivered',
+                'cancelled',
+                'rejected',
+              ].contains(order.status)) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _panel,
+                color: order.isOnlinePaymentPending
+                    ? const Color(0xFF2A1F05)
+                    : _panel,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _stroke),
+                border: Border.all(
+                  color: order.isOnlinePaymentPending
+                      ? const Color(0xFFFFC107).withValues(alpha: 0.55)
+                      : _stroke,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.payment_rounded, color: Colors.blueAccent, size: 20),
+                      Icon(
+                        order.isOnlinePaymentPending
+                            ? Icons.warning_amber_rounded
+                            : Icons.payment_rounded,
+                        color: order.isOnlinePaymentPending
+                            ? Colors.amberAccent
+                            : Colors.blueAccent,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         order.paymentMethod == 'online'
-                            ? 'Complete Online Payment'
+                            ? 'Payment Pending'
                             : 'Want to Pay Online?',
                         style: const TextStyle(
                           color: Colors.white,
@@ -613,9 +735,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                   const SizedBox(height: 6),
                   Text(
                     order.paymentMethod == 'online'
-                        ? 'Your online payment is pending. Please complete the payment to process your order.'
+                        ? 'Complete your online payment to keep this order moving.'
                         : 'You can pay online now using UPI, cards, or net banking before your order is delivered.',
-                    style: const TextStyle(color: _mutedText, fontSize: 12),
+                    style: TextStyle(
+                      color: order.isOnlinePaymentPending
+                          ? const Color(0xFFFFD76A)
+                          : _mutedText,
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -634,12 +761,20 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Icon(Icons.flash_on_rounded, size: 16),
                       label: Text(
-                        order.paymentMethod == 'online' ? 'Pay Now' : 'Pay Online Now',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        order.paymentMethod == 'online'
+                            ? 'Pay Now'
+                            : 'Pay Online Now',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -649,7 +784,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           ],
 
           // ── Queue banner ───────────────────────────────────────────────
-          if (_queuePosition != null && order.status == 'pending_confirmation') ...[
+          if (_queuePosition != null &&
+              order.status == 'pending_confirmation') ...[
             const SizedBox(height: 12),
             _QueueBanner(position: _queuePosition!),
           ],
@@ -657,7 +793,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           // ── Late warning ───────────────────────────────────────────────
           if (order.estimatedDeliveryTime != null &&
               DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
-              !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
+              ![
+                'delivered',
+                'cancelled',
+                'rejected',
+              ].contains(order.status)) ...[
             const SizedBox(height: 12),
             _LateBanner(),
           ],
@@ -706,7 +846,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: Color(0xFFB8B8B8), size: 18),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFFB8B8B8),
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
@@ -718,11 +862,17 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                     onPressed: () => _showCancellationBottomSheet(order),
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFFFF1E1E),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                     ),
                     child: const Text(
                       'Cancel Order',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -733,35 +883,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
           // ── Need Help ──────────────────────────────────────────────────
           _NeedHelpButton(onTap: _showHelpSheet),
-
-          // ── Review card ────────────────────────────────────────────────
-          if (order.status == 'delivered') ...[
-            const SizedBox(height: 16),
-            _ReviewCard(
-              orderId: order.id,
-              submitted: _reviewSubmitted,
-              loading: _reviewLoading,
-              onSubmit: (rating, comment) async {
-                setState(() => _reviewLoading = true);
-                try {
-                  await _orderService.submitReview(
-                      orderId: order.id, rating: rating, comment: comment);
-                  if (mounted) {
-                    setState(() {
-                      _reviewSubmitted = true;
-                      _reviewLoading = false;
-                    });
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    setState(() => _reviewLoading = false);
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text('$e')));
-                  }
-                }
-              },
-            ),
-          ],
         ],
       ),
     );
@@ -795,7 +916,10 @@ class _OrderHeaderCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _brandRed.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -826,8 +950,10 @@ class _OrderHeaderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Total Amount',
-                      style: TextStyle(color: _mutedText, fontSize: 12)),
+                  const Text(
+                    'Total Amount',
+                    style: TextStyle(color: _mutedText, fontSize: 12),
+                  ),
                   const SizedBox(height: 2),
                   if (order.originalTotal != null &&
                       order.originalTotal != order.totalAmount) ...[
@@ -853,14 +979,19 @@ class _OrderHeaderCard extends StatelessWidget {
                       'Saved ₹${order.discountAmount.toStringAsFixed(0)}'
                       '${order.discountReason.isNotEmpty ? " · ${order.discountReason}" : ""}',
                       style: const TextStyle(
-                          color: Colors.greenAccent, fontSize: 11),
+                        color: Colors.greenAccent,
+                        fontSize: 11,
+                      ),
                     ),
                   if (order.coinsRedeemed > 0)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         'Redeemed ${order.coinsRedeemed} HDK Coins',
-                        style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 11),
+                        style: const TextStyle(
+                          color: Color(0xFFFF8A00),
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   if (order.coinsEarned > 0)
@@ -868,7 +999,11 @@ class _OrderHeaderCard extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         'Earned +${order.coinsEarned} HDK Coins! 🌟',
-                        style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Color(0xFFFF8A00),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                 ],
@@ -876,7 +1011,10 @@ class _OrderHeaderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _PaymentBadge(method: order.paymentMethod, status: order.paymentStatus),
+                  _PaymentBadge(
+                    method: order.paymentMethod,
+                    status: order.paymentStatus,
+                  ),
                 ],
               ),
             ],
@@ -889,10 +1027,22 @@ class _OrderHeaderCard extends StatelessWidget {
   String _formatDate(DateTime d) {
     final local = d.toLocal();
     const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
-    final h = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
+    final h = local.hour > 12
+        ? local.hour - 12
+        : (local.hour == 0 ? 12 : local.hour);
     final m = local.minute.toString().padLeft(2, '0');
     final period = local.hour >= 12 ? 'PM' : 'AM';
     return '${local.day} ${months[local.month - 1]}, $h:$m $period';
@@ -929,7 +1079,11 @@ class _PaymentBadge extends StatelessWidget {
         children: [
           Text(
             method.toUpperCase(),
-            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+            ),
           ),
           Text(
             status.toUpperCase(),
@@ -955,24 +1109,34 @@ class _QueueBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
       ),
-      child: Row(children: [
-        const Icon(Icons.queue_rounded, color: Colors.blueAccent, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              position == 1 ? "You're next! 🎉" : "You're #$position in queue",
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+      child: Row(
+        children: [
+          const Icon(Icons.queue_rounded, color: Colors.blueAccent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  position == 1
+                      ? "You're next! 🎉"
+                      : "You're #$position in queue",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                if (position > 1)
+                  Text(
+                    '${position - 1} order${position - 1 > 1 ? "s" : ""} ahead of you',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+              ],
             ),
-            if (position > 1)
-              Text(
-                '${position - 1} order${position - 1 > 1 ? "s" : ""} ahead of you',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -990,22 +1154,42 @@ class _LateBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.5)),
       ),
-      child: const Row(children: [
-        Icon(Icons.access_time_rounded, color: Colors.orangeAccent, size: 20),
-        SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Your order is taking longer than expected. Sorry for the wait! 🙏',
-            style: TextStyle(
-                color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.w700),
+      child: const Row(
+        children: [
+          Icon(Icons.access_time_rounded, color: Colors.orangeAccent, size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Your order is taking longer than expected. Sorry for the wait! 🙏',
+              style: TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
 
 // ── Animated stepper ──────────────────────────────────────────────────────────
+
+/// Lottie asset for the active step of a given status, or null to keep the icon.
+String? _stepLottieAsset(String key) {
+  switch (key) {
+    case 'preparing':
+      return 'assets/animations/cooking.json';
+    case 'out_for_delivery':
+      return 'assets/animations/out_for_delivery.json';
+    case 'delivered':
+      return 'assets/animations/order_confirmed.json';
+    default:
+      return null;
+  }
+}
+
 class _AnimatedStepper extends StatelessWidget {
   final List<Map<String, dynamic>> steps;
   final String currentStatus;
@@ -1017,8 +1201,7 @@ class _AnimatedStepper extends StatelessWidget {
     required this.animation,
   });
 
-  int get _currentIdx =>
-      steps.indexWhere((s) => s['key'] == currentStatus);
+  int get _currentIdx => steps.indexWhere((s) => s['key'] == currentStatus);
 
   @override
   Widget build(BuildContext context) {
@@ -1064,37 +1247,63 @@ class _AnimatedStepper extends StatelessWidget {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? _brandRed
+                                    ? Colors.white
                                     : reached
-                                        ? _brandRed.withValues(alpha: 0.7)
-                                        : _stroke,
+                                    ? _brandRed.withValues(alpha: 0.7)
+                                    : _stroke,
                                 shape: BoxShape.circle,
                                 boxShadow: isActive
                                     ? [
                                         BoxShadow(
-                                          color: _brandRed.withValues(alpha: 0.4),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           blurRadius: 12,
                                           spreadRadius: 1,
-                                        )
+                                        ),
                                       ]
                                     : null,
                               ),
-                              child: Icon(
-                                reached
-                                    ? (isActive
-                                        ? steps[i]['icon'] as IconData
-                                        : Icons.check_rounded)
-                                    : steps[i]['icon'] as IconData,
-                                size: 18,
-                                color: reached ? Colors.white : Colors.grey,
-                              ),
+                              child:
+                                  (isActive &&
+                                      _stepLottieAsset(
+                                            steps[i]['key'] as String,
+                                          ) !=
+                                          null)
+                                  ? LottieOr(
+                                      asset: _stepLottieAsset(
+                                        steps[i]['key'] as String,
+                                      )!,
+                                      width: 28,
+                                      height: 28,
+                                      fallback: Icon(
+                                        steps[i]['icon'] as IconData,
+                                        size: 18,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : Icon(
+                                      reached
+                                          ? (isActive
+                                                ? steps[i]['icon'] as IconData
+                                                : Icons.check_rounded)
+                                          : steps[i]['icon'] as IconData,
+                                      size: 18,
+                                      color: isActive
+                                          ? Colors.black
+                                          : (reached
+                                                ? Colors.white
+                                                : Colors.grey),
+                                    ),
                             ),
                             if (!isLast)
                               Expanded(
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 400),
                                   width: 2,
-                                  color: reached ? _brandRed.withValues(alpha: 0.6) : _stroke,
+                                  color: reached
+                                      ? _brandRed.withValues(alpha: 0.6)
+                                      : _stroke,
                                 ),
                               ),
                           ],
@@ -1113,14 +1322,14 @@ class _AnimatedStepper extends StatelessWidget {
                                 color: isActive
                                     ? Colors.white
                                     : reached
-                                        ? Colors.white70
-                                        : Colors.grey,
+                                    ? Colors.white70
+                                    : Colors.grey,
                                 fontSize: isActive ? 16 : 14,
                                 fontWeight: isActive
                                     ? FontWeight.w900
                                     : reached
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -1162,9 +1371,10 @@ class _PulseDotState extends State<_PulseDot>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _scale = Tween<double>(begin: 0.7, end: 1.3).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 0.7,
+      end: 1.3,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -1208,16 +1418,21 @@ class _CancelledCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.cancel_rounded, color: Colors.redAccent, size: 22),
+              const Icon(
+                Icons.cancel_rounded,
+                color: Colors.redAccent,
+                size: 22,
+              ),
               const SizedBox(width: 10),
               Text(
                 order.status == 'rejected'
                     ? 'Order Rejected by Kitchen'
                     : 'Order Cancelled',
                 style: const TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15),
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
               ),
             ],
           ),
@@ -1236,14 +1451,22 @@ class _CancelledCard extends StatelessWidget {
             const SizedBox(height: 16),
             _buildRefundStep(
               title: 'Refund Initiated',
-              subtitle: 'Refund request processed by our kitchen to payment gateway.',
-              isActive: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
-              isCompleted: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
+              subtitle:
+                  'Refund request processed by our kitchen to payment gateway.',
+              isActive:
+                  order.refundStatus == 'initiated' ||
+                  order.paymentStatus == 'refunded',
+              isCompleted:
+                  order.refundStatus == 'initiated' ||
+                  order.paymentStatus == 'refunded',
             ),
             _buildRefundStep(
               title: 'Processing by Bank',
-              subtitle: 'Refund is being credited back to your account (usually takes 3-5 business days).',
-              isActive: order.refundStatus == 'initiated' || order.paymentStatus == 'refunded',
+              subtitle:
+                  'Refund is being credited back to your account (usually takes 3-5 business days).',
+              isActive:
+                  order.refundStatus == 'initiated' ||
+                  order.paymentStatus == 'refunded',
               isCompleted: false,
               isLast: true,
             ),
@@ -1258,7 +1481,11 @@ class _CancelledCard extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.redAccent,
+                      size: 16,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1270,7 +1497,8 @@ class _CancelledCard extends StatelessWidget {
                 ),
               ),
             ],
-          ] else if (order.paymentMethod == 'online' && order.paymentStatus == 'paid') ...[
+          ] else if (order.paymentMethod == 'online' &&
+              order.paymentStatus == 'paid') ...[
             const SizedBox(height: 10),
             const Text(
               'A refund will be processed to your original payment method in 3–5 business days.',
@@ -1304,7 +1532,9 @@ class _CancelledCard extends StatelessWidget {
                 color: dotColor,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.transparent,
+                  color: isCompleted
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.transparent,
                   width: 3,
                 ),
               ),
@@ -1313,7 +1543,9 @@ class _CancelledCard extends StatelessWidget {
               Container(
                 width: 2,
                 height: 28,
-                color: isCompleted ? Colors.greenAccent : const Color(0xFF333333),
+                color: isCompleted
+                    ? Colors.greenAccent
+                    : const Color(0xFF333333),
               ),
           ],
         ),
@@ -1333,10 +1565,7 @@ class _CancelledCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: _mutedText,
-                  fontSize: 11,
-                ),
+                style: const TextStyle(color: _mutedText, fontSize: 11),
               ),
               const SizedBox(height: 10),
             ],
@@ -1378,16 +1607,23 @@ class _AddressMapCardState extends State<_AddressMapCard>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
     _loadCustomMarkers();
   }
 
   Future<void> _loadCustomMarkers() async {
     try {
-      final dest = await _getCustomMarker(Icons.home_rounded, const Color(0xFFFF1E1E));
-      final deliv = await _getCustomMarker(Icons.delivery_dining_rounded, Colors.blueAccent);
+      final dest = await _getCustomMarker(
+        Icons.home_rounded,
+        const Color(0xFFFF1E1E),
+      );
+      final deliv = await _getCustomMarker(
+        Icons.delivery_dining_rounded,
+        Colors.blueAccent,
+      );
       if (mounted) {
         setState(() {
           _destinationIcon = dest;
@@ -1397,7 +1633,10 @@ class _AddressMapCardState extends State<_AddressMapCard>
     } catch (_) {}
   }
 
-  Future<BitmapDescriptor> _getCustomMarker(IconData iconData, Color color) async {
+  Future<BitmapDescriptor> _getCustomMarker(
+    IconData iconData,
+    Color color,
+  ) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
 
@@ -1413,7 +1652,9 @@ class _AddressMapCardState extends State<_AddressMapCard>
     canvas.drawCircle(const Offset(40, 40), 38, borderPaint);
 
     // Icon
-    final TextPainter textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    final TextPainter textPainter = TextPainter(
+      textDirection: ui.TextDirection.ltr,
+    );
     textPainter.text = TextSpan(
       text: String.fromCharCode(iconData.codePoint),
       style: TextStyle(
@@ -1424,7 +1665,10 @@ class _AddressMapCardState extends State<_AddressMapCard>
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2));
+    textPainter.paint(
+      canvas,
+      Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2),
+    );
 
     final ui.Image image = await pictureRecorder.endRecording().toImage(80, 80);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -1496,22 +1740,30 @@ class _AddressMapCardState extends State<_AddressMapCard>
 
     final Set<Marker> markers = {};
     if (hasAddrCoords) {
-      markers.add(Marker(
-        markerId: const MarkerId('destination'),
-        position: LatLng(addr.latitude!, addr.longitude!),
-        icon: _destinationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(
-          title: addr.label.isNotEmpty ? addr.label : 'Your Address',
+      markers.add(
+        Marker(
+          markerId: const MarkerId('destination'),
+          position: LatLng(addr.latitude!, addr.longitude!),
+          icon:
+              _destinationIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: addr.label.isNotEmpty ? addr.label : 'Your Address',
+          ),
         ),
-      ));
+      );
     }
     if (hasLiveLoc) {
-      markers.add(Marker(
-        markerId: const MarkerId('delivery_person'),
-        position: LatLng(loc.latitude, loc.longitude),
-        icon: _deliveryIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Delivery Partner'),
-      ));
+      markers.add(
+        Marker(
+          markerId: const MarkerId('delivery_person'),
+          position: LatLng(loc.latitude, loc.longitude),
+          icon:
+              _deliveryIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: const InfoWindow(title: 'Delivery Partner'),
+        ),
+      );
     }
 
     final Set<Polyline> polylines = {};
@@ -1536,8 +1788,8 @@ class _AddressMapCardState extends State<_AddressMapCard>
     final cameraTarget = hasLiveLoc
         ? LatLng(loc.latitude, loc.longitude)
         : hasAddrCoords
-            ? LatLng(addr.latitude!, addr.longitude!)
-            : const LatLng(0, 0);
+        ? LatLng(addr.latitude!, addr.longitude!)
+        : const LatLng(0, 0);
 
     return Container(
       decoration: BoxDecoration(
@@ -1555,14 +1807,18 @@ class _AddressMapCardState extends State<_AddressMapCard>
           // ── Map section ──────────────────────────────────────────────
           if (showMap)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: SizedBox(
                 height: 240,
                 child: Stack(
                   children: [
                     GoogleMap(
-                      initialCameraPosition:
-                          CameraPosition(target: cameraTarget, zoom: 15),
+                      initialCameraPosition: CameraPosition(
+                        target: cameraTarget,
+                        zoom: 15,
+                      ),
                       markers: markers,
                       polylines: polylines,
                       myLocationButtonEnabled: false,
@@ -1589,14 +1845,17 @@ class _AddressMapCardState extends State<_AddressMapCard>
                             opacity: _pulseAnim.value,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blueAccent,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.blueAccent
-                                        .withValues(alpha: 0.6),
+                                    color: Colors.blueAccent.withValues(
+                                      alpha: 0.6,
+                                    ),
                                     blurRadius: 8,
                                     spreadRadius: 1,
                                   ),
@@ -1605,15 +1864,21 @@ class _AddressMapCardState extends State<_AddressMapCard>
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.radio_button_checked,
-                                      color: Colors.white, size: 10),
+                                  Icon(
+                                    Icons.radio_button_checked,
+                                    color: Colors.white,
+                                    size: 10,
+                                  ),
                                   SizedBox(width: 4),
-                                  Text('LIVE',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.8)),
+                                  Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1627,7 +1892,9 @@ class _AddressMapCardState extends State<_AddressMapCard>
                         left: 10,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: _panel.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(20),
@@ -1640,15 +1907,19 @@ class _AddressMapCardState extends State<_AddressMapCard>
                                 width: 10,
                                 height: 10,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: _brandRed),
+                                  strokeWidth: 1.5,
+                                  color: _brandRed,
+                                ),
                               ),
                               SizedBox(width: 6),
-                              Text('Locating partner…',
-                                  style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600)),
+                              Text(
+                                'Locating partner…',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1678,8 +1949,11 @@ class _AddressMapCardState extends State<_AddressMapCard>
                       color: Colors.blueAccent.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.delivery_dining_rounded,
-                        color: Colors.blueAccent, size: 18),
+                    child: const Icon(
+                      Icons.delivery_dining_rounded,
+                      color: Colors.blueAccent,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1689,21 +1963,23 @@ class _AddressMapCardState extends State<_AddressMapCard>
                         const Text(
                           'Partner is on the way',
                           style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                         if (hasLiveLoc && loc.updatedAt != null)
                           Text(
                             'Location updated ${_timeAgo(loc.updatedAt)}',
                             style: const TextStyle(
-                                color: _mutedText, fontSize: 11),
+                              color: _mutedText,
+                              fontSize: 11,
+                            ),
                           )
                         else
                           const Text(
                             'Tracking will appear shortly',
-                            style:
-                                TextStyle(color: _mutedText, fontSize: 11),
+                            style: TextStyle(color: _mutedText, fontSize: 11),
                           ),
                       ],
                     ),
@@ -1715,8 +1991,9 @@ class _AddressMapCardState extends State<_AddressMapCard>
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: Colors.blueAccent
-                              .withValues(alpha: _pulseAnim.value),
+                          color: Colors.blueAccent.withValues(
+                            alpha: _pulseAnim.value,
+                          ),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1738,8 +2015,11 @@ class _AddressMapCardState extends State<_AddressMapCard>
                     color: _brandRed.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.location_on_rounded,
-                      color: _brandRed, size: 18),
+                  child: const Icon(
+                    Icons.location_on_rounded,
+                    color: _brandRed,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1749,25 +2029,29 @@ class _AddressMapCardState extends State<_AddressMapCard>
                       Text(
                         'Delivering to ${addr.label.isNotEmpty ? addr.label : "your address"}',
                         style: const TextStyle(
-                            color: _mutedText,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600),
+                          color: _mutedText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 3),
                       if (addr.lineOne.isNotEmpty)
                         Text(
                           addr.lineOne,
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700),
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       if (addr.lineTwo.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           addr.lineTwo,
                           style: const TextStyle(
-                              color: _mutedText, fontSize: 13),
+                            color: _mutedText,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ],
@@ -1802,7 +2086,10 @@ class _ItemsCard extends StatelessWidget {
           const Text(
             'Order Items',
             style: TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 10),
           ...order.items.map(
@@ -1821,7 +2108,9 @@ class _ItemsCard extends StatelessWidget {
                   Text(
                     '₹${(item.price * item.quantity).toStringAsFixed(0)}',
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -1831,17 +2120,21 @@ class _ItemsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14)),
+              const Text(
+                'Total',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
               Text(
                 '₹${order.totalAmount.toStringAsFixed(0)}',
                 style: const TextStyle(
-                    color: _brandRed,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16),
+                  color: _brandRed,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -1910,7 +2203,10 @@ class _NeedHelpSheet extends StatelessWidget {
           Text(
             'Help with Order #${order.orderNumber}',
             style: const TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -1951,7 +2247,8 @@ class _NeedHelpSheet extends StatelessWidget {
             label: 'WhatsApp',
             subtitle: 'Chat on WhatsApp',
             onTap: () => _launch(
-                'https://wa.me/919876543210?text=Hi%2C%20I%20need%20help%20with%20order%20%23${order.orderNumber}'),
+              'https://wa.me/919876543210?text=Hi%2C%20I%20need%20help%20with%20order%20%23${order.orderNumber}',
+            ),
           ),
           const SizedBox(height: 12),
           _HelpOption(
@@ -1960,7 +2257,8 @@ class _NeedHelpSheet extends StatelessWidget {
             label: 'Email us',
             subtitle: 'support@hdkfoods.com',
             onTap: () => _launch(
-                'mailto:support@hdkfoods.com?subject=Help%20with%20Order%20%23${order.orderNumber}'),
+              'mailto:support@hdkfoods.com?subject=Help%20with%20Order%20%23${order.orderNumber}',
+            ),
           ),
         ],
       ),
@@ -2013,14 +2311,18 @@ class _HelpOption extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14)),
-                    Text(subtitle,
-                        style: const TextStyle(
-                            color: _mutedText, fontSize: 12)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: _mutedText, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
@@ -2033,33 +2335,17 @@ class _HelpOption extends StatelessWidget {
   }
 }
 
-// ── Review card ───────────────────────────────────────────────────────────────
-class _ReviewCard extends StatefulWidget {
-  final int orderId;
+// ── Premium Review Header Card ────────────────────────────────────────────────
+class _PremiumReviewHeaderCard extends StatelessWidget {
+  final Order order;
   final bool submitted;
-  final bool loading;
-  final Future<void> Function(int rating, String comment) onSubmit;
+  final VoidCallback onTap;
 
-  const _ReviewCard({
-    required this.orderId,
+  const _PremiumReviewHeaderCard({
+    required this.order,
     required this.submitted,
-    required this.loading,
-    required this.onSubmit,
+    required this.onTap,
   });
-
-  @override
-  State<_ReviewCard> createState() => _ReviewCardState();
-}
-
-class _ReviewCardState extends State<_ReviewCard> {
-  int _rating = 0;
-  final _commentCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _commentCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -2068,78 +2354,86 @@ class _ReviewCardState extends State<_ReviewCard> {
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: submitted
+              ? Colors.greenAccent.withValues(alpha: 0.3)
+              : Colors.amber.withValues(alpha: 0.3),
+        ),
       ),
-      child: widget.submitted
-          ? const Row(children: [
-              Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-              SizedBox(width: 10),
-              Text('Thanks for your review! ⭐',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
-            ])
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('How was your order? 🍽️',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => GestureDetector(
-                    onTap: () => setState(() => _rating = i + 1),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Icon(
-                        i < _rating
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        color: Colors.amber,
-                        size: 32,
+      child: submitted
+          ? const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.greenAccent,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Review Submitted! ⭐',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
+                      Text(
+                        'Thank you for your feedback.',
+                        style: TextStyle(color: _mutedText, fontSize: 11),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _commentCtrl,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Add a comment (optional)',
-                  hintStyle: TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: Color(0xFF1A1A1A),
-                  border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF2A2A2A))),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF2A2A2A))),
-                  focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: _brandRed)),
+              ],
+            )
+          : InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.rate_review_rounded,
+                        color: Colors.amber,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Rate Food & Experience 🍽️',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: _mutedText,
+                      size: 24,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: (_rating == 0 || widget.loading)
-                      ? null
-                      : () => widget.onSubmit(_rating, _commentCtrl.text.trim()),
-                  style: FilledButton.styleFrom(backgroundColor: _brandRed),
-                  child: widget.loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Submit Review',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
-                ),
-              ),
-            ]),
+            ),
     );
   }
 }
