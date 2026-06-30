@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Coupon, Order, OrderItem, OrderReview, ProductReview
+from .models import Coupon, Order, OrderItem, OrderReview, ProductReview, PrepConfig
 
 
 
@@ -150,6 +150,7 @@ class OrderSerializer(serializers.ModelSerializer):
     address_detail = serializers.SerializerMethodField()
     customer_name = serializers.SerializerMethodField()
     customer_phone = serializers.SerializerMethodField()
+    predicted_preparation_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -165,6 +166,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_customer_phone(self, obj):
         return obj.user.phone_number if obj.user_id else ''
+
+    def get_predicted_preparation_time(self, obj):
+        from .utils import calculate_predicted_prep_time
+        product_ids = list(obj.items.values_list("product_id", flat=True))
+        return calculate_predicted_prep_time(product_ids)
 
 
 class CouponSerializer(serializers.ModelSerializer):
@@ -252,3 +258,9 @@ class ProductReviewSerializer(serializers.ModelSerializer):
             "comment",
             "created_at",
         ]
+
+
+class PrepConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrepConfig
+        fields = "__all__"

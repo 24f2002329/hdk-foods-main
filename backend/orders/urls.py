@@ -40,6 +40,8 @@ from .views import (
     ReportNotReceivedView,
     AdminOverrideStatusView,
     AdminPaymentMethodView,
+    PredictPrepTimeView,
+    PrepConfigView,
 )
 
 from accounts.views import AdminCustomerInfoView
@@ -85,4 +87,6 @@ urlpatterns = [
     path("coupons/<int:pk>/toggle/", CouponToggleView.as_view()),
     path("coupons/validate/", ValidateCouponView.as_view()),
     path("webhook/cashfree/", CashfreeWebhookView.as_view()),
+    path("predict-prep-time/", PredictPrepTimeView.as_view()),
+    path("admin/prep-config/", PrepConfigView.as_view()),
 ]

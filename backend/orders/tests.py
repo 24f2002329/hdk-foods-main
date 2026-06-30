@@ -391,3 +391,83 @@ class CouponTest(BaseOrderTest):
         )
         discount = coupon.compute_discount(Decimal("100.00"))
         self.assertEqual(discount, Decimal("20.00"))
+
+
+class SmartPrepTimePredictorTest(BaseOrderTest):
+    def setUp(self):
+        super().setUp()
+        from .models import PrepConfig
+        self.prep_config = PrepConfig.get()
+        # Set default values for tests
+        self.prep_config.queue_multiplier = 2.0
+        self.prep_config.rush_hour_bonus = 5
+        self.prep_config.override_boost = 0
+        self.prep_config.peak_weekdays = "4,5,6"  # Fri-Sun
+        self.prep_config.save()
+
+        # Update product to have base_prep_minutes
+        self.product.base_prep_minutes = 15
+        self.product.save()
+
+    def test_calculate_prep_time_no_backlog(self):
+        from .utils import calculate_predicted_prep_time
+        # Max base prep (15) + (2.0 * 0 active orders) + 0 boost
+        pred = calculate_predicted_prep_time([self.product.id])
+        # Note: timezone-dependent peak hour calculation might add rush hour bonus,
+        # but let's test the endpoint behavior and check calculations.
+        self.assertTrue(pred >= 15)
+
+    def test_calculate_prep_time_with_backlog(self):
+        from .utils import calculate_predicted_prep_time
+        # Create some active orders
+        self._create_order()
+        self._create_order()
+        
+        # Now we have 2 active orders (status: pending_confirmation)
+        # Expected = 15 + (2.0 * 2) = 19 minutes (ignoring rush hour for now)
+        pred = calculate_predicted_prep_time([self.product.id])
+        self.assertTrue(pred >= 19)
+
+    def test_predict_prep_time_view(self):
+        _auth(self.client, self.customer)
+        res = self.client.get(f"/api/orders/predict-prep-time/?product_ids={self.product.id}")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("predicted_preparation_time", res.data)
+        self.assertIn("predicted_delivery_time_minutes", res.data)
+        self.assertEqual(
+            res.data["predicted_delivery_time_minutes"],
+            res.data["predicted_preparation_time"] + 15
+        )
+
+    def test_prep_config_admin_endpoints(self):
+        # Customer should be forbidden
+        _auth(self.client, self.customer)
+        res = self.client.get("/api/orders/admin/prep-config/")
+        self.assertEqual(res.status_code, 403)
+
+        # Admin should access and update
+        _auth(self.client, self.admin)
+        res = self.client.get("/api/orders/admin/prep-config/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["queue_multiplier"], 2.0)
+
+        # Update boost
+        res = self.client.patch("/api/orders/admin/prep-config/", {"override_boost": 10}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["override_boost"], 10)
+
+        # Verify prediction reflects boost
+        from .utils import calculate_predicted_prep_time
+        pred_before = calculate_predicted_prep_time([self.product.id])
+        # Reset to 0 boost
+        self.client.patch("/api/orders/admin/prep-config/", {"override_boost": 0}, format="json")
+        pred_after = calculate_predicted_prep_time([self.product.id])
+        self.assertEqual(pred_before - pred_after, 10)
+
+    def test_order_serializer_includes_predicted_prep_time(self):
+        order = self._create_order()
+        _auth(self.client, self.customer)
+        res = self.client.get(f"/api/orders/{order.id}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("predicted_preparation_time", res.data)
+

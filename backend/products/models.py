@@ -49,6 +49,11 @@ class Product(models.Model):
         default=15
     )
 
+    base_prep_minutes = models.PositiveIntegerField(
+        default=15,
+        help_text="Base preparation time in minutes for this dish."
+    )
+
     rating = models.DecimalField(
         max_digits=2,
         decimal_places=1,

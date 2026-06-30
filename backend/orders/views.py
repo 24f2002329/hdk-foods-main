@@ -16,7 +16,7 @@ from products.models import Product
 
 from authentication.permissions import IsCustomer
 from authentication.firebase import send_push, send_push_to_role
-from .models import Coupon, Order, OrderItem, OrderReview, ProductReview
+from .models import Coupon, Order, OrderItem, OrderReview, ProductReview, PrepConfig
 from .serializers import (
     AcknowledgeChangesSerializer,
     AdminPaymentMethodSerializer,
@@ -32,7 +32,8 @@ from .serializers import (
     UpdateDeliveryLocationSerializer,
     UpdateStatusSerializer,
     OrderReviewSerializer,
-    ProductReviewSerializer
+    ProductReviewSerializer,
+    PrepConfigSerializer
 )
 
 from django.utils import timezone
@@ -2524,4 +2525,50 @@ class AdminOverrideStatusView(APIView):
         _broadcast_order(order)
 
         return Response(OrderSerializer(order).data)
+
+
+class PredictPrepTimeView(APIView):
+    """Returns predicted preparation time and delivery time for a set of product IDs before ordering."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        product_ids_str = request.query_params.get("product_ids", "")
+        if not product_ids_str:
+            return Response(
+                {"detail": "product_ids query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            product_ids = [int(pid.strip()) for pid in product_ids_str.split(",") if pid.strip().isdigit()]
+        except ValueError:
+            return Response(
+                {"detail": "Invalid product_ids format."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from .utils import calculate_predicted_prep_time
+        prep_minutes = calculate_predicted_prep_time(product_ids)
+        delivery_minutes = prep_minutes + 15
+
+        return Response({
+            "predicted_preparation_time": prep_minutes,
+            "predicted_delivery_time_minutes": delivery_minutes
+        })
+
+
+class PrepConfigView(APIView):
+    """View and update global preparation configuration settings. Admin only."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        config = PrepConfig.get()
+        return Response(PrepConfigSerializer(config).data)
+
+    def patch(self, request):
+        config = PrepConfig.get()
+        serializer = PrepConfigSerializer(config, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 

@@ -110,6 +110,7 @@ class Order {
 
   // Wrong delivery correction
   final bool notReceivedReported;
+  final int? predictedPreparationTime;
 
   Order({
     required this.id,
@@ -145,6 +146,7 @@ class Order {
     this.deliveryLatitude,
     this.deliveryLongitude,
     this.notReceivedReported = false,
+    this.predictedPreparationTime,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -199,6 +201,7 @@ class Order {
           ? double.tryParse('${json['delivery_longitude']}')
           : null,
       notReceivedReported: json['not_received_reported'] ?? false,
+      predictedPreparationTime: json['predicted_preparation_time'],
     );
   }
 }

@@ -112,4 +112,19 @@ class AdminConfigService {
     }
     throw Exception('Failed to upload banner image: ${response.body}');
   }
+
+  Future<Map<String, dynamic>> getPrepConfig() async {
+    final response = await http.get(Uri.parse('$_base/orders/admin/prep-config/'), headers: await _headers());
+    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    throw Exception('Failed to load prep config');
+  }
+
+  Future<void> updatePrepConfig(Map<String, dynamic> data) async {
+    final response = await http.patch(
+      Uri.parse('$_base/orders/admin/prep-config/'),
+      headers: await _headers(),
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update prep config: ${response.body}');
+  }
 }

@@ -13,6 +13,7 @@ import 'banners_screen.dart';
 import 'send_notification_screen.dart';
 import 'admin_reviews_screen.dart';
 import 'store_management_screen.dart';
+import 'prep_predictor_config_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -208,6 +209,16 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                           context,
                           MaterialPageRoute(
                               builder: (_) => const StoreManagementScreen())),
+                    ),
+                    const SizedBox(height: 10),
+                    _actionCard(
+                      icon: Icons.timer_outlined,
+                      label: 'Smart Prep Time Predictor',
+                      subtitle: 'Predictive algorithm modifiers & rush hour rules',
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PrepPredictorConfigScreen())),
                     ),
                     const SizedBox(height: 24),
 

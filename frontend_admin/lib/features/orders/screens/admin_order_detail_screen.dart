@@ -415,7 +415,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
   }
 
   Future<int?> _prepTimeDialog() {
-    int prepTime = 20;
+    int prepTime = _order?.predictedPreparationTime ?? 20;
     return showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -433,6 +433,15 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (_order?.predictedPreparationTime != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Recommended by Smart Predictor: ${_order!.predictedPreparationTime} min',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              const SizedBox(height: 12),
               Slider(
                 min: 5,
                 max: 90,
