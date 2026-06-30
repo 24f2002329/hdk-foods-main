@@ -6,12 +6,16 @@ from asgiref.sync import sync_to_async
 
 def _get_user(token_str):
     from django.contrib.auth import get_user_model
+    from django.db import close_old_connections
+    close_old_connections()
     User = get_user_model()
     try:
         token = AccessToken(token_str)
         return User.objects.get(id=token["user_id"])
     except Exception:
         return None
+    finally:
+        close_old_connections()
 
 
 class OrderConsumer(AsyncJsonWebsocketConsumer):
@@ -80,4 +84,7 @@ class OrderConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json(event["data"])
 
     async def delivery_update(self, event):
+        await self.send_json(event["data"])
+
+    async def location_update(self, event):
         await self.send_json(event["data"])

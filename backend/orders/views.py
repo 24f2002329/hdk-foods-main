@@ -124,6 +124,35 @@ def _broadcast_order(order, event_type="order_update"):
         )
 
 
+def _broadcast_location(order):
+    """Send a minified location update to all WebSocket clients watching this order."""
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return
+    # Compact structure: [latitude, longitude, speed, bearing, driver_id]
+    lat = float(order.delivery_latitude) if order.delivery_latitude else 0.0
+    lng = float(order.delivery_longitude) if order.delivery_longitude else 0.0
+    driver_id = f"drv_{order.assigned_delivery_id}" if order.assigned_delivery_id else ""
+    compact_data = [lat, lng, 0.0, 0, driver_id]
+    payload = {
+        "type": "location_update",
+        "data": {
+            "type": "location_update",
+            "data": compact_data
+        }
+    }
+    # Notify the per-order group (customer/delivery/admin watching this order)
+    async_to_sync(channel_layer.group_send)(f"order_{order.id}", payload)
+    # Notify the admin dashboard group
+    async_to_sync(channel_layer.group_send)("admin_orders", payload)
+    # Notify the assigned delivery partner if any
+    if order.assigned_delivery_id:
+        async_to_sync(channel_layer.group_send)(
+            f"delivery_{order.assigned_delivery_id}",
+            payload
+        )
+
+
 
 class CreateOrderView(APIView):
 
@@ -1757,15 +1786,19 @@ class UpdateDeliveryLocationView(APIView):
         serializer = UpdateDeliveryLocationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        order.delivery_latitude = serializer.validated_data["latitude"]
-        order.delivery_longitude = serializer.validated_data["longitude"]
-        order.delivery_location_updated_at = timezone.now()
-        order.save(update_fields=[
-            "delivery_latitude", "delivery_longitude",
-            "delivery_location_updated_at"
-        ])
+        if serializer.validated_data.get("heartbeat"):
+            order.delivery_location_updated_at = timezone.now()
+            order.save(update_fields=["delivery_location_updated_at"])
+        else:
+            order.delivery_latitude = serializer.validated_data["latitude"]
+            order.delivery_longitude = serializer.validated_data["longitude"]
+            order.delivery_location_updated_at = timezone.now()
+            order.save(update_fields=[
+                "delivery_latitude", "delivery_longitude",
+                "delivery_location_updated_at"
+            ])
 
-        _broadcast_order(order, "order_update")
+        _broadcast_location(order)
 
         return Response({"detail": "Location updated."})
 
@@ -2373,6 +2406,15 @@ class AdminPaymentMethodView(APIView):
             order.save(update_fields=["payment_status", "payment_id", "updated_at"])
             _broadcast_order(order)
             return Response(OrderSerializer(order).data)
+
+        if action == "send_notification":
+            if order.payment_method != "online" or order.payment_status != "pending":
+                return Response(
+                    {"detail": "Payment notification is only for Online | Pending orders."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            _send_pending_online_payment_reminder(order.id)
+            return Response({"detail": "Payment notification sent.", "order": OrderSerializer(order).data})
 
         method = serializer.validated_data.get("payment_method")
         if not method:

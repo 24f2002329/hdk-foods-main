@@ -75,7 +75,7 @@ class AdminPaymentMethodSerializer(serializers.Serializer):
         required=False,
     )
     action = serializers.ChoiceField(
-        choices=["change_method", "mark_paid"],
+        choices=["change_method", "mark_paid", "send_notification"],
         required=False,
         default="change_method",
     )
@@ -130,8 +130,14 @@ class OrderAddressSerializer(serializers.Serializer):
 
 
 class UpdateDeliveryLocationSerializer(serializers.Serializer):
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    heartbeat = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, attrs):
+        if not attrs.get('heartbeat') and ('latitude' not in attrs or 'longitude' not in attrs):
+            raise serializers.ValidationError("latitude and longitude are required unless it is a heartbeat.")
+        return attrs
 
 
 class OrderSerializer(serializers.ModelSerializer):

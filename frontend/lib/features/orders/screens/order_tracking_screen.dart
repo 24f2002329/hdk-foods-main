@@ -171,6 +171,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           return;
         }
 
+        if (data['type'] == 'location_update') {
+          final list = data['data'] as List<dynamic>;
+          final lat = double.tryParse(list[0].toString()) ?? 0.0;
+          final lng = double.tryParse(list[1].toString()) ?? 0.0;
+          if (mounted) {
+            setState(() {
+              _deliveryLocation = DeliveryLocation(
+                latitude: lat,
+                longitude: lng,
+                updatedAt: DateTime.now(),
+              );
+            });
+          }
+          return;
+        }
+
         final order = Order.fromJson(data);
         if (mounted) _applyOrder(order);
       } catch (_) {}

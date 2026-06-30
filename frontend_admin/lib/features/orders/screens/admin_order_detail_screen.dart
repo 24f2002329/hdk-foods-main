@@ -74,6 +74,41 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   Future<void> _changePaymentMethod(String method) async {
     if (_order == null || _order!.paymentMethod == method) return;
+    final current = _order!.paymentMethod.toUpperCase();
+    final next = method.toUpperCase();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _panel,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _stroke),
+        ),
+        title: const Text(
+          'Change Payment Method?',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        content: Text(
+          'Change payment method from $current to $next? Payment status will remain pending.',
+          style: const TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Confirm',
+              style: TextStyle(color: _red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _busy = true);
     try {
       final updated = await _svc.updatePaymentMethod(_order!.id, method);
@@ -93,6 +128,19 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       final updated = await _svc.markCodPaid(_order!.id);
       setState(() => _order = updated);
       _snack('COD payment marked as paid.');
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _sendPaymentNotification() async {
+    if (_order == null) return;
+    setState(() => _busy = true);
+    try {
+      await _svc.sendPaymentNotification(_order!.id);
+      _snack('Payment notification sent.');
     } catch (e) {
       _snack(e.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -677,8 +725,35 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _busy ? null : _sendPaymentNotification,
+              icon: const Icon(Icons.notifications_active_rounded, size: 16),
+              label: const Text('Send Payment Notification'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.amberAccent,
+                disabledForegroundColor: Colors.grey,
+                side: BorderSide(
+                  color: Colors.amberAccent.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 11,
+                ),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           const Text(
-            'Change payment method',
+            'Last option: change payment method',
             style: TextStyle(
               color: Colors.grey,
               fontSize: 12,

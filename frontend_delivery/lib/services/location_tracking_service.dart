@@ -8,8 +8,8 @@ import '../core/config/api_config.dart';
 import '../core/storage/token_storage.dart';
 
 class LocationTrackingService {
-  Timer? _timer;
   final int orderId;
+  bool _isRunning = false;
 
   LocationTrackingService({required this.orderId});
 
@@ -22,15 +22,17 @@ class LocationTrackingService {
         perm == LocationPermission.always;
   }
 
-  Future<void> _postLocation() async {
+  Future<void> _postLocation({required bool heartbeat, required Position pos}) async {
     try {
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-
       final token = await TokenStorage.getAccessToken();
       if (token == null) return;
+
+      final body = heartbeat
+          ? {'heartbeat': true}
+          : {
+              'latitude': pos.latitude,
+              'longitude': pos.longitude,
+            };
 
       await http.post(
         Uri.parse('${ApiConfig.baseUrl}/orders/$orderId/delivery-location/'),
@@ -38,10 +40,7 @@ class LocationTrackingService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'latitude': pos.latitude,
-          'longitude': pos.longitude,
-        }),
+        body: jsonEncode(body),
       );
     } catch (_) {}
   }
@@ -50,12 +49,43 @@ class LocationTrackingService {
     final granted = await _ensurePermission();
     if (!granted) return;
 
-    await _postLocation();
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _postLocation());
+    _isRunning = true;
+    _runLoop();
+  }
+
+  Future<void> _runLoop() async {
+    while (_isRunning) {
+      double speed = 0.0;
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high),
+        );
+        speed = pos.speed; // speed is in meters/second
+
+        // Speed conversion: 15 km/h = 4.167 m/s
+        // Driving (> 15 km/h, i.e., > 4.167 m/s): Send every 10s
+        // Walking/slow (< 15 km/h, i.e., <= 4.167 m/s but > 0.1 m/s): Send every 20s
+        // Stationary (<= 0.1 m/s): Send heartbeat every 60s
+        bool isStationary = speed <= 0.1;
+
+        await _postLocation(heartbeat: isStationary, pos: pos);
+      } catch (_) {}
+
+      Duration delay;
+      if (speed > 4.167) {
+        delay = const Duration(seconds: 10);
+      } else if (speed > 0.1) {
+        delay = const Duration(seconds: 20);
+      } else {
+        delay = const Duration(seconds: 60);
+      }
+
+      await Future.delayed(delay);
+    }
   }
 
   void stop() {
-    _timer?.cancel();
-    _timer = null;
+    _isRunning = false;
   }
 }

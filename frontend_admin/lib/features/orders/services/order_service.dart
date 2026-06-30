@@ -189,6 +189,16 @@ class OrderService {
     throw Exception(_errorDetail(response));
   }
 
+  Future<void> sendPaymentNotification(int id) async {
+    final response = await http.patch(
+      Uri.parse('$_base/$id/admin-payment-method/'),
+      headers: await _headers(),
+      body: jsonEncode({'action': 'send_notification'}),
+    );
+    if (response.statusCode == 200) return;
+    throw Exception(_errorDetail(response));
+  }
+
   /// Admin force-override to any status (with automatic loyalty coin correction).
   Future<Order> overrideStatus(int id, String status) async {
     final response = await http.patch(

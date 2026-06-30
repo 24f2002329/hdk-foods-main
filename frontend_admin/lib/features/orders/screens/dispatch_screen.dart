@@ -88,7 +88,9 @@ class _DispatchScreenState extends State<DispatchScreen>
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
     _ws!.stream.listen((msg) {
-      if (msg['type'] == 'new_order' || msg['type'] == 'order_update') {
+      if (msg['type'] == 'new_order' ||
+          msg['type'] == 'order_update' ||
+          msg['type'] == 'location_update') {
         _loadData(silent: true);
       }
     });
