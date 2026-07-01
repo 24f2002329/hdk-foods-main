@@ -10,9 +10,9 @@ All API routes and domains are resolved dynamically by `ApiConfig` based on the 
 
 ```dart
 // Resolves to:
-// Production: https://api.hdkfoods.in/api
-// Staging:    https://staging-api.hdkfoods.in/api
-// Development: http://localhost:8000/api (or DEV_API_URL override)
+// Production: https://api.hdkfoods.in/api/v1
+// Staging:    https://staging-api.hdkfoods.in/api/v1
+// Development: http://localhost:8000/api/v1 (or DEV_API_URL override)
 final String base = ApiConfig.baseUrl;
 ```
 
@@ -41,7 +41,7 @@ sequenceDiagram
     else Token is expired (401 Unauthorized)
         Server-->>Client: 401 Unauthorized
         Note over Client: Intercept 401 Error
-        Client->>Server: POST /api/auth/token/refresh/ (with Refresh Token)
+        Client->>Server: POST /api/v1/auth/token/refresh/ (with Refresh Token)
         
         alt Refresh successful
             Server-->>Client: 200 OK (New Access Token)

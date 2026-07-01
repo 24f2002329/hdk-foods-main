@@ -27,14 +27,14 @@ class ProductAPITest(TestCase):
         )
 
     def test_public_product_list(self):
-        res = self.client.get("/api/products/")
+        res = self.client.get("/api/v1/products/")
         self.assertEqual(res.status_code, 200)
         self.assertGreaterEqual(len(res.data), 1)
 
     def test_admin_creates_product(self):
         _auth(self.client, self.admin)
         res = self.client.post(
-            "/api/products/create/",
+            "/api/v1/products/create/",
             {
                 "category": self.category.id,
                 "name": "Pepperoni",
@@ -46,14 +46,14 @@ class ProductAPITest(TestCase):
 
     def test_toggle_availability(self):
         _auth(self.client, self.admin)
-        res = self.client.patch(f"/api/products/{self.product.id}/toggle/")
+        res = self.client.patch(f"/api/v1/products/{self.product.id}/toggle/")
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["is_available"])
 
     def test_update_product(self):
         _auth(self.client, self.admin)
         res = self.client.patch(
-            f"/api/products/{self.product.id}/update/",
+            f"/api/v1/products/{self.product.id}/update/",
             {
                 "price": "320.00",
             },
@@ -64,13 +64,13 @@ class ProductAPITest(TestCase):
 
     def test_delete_product(self):
         _auth(self.client, self.admin)
-        res = self.client.delete(f"/api/products/{self.product.id}/delete/")
+        res = self.client.delete(f"/api/v1/products/{self.product.id}/delete/")
         self.assertEqual(res.status_code, 204)
         self.assertFalse(Product.objects.filter(pk=self.product.id).exists())
 
     def test_featured_products(self):
         self.product.is_featured = True
         self.product.save()
-        res = self.client.get("/api/products/featured/")
+        res = self.client.get("/api/v1/products/featured/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data), 1)

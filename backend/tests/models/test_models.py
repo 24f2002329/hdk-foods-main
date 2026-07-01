@@ -76,7 +76,7 @@ class ModelLogicTests(TestCase):
         # Test UserSerializer sanitization
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.patch(
-            "/api/me/", {"name": "<script>evil()</script>Good Name"}
+            "/api/v1/me/", {"name": "<script>evil()</script>Good Name"}
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["name"], "Good Name")

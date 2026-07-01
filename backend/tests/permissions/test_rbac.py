@@ -96,23 +96,23 @@ class RbacPermissionsTests(TestCase):
 
         # Test that owner customer CAN access it
         _auth(self.client, self.customer)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
+        response = self.client.get(f"/api/v1/orders/{order.id}/delivery-location/get/")
         self.assertEqual(response.status_code, 200)
 
         # Test that OTHER customer CANNOT access it
         _auth(self.client, self.other_customer)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
+        response = self.client.get(f"/api/v1/orders/{order.id}/delivery-location/get/")
         self.assertEqual(response.status_code, 403)
 
         # Test that admin CAN access it
         _auth(self.client, self.admin)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
+        response = self.client.get(f"/api/v1/orders/{order.id}/delivery-location/get/")
         self.assertEqual(response.status_code, 200)
 
     def test_customer_cannot_create_product(self):
         _auth(self.client, self.customer)
         res = self.client.post(
-            "/api/products/create/",
+            "/api/v1/products/create/",
             {
                 "category": self.category.id,
                 "name": "Should Fail",
@@ -126,7 +126,7 @@ class RbacPermissionsTests(TestCase):
         order = self._create_order()
         _auth(self.client, self.customer)
         res = self.client.patch(
-            f"/api/orders/{order.id}/confirm/",
+            f"/api/v1/orders/{order.id}/confirm/",
             {"estimated_preparation_time": 20},
             format="json",
         )
@@ -139,7 +139,7 @@ class RbacPermissionsTests(TestCase):
         order.save()
         _auth(self.client, self.delivery)
         res = self.client.patch(
-            f"/api/orders/{order.id}/status/",
+            f"/api/v1/orders/{order.id}/status/",
             {"status": "preparing"},
             format="json",
         )
@@ -147,10 +147,10 @@ class RbacPermissionsTests(TestCase):
 
     def test_customer_cannot_access_dashboard(self):
         _auth(self.client, self.customer)
-        res = self.client.get("/api/orders/admin/dashboard/")
+        res = self.client.get("/api/v1/orders/admin/dashboard/")
         self.assertEqual(res.status_code, 403)
 
     def test_prep_config_admin_endpoints(self):
         _auth(self.client, self.customer)
-        res = self.client.get("/api/orders/admin/prep-config/")
+        res = self.client.get("/api/v1/orders/admin/prep-config/")
         self.assertEqual(res.status_code, 403)

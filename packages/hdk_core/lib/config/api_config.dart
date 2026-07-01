@@ -5,13 +5,13 @@ class ApiConfig {
   static String get baseUrl {
     switch (AppConfig.environment) {
       case Environment.prod:
-        return "https://api.hdkfoods.in/api";
+        return "https://api.hdkfoods.in/api/v1";
       case Environment.staging:
-        return "https://staging-api.hdkfoods.in/api";
+        return "https://staging-api.hdkfoods.in/api/v1";
       case Environment.dev:
         return const String.fromEnvironment(
           'DEV_API_URL',
-          defaultValue: "http://localhost:8000/api",
+          defaultValue: "http://localhost:8000/api/v1",
         );
     }
   }

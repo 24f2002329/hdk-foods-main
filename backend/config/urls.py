@@ -31,11 +31,11 @@ def health_check(request):
 urlpatterns = [
     path("", health_check, name="health_check"),
     path("admin/", admin.site.urls),
-    path("api/", include("products.urls")),
-    path("api/orders/", include("orders.urls")),
-    path("api/auth/", include("authentication.urls")),
-    path("api/", include("accounts.urls")),
-    path("api/", include("app_config.urls")),
+    path("api/v1/", include("products.urls")),
+    path("api/v1/orders/", include("orders.urls")),
+    path("api/v1/auth/", include("authentication.urls")),
+    path("api/v1/", include("accounts.urls")),
+    path("api/v1/", include("app_config.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Manual routing to serve media and static files when DEBUG = False in production

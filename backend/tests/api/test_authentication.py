@@ -53,7 +53,7 @@ class AuthenticationApiTests(TestCase):
 
         # Test RTR rotation
         response = self.client.post(
-            "/api/auth/token/refresh/", {"refresh": str(refresh)}
+            "/api/v1/auth/token/refresh/", {"refresh": str(refresh)}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
@@ -69,12 +69,14 @@ class AuthenticationApiTests(TestCase):
 
         # First 3 requests succeed
         for _ in range(3):
-            response = self.client.post("/api/auth/send-sms/", {"phone_number": phone})
+            response = self.client.post(
+                "/api/v1/auth/send-sms/", {"phone_number": phone}
+            )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data["status"], "OTP sent")
 
         # 4th request gets 429
-        response = self.client.post("/api/auth/send-sms/", {"phone_number": phone})
+        response = self.client.post("/api/v1/auth/send-sms/", {"phone_number": phone})
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertIn("Maximum 3 requests per 15 minutes", response.data["detail"])
 
@@ -85,7 +87,7 @@ class AuthenticationApiTests(TestCase):
         for i in range(10):
             phone = f"+91990000000{i}"
             response = self.client.post(
-                "/api/auth/send-sms/",
+                "/api/v1/auth/send-sms/",
                 {"phone_number": phone},
                 REMOTE_ADDR="192.168.1.50",
             )
@@ -93,7 +95,7 @@ class AuthenticationApiTests(TestCase):
 
         # 11th request gets 429
         response = self.client.post(
-            "/api/auth/send-sms/",
+            "/api/v1/auth/send-sms/",
             {"phone_number": "+919900000010"},
             REMOTE_ADDR="192.168.1.50",
         )
@@ -107,7 +109,7 @@ class AuthenticationApiTests(TestCase):
         """
         # Login
         response = self.client.post(
-            "/api/auth/staff-login/",
+            "/api/v1/auth/staff-login/",
             {"phone_number": "+919999999999", "password": "adminpassword123"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -119,7 +121,7 @@ class AuthenticationApiTests(TestCase):
 
         # Refresh using the cookie (sending empty refresh in body)
         self.client.cookies = response.cookies
-        refresh_response = self.client.post("/api/auth/token/refresh/", {})
+        refresh_response = self.client.post("/api/v1/auth/token/refresh/", {})
         self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", refresh_response.data)
         self.assertIn("refresh_token", refresh_response.cookies)
@@ -130,7 +132,7 @@ class AuthenticationApiTests(TestCase):
         """
         # Login to get cookie
         response = self.client.post(
-            "/api/auth/staff-login/",
+            "/api/v1/auth/staff-login/",
             {"phone_number": "+919999999999", "password": "adminpassword123"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -138,7 +140,7 @@ class AuthenticationApiTests(TestCase):
 
         # Logout
         self.client.cookies = response.cookies
-        logout_response = self.client.post("/api/auth/logout/", {})
+        logout_response = self.client.post("/api/v1/auth/logout/", {})
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
 
         # Cookie is cleared/expired
@@ -146,6 +148,6 @@ class AuthenticationApiTests(TestCase):
 
         # Refresh token is now blacklisted
         refresh_response = self.client.post(
-            "/api/auth/token/refresh/", {"refresh": refresh_token}
+            "/api/v1/auth/token/refresh/", {"refresh": refresh_token}
         )
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)

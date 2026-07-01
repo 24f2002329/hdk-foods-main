@@ -13,7 +13,7 @@ class AddressApiTests(APITestCase):
 
     def test_first_address_becomes_default(self):
         response = self.client.post(
-            "/api/addresses/",
+            "/api/v1/addresses/",
             data={
                 "label": "Home",
                 "house": "12A",
@@ -44,7 +44,7 @@ class AddressApiTests(APITestCase):
         )
 
         response = self.client.post(
-            "/api/addresses/",
+            "/api/v1/addresses/",
             data={
                 "label": "Work",
                 "house": "21B",
