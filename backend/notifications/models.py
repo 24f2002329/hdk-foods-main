@@ -91,5 +91,7 @@ class NotificationLog(models.Model):
         ]
 
     def __str__(self):
-        target = self.user.phone_number if self.user else self.target_role or "broadcast"
+        target = (
+            self.user.phone_number if self.user else self.target_role or "broadcast"
+        )
         return f"{self.title} - {target} - {self.status}"

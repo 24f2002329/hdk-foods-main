@@ -39,7 +39,10 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("target_role", models.CharField(blank=True, default="", max_length=20)),
+                (
+                    "target_role",
+                    models.CharField(blank=True, default="", max_length=20),
+                ),
                 ("title", models.CharField(max_length=255)),
                 ("body", models.TextField()),
                 ("data", models.JSONField(blank=True, default=dict)),

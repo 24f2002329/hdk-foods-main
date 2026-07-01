@@ -71,9 +71,7 @@ class Payment(models.Model):
 
     # Refund tracking
     refund_status = models.CharField(max_length=50, blank=True, default="")
-    refunded_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
-    )
+    refunded_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     refunded_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(default=timezone.now)
@@ -154,6 +152,5 @@ class PaymentAttempt(models.Model):
 
     def __str__(self):
         return (
-            f"Attempt[{self.gateway}|{self.status}] "
-            f"for Payment {self.payment_id}"
+            f"Attempt[{self.gateway}|{self.status}] " f"for Payment {self.payment_id}"
         )

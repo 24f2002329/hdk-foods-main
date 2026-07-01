@@ -14,7 +14,13 @@ from products.models import Product
 from authentication.permissions import IsCustomer
 from authentication.firebase import send_push, send_push_to_role
 from .models import Coupon, Order, OrderItem, OrderReview, ProductReview, PrepConfig
-from payments.models import Gateway, Payment, PaymentAttempt, PaymentMethod, PaymentStatus
+from payments.models import (
+    Gateway,
+    Payment,
+    PaymentAttempt,
+    PaymentMethod,
+    PaymentStatus,
+)
 from .serializers import (
     AcknowledgeChangesSerializer,
     AdminPaymentMethodSerializer,
@@ -353,7 +359,9 @@ class SelectPaymentView(APIView):
             order.save(update_fields=["payment_method", "payment_status", "updated_at"])
 
             # ── Payment model ──────────────────────────────────────────────────
-            payment = _get_or_create_payment(order, PaymentMethod.COD, order.total_amount)
+            payment = _get_or_create_payment(
+                order, PaymentMethod.COD, order.total_amount
+            )
             payment.status = PaymentStatus.PENDING
             payment.save(update_fields=["status", "updated_at"])
             # ──────────────────────────────────────────────────────────────────
@@ -433,7 +441,9 @@ class SelectPaymentView(APIView):
         )
 
         # ── Payment / PaymentAttempt models ───────────────────────────────────
-        payment = _get_or_create_payment(order, PaymentMethod.ONLINE, order.total_amount)
+        payment = _get_or_create_payment(
+            order, PaymentMethod.ONLINE, order.total_amount
+        )
         if payment.status == PaymentStatus.FAILED:
             payment.status = PaymentStatus.PENDING
             payment.save(update_fields=["status", "updated_at"])

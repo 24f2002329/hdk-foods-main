@@ -10,46 +10,131 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('orders', '0019_delete_coupon_remove_ordermessage_order_and_more'),
+        ("orders", "0019_delete_coupon_remove_ordermessage_order_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Payment',
+            name="Payment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('method', models.CharField(choices=[('cod', 'Cash on Delivery'), ('online', 'Online (Cashfree)'), ('upi', 'UPI (Driver-verified)')], default='cod', max_length=20)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('paid', 'Paid'), ('failed', 'Failed'), ('refunded', 'Refunded'), ('partial_refund', 'Partially Refunded')], default='pending', max_length=20)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('gateway_payment_id', models.CharField(blank=True, max_length=255)),
-                ('refund_status', models.CharField(blank=True, default='', max_length=50)),
-                ('refunded_amount', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
-                ('refunded_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('order', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='payment', to='orders.order')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "method",
+                    models.CharField(
+                        choices=[
+                            ("cod", "Cash on Delivery"),
+                            ("online", "Online (Cashfree)"),
+                            ("upi", "UPI (Driver-verified)"),
+                        ],
+                        default="cod",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("paid", "Paid"),
+                            ("failed", "Failed"),
+                            ("refunded", "Refunded"),
+                            ("partial_refund", "Partially Refunded"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("gateway_payment_id", models.CharField(blank=True, max_length=255)),
+                (
+                    "refund_status",
+                    models.CharField(blank=True, default="", max_length=50),
+                ),
+                (
+                    "refunded_amount",
+                    models.DecimalField(decimal_places=2, default=0, max_digits=10),
+                ),
+                ("refunded_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "order",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="payment",
+                        to="orders.order",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='PaymentAttempt',
+            name="PaymentAttempt",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gateway', models.CharField(choices=[('cashfree', 'Cashfree'), ('razorpay', 'Razorpay (legacy)'), ('upi_manual', 'UPI (manual driver verification)'), ('none', 'None (COD)')], default='cashfree', max_length=20)),
-                ('gateway_order_id', models.CharField(blank=True, max_length=64)),
-                ('payment_session_id', models.CharField(blank=True, max_length=255)),
-                ('gateway_payment_id', models.CharField(blank=True, max_length=255)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('paid', 'Paid'), ('failed', 'Failed'), ('refunded', 'Refunded'), ('partial_refund', 'Partially Refunded')], default='pending', max_length=20)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('gateway_response', models.JSONField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('payment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='attempts', to='payments.payment')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "gateway",
+                    models.CharField(
+                        choices=[
+                            ("cashfree", "Cashfree"),
+                            ("razorpay", "Razorpay (legacy)"),
+                            ("upi_manual", "UPI (manual driver verification)"),
+                            ("none", "None (COD)"),
+                        ],
+                        default="cashfree",
+                        max_length=20,
+                    ),
+                ),
+                ("gateway_order_id", models.CharField(blank=True, max_length=64)),
+                ("payment_session_id", models.CharField(blank=True, max_length=255)),
+                ("gateway_payment_id", models.CharField(blank=True, max_length=255)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("paid", "Paid"),
+                            ("failed", "Failed"),
+                            ("refunded", "Refunded"),
+                            ("partial_refund", "Partially Refunded"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("gateway_response", models.JSONField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "payment",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="attempts",
+                        to="payments.payment",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]
