@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -26,7 +26,7 @@ class OrderChatScreen extends StatefulWidget {
 }
 
 class _OrderChatScreenState extends State<OrderChatScreen> {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _messages = [];
@@ -63,7 +63,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
       });
     }
     try {
-      final msgs = await _orderService.getOrderMessages(widget.orderId);
+      final msgs = await _orderRepository.getOrderMessages(widget.orderId);
       if (mounted) {
         setState(() {
           _messages = msgs;
@@ -115,7 +115,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
     _scrollToBottom();
 
     try {
-      await _orderService.sendOrderMessage(widget.orderId, text);
+      await _orderRepository.sendOrderMessage(widget.orderId, text);
       _loadMessages(silent: true);
     } catch (e) {
       if (mounted) {

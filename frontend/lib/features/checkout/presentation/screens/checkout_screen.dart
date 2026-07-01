@@ -6,7 +6,7 @@ import '../../../address/data/models/customer_address.dart';
 import '../../../address/presentation/screens/address_screen.dart';
 import '../../../address/data/repositories/address_service.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
-import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/data/repositories/order_repository.dart';
 import 'kitchen_closed_screen.dart';
 import 'waiting_room_screen.dart';
 import '../../../../shared/widgets/congratulations_overlay.dart';
@@ -27,7 +27,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final AddressService _addressService = AddressService();
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   final _couponCtrl = TextEditingController();
 
   CustomerAddress? _selectedAddress;
@@ -121,7 +121,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _couponResult = null;
     });
     try {
-      final result = await _orderService.validateCoupon(
+      final result = await _orderRepository.validateCoupon(
         code: code,
         orderTotal: cartTotal,
       );
@@ -205,7 +205,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       final String finalDeliveryNotes = notesParts.join(' | ');
 
-      final order = await _orderService.createOrder(
+      final order = await _orderRepository.createOrder(
         addressId: _selectedAddress!.id!,
         items: items,
         paymentMethod: _selectedPaymentMethod,

@@ -8,7 +8,7 @@ import '../../../../shared/widgets/login_prompt_widget.dart';
 import '../../../cart/presentation/screens/cart_screen.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import 'order_tracking_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -24,7 +24,7 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   final _scrollController = ScrollController();
 
   bool _isLoggedIn = true;
@@ -59,7 +59,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Future<void> _silentReload() async {
     if (_loading || !_isLoggedIn) return;
     try {
-      final data = await _orderService.getMyOrdersPaged(page: 1);
+      final data = await _orderRepository.getMyOrdersPaged(page: 1);
       final results = (data['results'] as List)
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -98,7 +98,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       _error = null;
     });
     try {
-      final data = await _orderService.getMyOrdersPaged(page: _page);
+      final data = await _orderRepository.getMyOrdersPaged(page: _page);
       final results = (data['results'] as List)
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();

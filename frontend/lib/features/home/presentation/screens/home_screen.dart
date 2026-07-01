@@ -18,7 +18,7 @@ import '../../../menu/presentation/screens/menu_screen.dart';
 import '../../../orders/presentation/screens/orders_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../accounts/data/repositories/user_service.dart';
-import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/data/repositories/order_repository.dart';
 import '../../data/repositories/config_service.dart';
 import '../../data/repositories/product_service.dart';
 import '../../data/repositories/notification_service.dart';
@@ -187,7 +187,7 @@ class _HomeTabState extends State<HomeTab> {
     categoriesFuture = ProductService.getCategories();
     configFuture = ConfigService().getConfig();
     bannersFuture = ConfigService().getBanners();
-    activeCouponsFuture = OrderService().getActiveCoupons();
+    activeCouponsFuture = OrderRepository().getActiveCoupons();
     ordersFuture = _fetchOrdersSafely();
     _loadUserData();
   }
@@ -198,7 +198,7 @@ class _HomeTabState extends State<HomeTab> {
       return <Order>[];
     }
     try {
-      return await OrderService().getMyOrders();
+      return await OrderRepository().getMyOrders();
     } catch (_) {
       return <Order>[];
     }

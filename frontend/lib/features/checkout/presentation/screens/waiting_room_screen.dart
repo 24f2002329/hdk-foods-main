@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/data/repositories/order_repository.dart';
 import '../../../orders/presentation/screens/order_tracking_screen.dart';
 import '../../../orders/presentation/widgets/modified_order_dialog.dart';
 import 'order_status_screens.dart';
@@ -29,7 +29,7 @@ class WaitingRoomScreen extends StatefulWidget {
 }
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   Timer? _countdownTimer;
   Timer? _pollingTimer;
   int _secondsRemaining = 300; // 5 minutes
@@ -74,7 +74,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     if (_navigated) return;
 
     try {
-      final order = await _orderService.getOrder(widget.orderId);
+      final order = await _orderRepository.getOrder(widget.orderId);
 
       if (order.status == 'confirmed') {
         _navigated = true;
@@ -129,7 +129,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       }
 
       try {
-        currentOrder = await _orderService.acknowledgeChanges(
+        currentOrder = await _orderRepository.acknowledgeChanges(
           orderId: currentOrder.id,
           accepted: accepted,
         );
@@ -158,7 +158,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     if (widget.paymentMethod == 'cod') {
       // Register the COD choice, then celebrate before tracking.
       try {
-        await _orderService.selectPayment(
+        await _orderRepository.selectPayment(
           orderId: currentOrder.id,
           method: 'cod',
         );

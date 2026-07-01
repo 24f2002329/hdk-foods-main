@@ -19,7 +19,7 @@ import '../../../cart/presentation/screens/cart_screen.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../data/repositories/delivery_location_service.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import '../widgets/modified_order_dialog.dart';
 import 'order_chat_screen.dart';
 import 'premium_review_screen.dart';
@@ -41,7 +41,7 @@ class OrderTrackingScreen extends StatefulWidget {
 
 class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     with SingleTickerProviderStateMixin {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   final DeliveryLocationService _deliveryLocationService =
       DeliveryLocationService();
   final CFPaymentGatewayService _cfService = CFPaymentGatewayService();
@@ -232,11 +232,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       });
     }
     try {
-      var order = await _orderService.getOrder(widget.orderId);
+      var order = await _orderRepository.getOrder(widget.orderId);
 
       if (order.paymentMethod == 'online' && order.paymentStatus == 'pending') {
         try {
-          order = await _orderService.verifyPayment(orderId: widget.orderId);
+          order = await _orderRepository.verifyPayment(orderId: widget.orderId);
         } catch (_) {}
       }
 
@@ -259,7 +259,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
       if (order.status == 'pending_confirmation') {
         try {
-          final q = await _orderService.getQueuePosition(widget.orderId);
+          final q = await _orderRepository.getQueuePosition(widget.orderId);
           if (mounted) setState(() => _queuePosition = q);
         } catch (_) {}
       } else {
@@ -268,7 +268,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
       if (order.status == 'delivered' && !_reviewSubmitted) {
         try {
-          final reviewed = await _orderService.hasReview(widget.orderId);
+          final reviewed = await _orderRepository.hasReview(widget.orderId);
           if (mounted) setState(() => _reviewSubmitted = reviewed);
         } catch (_) {}
       }
@@ -298,7 +298,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   Future<void> _onPaymentVerify(String orderId) async {
     try {
-      final updated = await _orderService.verifyPayment(
+      final updated = await _orderRepository.verifyPayment(
         orderId: widget.orderId,
       );
       if (!mounted) return;
@@ -383,7 +383,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     setState(() => _isProcessingPayment = true);
 
     try {
-      final result = await _orderService.selectPayment(
+      final result = await _orderRepository.selectPayment(
         orderId: widget.orderId,
         method: 'online',
       );
@@ -424,7 +424,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     });
 
     try {
-      await _orderService.requestCancellation(
+      await _orderRepository.requestCancellation(
         orderId: widget.orderId,
         reason: reason,
       );
@@ -605,7 +605,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     );
     if (accepted == null || !mounted) return;
     try {
-      await _orderService.acknowledgeChanges(
+      await _orderRepository.acknowledgeChanges(
         orderId: order.id,
         accepted: accepted,
       );
@@ -896,7 +896,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               order: order,
               onReport: () async {
                 try {
-                  final updated = await _orderService.reportNotReceived(
+                  final updated = await _orderRepository.reportNotReceived(
                     order.id,
                   );
                   if (mounted) _applyOrder(updated);

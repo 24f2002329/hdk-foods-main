@@ -7,7 +7,7 @@ import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
-import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/data/repositories/order_repository.dart';
 import '../../../orders/presentation/screens/order_tracking_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -37,7 +37,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   final CFPaymentGatewayService _cfService = CFPaymentGatewayService();
 
   late String _selectedMethod = widget.lockedMethod ?? 'cod';
@@ -65,7 +65,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   /// status from Cashfree and marks the order paid.
   Future<void> _onPaymentVerify(String orderId) async {
     try {
-      final order = await _orderService.verifyPayment(orderId: widget.orderId);
+      final order = await _orderRepository.verifyPayment(orderId: widget.orderId);
 
       if (!mounted) return;
       final paid = order.paymentStatus == 'paid';
@@ -103,7 +103,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      final result = await _orderService.selectPayment(
+      final result = await _orderRepository.selectPayment(
         orderId: widget.orderId,
         method: _selectedMethod,
       );
