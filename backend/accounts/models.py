@@ -6,6 +6,12 @@ from django.contrib.auth.models import (
 )
 
 
+class UserRole(models.TextChoices):
+    CUSTOMER = "customer", "Customer"
+    DELIVERY = "delivery", "Delivery"
+    ADMIN = "admin", "Admin"
+
+
 class UserManager(BaseUserManager):
 
     def create_user(self, phone_number, password=None, **extra_fields):
@@ -26,24 +32,20 @@ class UserManager(BaseUserManager):
 
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("role", "admin")
+        extra_fields.setdefault("role", UserRole.ADMIN)
 
         return self.create_user(phone_number, password=password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
 
-    ROLE_CHOICES = [
-        ("customer", "Customer"),
-        ("delivery", "Delivery"),
-        ("admin", "Admin"),
-    ]
-
     phone_number = models.CharField(max_length=15, unique=True)
 
     name = models.CharField(max_length=255, blank=True)
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="customer")
+    role = models.CharField(
+        max_length=20, choices=UserRole.choices, default=UserRole.CUSTOMER
+    )
 
     is_active = models.BooleanField(default=True)
 
