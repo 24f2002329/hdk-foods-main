@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'colors.dart';
 import 'app_theme.dart';
 
-export 'app_colors.dart';
+export 'colors.dart';
 export 'app_theme.dart';
-export 'app_typography.dart';
-export 'app_spacing.dart';
-export 'app_radius.dart';
-export 'app_shadows.dart';
+export 'typography.dart';
+export 'spacing.dart';
+export 'radius.dart';
+export 'elevation.dart';
+export 'animation.dart';
 export 'app_icons.dart';
 
 class HdkTheme {
