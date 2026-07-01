@@ -17,5 +17,8 @@ void main() {
     );
 
     expect(find.byType(MaterialApp), findsOneWidget);
+
+    // Pump time forward to resolve pending splash screen route timer
+    await tester.pumpAndSettle(const Duration(milliseconds: 1000));
   });
 }
