@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../core/notifications/notification_service.dart';
+import '../../../../core/notifications/notification_service.dart';
 import 'login_screen.dart';
-import '../../orders/screens/admin_home.dart';
+import '../../../orders/presentation/screens/admin_home.dart';
 
 class AdminSplashScreen extends StatefulWidget {
   const AdminSplashScreen({super.key});

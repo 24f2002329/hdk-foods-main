@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../models/customer_address.dart';
-import '../services/address_service.dart';
+import '../../data/models/customer_address.dart';
+import '../../data/repositories/address_service.dart';
 import 'location_picker_screen.dart';
 import 'package:hdk_core/hdk_core.dart';
 

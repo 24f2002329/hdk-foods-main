@@ -7,23 +7,23 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/services/order_websocket_service.dart';
+import '../../../../core/services/order_websocket_service.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../auth/screens/login_screen.dart';
-import '../../delivery_staff/models/delivery_staff.dart';
-import '../../delivery_staff/services/delivery_staff_service.dart';
-import '../../orders/services/order_service.dart';
-import '../../orders/screens/admin_order_detail_screen.dart';
-import '../../orders/screens/admin_create_order_screen.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../delivery_staff/data/models/delivery_staff.dart';
+import '../../../delivery_staff/data/repositories/delivery_staff_service.dart';
+import '../../data/repositories/order_service.dart';
+import './admin_order_detail_screen.dart';
+import './admin_create_order_screen.dart';
 import 'kds_screen.dart';
 import 'dispatch_screen.dart';
 import 'sentiment_dashboard_screen.dart';
-import '../../products/services/product_service.dart';
-import '../../products/screens/modifier_management_screen.dart';
-import '../../settings/screens/site_config_screen.dart';
-import '../../settings/services/notification_service.dart';
-import '../../settings/screens/notification_screen.dart';
+import '../../../products/data/repositories/product_service.dart';
+import '../../../products/presentation/screens/modifier_management_screen.dart';
+import '../../../settings/presentation/screens/site_config_screen.dart';
+import '../../../settings/data/repositories/notification_service.dart';
+import '../../../settings/presentation/screens/notification_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

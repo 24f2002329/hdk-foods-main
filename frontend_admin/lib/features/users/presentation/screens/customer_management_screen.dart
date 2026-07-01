@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../orders/screens/admin_order_detail_screen.dart';
-import '../services/customer_service.dart';
+import '../../../orders/presentation/screens/admin_order_detail_screen.dart';
+import '../../data/repositories/customer_service.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

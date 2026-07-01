@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/services/order_websocket_service.dart';
+import '../../../../../core/services/order_websocket_service.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../services/order_service.dart';
-import '../../navigation/screens/delivery_navigation_screen.dart';
+import '../../data/repositories/order_service.dart';
+import '../../../navigation/presentation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
-import '../services/notification_service.dart';
+import '../../data/repositories/notification_service.dart';
 import 'notification_screen.dart';
 
 const _red = Color(0xFFFF1E1E);

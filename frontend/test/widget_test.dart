@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/cart/services/cart_provider.dart';
+import 'package:frontend/features/cart/presentation/providers/cart_provider.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 void main() {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../home/screens/home_screen.dart';
+import '../../../home/presentation/screens/home_screen.dart';
 import 'login_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../shared/widgets/product_row.dart';
-import '../../cart/services/cart_provider.dart';
+import '../../../../shared/widgets/product_row.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
 
 const _mutedText = Color(0xFFB8B8B8);
 const _surface = Color(0xFF050505);

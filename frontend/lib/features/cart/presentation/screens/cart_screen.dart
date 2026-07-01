@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../auth/screens/login_screen.dart';
-import '../../checkout/screens/kitchen_closed_screen.dart';
-import '../../home/services/config_service.dart';
-import '../../home/services/product_service.dart';
-import '../models/cart_item.dart';
-import '../services/cart_provider.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../checkout/presentation/screens/kitchen_closed_screen.dart';
+import '../../../home/data/repositories/config_service.dart';
+import '../../../home/data/repositories/product_service.dart';
+import '../../data/models/cart_item.dart';
+import '../providers/cart_provider.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

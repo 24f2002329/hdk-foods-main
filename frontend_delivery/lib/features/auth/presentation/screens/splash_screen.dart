@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../core/notifications/notification_service.dart';
-import '../../orders/screens/home_router.dart';
+import '../../../../core/notifications/notification_service.dart';
+import '../../../orders/presentation/screens/home_router.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {

@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:smart_auth/smart_auth.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../accounts/services/user_service.dart';
-import '../screens/name_collection_screen.dart';
-import '../services/auth_service.dart';
+import '../../../accounts/data/repositories/user_service.dart';
+import './name_collection_screen.dart';
+import '../../data/repositories/auth_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

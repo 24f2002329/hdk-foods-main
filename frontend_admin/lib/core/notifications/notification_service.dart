@@ -6,8 +6,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../features/orders/screens/admin_order_detail_screen.dart';
-import '../../features/orders/screens/admin_order_chat_screen.dart';
+import '../../features/orders/presentation/screens/admin_order_detail_screen.dart';
+import '../../features/orders/presentation/screens/admin_order_chat_screen.dart';
 
 const _kChannelId = 'hdkfoods_orders';
 const _kChannelName = 'Order Alerts';

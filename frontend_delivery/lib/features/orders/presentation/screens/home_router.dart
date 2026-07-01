@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../auth/screens/login_screen.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import 'delivery_orders_screen.dart';
 import 'profile_screen.dart';
 

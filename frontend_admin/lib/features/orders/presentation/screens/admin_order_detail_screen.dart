@@ -8,10 +8,10 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../services/order_service.dart';
-import '../../delivery_staff/models/delivery_staff.dart';
-import '../../delivery_staff/services/delivery_staff_service.dart';
-import '../../products/services/product_service.dart';
+import '../../data/repositories/order_service.dart';
+import '../../../delivery_staff/data/models/delivery_staff.dart';
+import '../../../delivery_staff/data/repositories/delivery_staff_service.dart';
+import '../../../products/data/repositories/product_service.dart';
 import 'admin_order_chat_screen.dart';
 
 const _red = Color(0xFFFF1E1E);

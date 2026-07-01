@@ -6,12 +6,12 @@ import 'package:shimmer/shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../cart/services/cart_provider.dart';
-import '../../../shared/widgets/fly_to_cart.dart';
-import '../../cart/models/cart_item.dart';
-import '../../home/services/product_service.dart';
-import '../../home/services/config_service.dart';
-import '../../cart/screens/cart_screen.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../../shared/widgets/fly_to_cart.dart';
+import '../../../cart/data/models/cart_item.dart';
+import '../../../home/data/repositories/product_service.dart';
+import '../../../home/data/repositories/config_service.dart';
+import '../../../cart/presentation/screens/cart_screen.dart';
 
 // Brand colors
 const _brandRed = Color(0xFFFF1E1E);

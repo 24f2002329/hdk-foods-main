@@ -7,8 +7,8 @@ import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
-import '../../orders/services/order_service.dart';
-import '../../orders/screens/order_tracking_screen.dart';
+import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/presentation/screens/order_tracking_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

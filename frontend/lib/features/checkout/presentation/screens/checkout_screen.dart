@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../accounts/services/user_service.dart';
-import '../../address/models/customer_address.dart';
-import '../../address/screens/address_screen.dart';
-import '../../address/services/address_service.dart';
-import '../../cart/services/cart_provider.dart';
-import '../../orders/services/order_service.dart';
+import '../../../accounts/data/repositories/user_service.dart';
+import '../../../address/data/models/customer_address.dart';
+import '../../../address/presentation/screens/address_screen.dart';
+import '../../../address/data/repositories/address_service.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../orders/data/repositories/order_service.dart';
 import 'kitchen_closed_screen.dart';
 import 'waiting_room_screen.dart';
-import '../../../shared/widgets/congratulations_overlay.dart';
+import '../../../../shared/widgets/congratulations_overlay.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);

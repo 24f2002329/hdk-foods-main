@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../services/auth_service.dart';
+import '../../data/repositories/auth_service.dart';
 import 'otp_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);

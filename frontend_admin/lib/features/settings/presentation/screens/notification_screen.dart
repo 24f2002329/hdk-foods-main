@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../services/notification_service.dart';
+import '../../data/repositories/notification_service.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 const _red = Color(0xFFFF1E1E);

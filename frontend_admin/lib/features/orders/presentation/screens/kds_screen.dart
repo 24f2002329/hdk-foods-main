@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/services/order_websocket_service.dart';
+import '../../../../core/services/order_websocket_service.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../delivery_staff/models/delivery_staff.dart';
-import '../../delivery_staff/services/delivery_staff_service.dart';
-import '../services/order_service.dart';
+import '../../../delivery_staff/data/models/delivery_staff.dart';
+import '../../../delivery_staff/data/repositories/delivery_staff_service.dart';
+import '../../data/repositories/order_service.dart';
 import 'admin_order_detail_screen.dart';
 
 const _red = Color(0xFFFF1E1E);

@@ -5,13 +5,13 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../services/location_tracking_service.dart';
-import '../../navigation/screens/delivery_navigation_screen.dart';
-import '../../navigation/screens/payment_collection_screen.dart';
-import '../services/order_service.dart';
-import '../../delivery_staff/models/delivery_staff.dart';
-import '../../delivery_staff/services/delivery_staff_service.dart';
-import '../../products/services/product_service.dart';
+import '../../../../services/location_tracking_service.dart';
+import '../../../navigation/presentation/screens/delivery_navigation_screen.dart';
+import '../../../navigation/presentation/screens/payment_collection_screen.dart';
+import '../../data/repositories/order_service.dart';
+import '../../../delivery_staff/data/models/delivery_staff.dart';
+import '../../../delivery_staff/data/repositories/delivery_staff_service.dart';
+import '../../../products/data/repositories/product_service.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

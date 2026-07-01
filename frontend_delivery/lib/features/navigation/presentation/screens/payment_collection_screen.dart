@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../features/orders/screens/home_router.dart';
-import '../../../features/orders/services/order_service.dart';
+import '../../../orders/presentation/screens/home_router.dart';
+import '../../../orders/data/repositories/order_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 

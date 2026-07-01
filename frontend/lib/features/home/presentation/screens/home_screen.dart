@@ -7,21 +7,21 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../address/screens/address_screen.dart';
-import '../../address/services/address_service.dart';
-import '../../address/models/customer_address.dart';
-import '../../auth/screens/login_screen.dart';
-import '../../cart/screens/cart_screen.dart';
-import '../../cart/services/cart_provider.dart';
-import '../../../shared/widgets/fly_to_cart.dart';
-import '../../menu/screens/menu_screen.dart';
-import '../../orders/screens/orders_screen.dart';
-import '../../profile/screens/profile_screen.dart';
-import '../../accounts/services/user_service.dart';
-import '../../orders/services/order_service.dart';
-import '../services/config_service.dart';
-import '../services/product_service.dart';
-import '../services/notification_service.dart';
+import '../../../address/presentation/screens/address_screen.dart';
+import '../../../address/data/repositories/address_service.dart';
+import '../../../address/data/models/customer_address.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../../shared/widgets/fly_to_cart.dart';
+import '../../../menu/presentation/screens/menu_screen.dart';
+import '../../../orders/presentation/screens/orders_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../accounts/data/repositories/user_service.dart';
+import '../../../orders/data/repositories/order_service.dart';
+import '../../data/repositories/config_service.dart';
+import '../../data/repositories/product_service.dart';
+import '../../data/repositories/notification_service.dart';
 import './notification_screen.dart';
 
 // Styling constants

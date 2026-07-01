@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../models/cart_item.dart';
+import '../../data/models/cart_item.dart';
 
 const _kCartKey = 'hdk_cart_v1';
 

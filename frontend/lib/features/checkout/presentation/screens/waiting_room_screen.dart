@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../orders/services/order_service.dart';
-import '../../orders/screens/order_tracking_screen.dart';
-import '../../orders/widgets/modified_order_dialog.dart';
+import '../../../orders/data/repositories/order_service.dart';
+import '../../../orders/presentation/screens/order_tracking_screen.dart';
+import '../../../orders/presentation/widgets/modified_order_dialog.dart';
 import 'order_status_screens.dart';
 import 'payment_screen.dart';
 

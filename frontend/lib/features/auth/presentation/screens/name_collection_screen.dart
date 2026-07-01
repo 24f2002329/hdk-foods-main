@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../accounts/services/user_service.dart';
+import '../../../accounts/data/repositories/user_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

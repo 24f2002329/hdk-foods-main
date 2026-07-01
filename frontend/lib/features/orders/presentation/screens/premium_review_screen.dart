@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../services/order_service.dart';
+import '../../data/repositories/order_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

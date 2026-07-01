@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _panel = Color(0xFF111111);

@@ -4,11 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../shared/widgets/login_prompt_widget.dart';
-import '../../cart/screens/cart_screen.dart';
-import '../../cart/services/cart_provider.dart';
-import '../../home/services/product_service.dart';
-import '../services/order_service.dart';
+import '../../../../shared/widgets/login_prompt_widget.dart';
+import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../home/data/repositories/product_service.dart';
+import '../../data/repositories/order_service.dart';
 import 'order_tracking_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);

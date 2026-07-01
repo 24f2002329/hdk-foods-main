@@ -7,14 +7,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'package:hdk_core/hdk_core.dart';
-import 'features/address/screens/address_screen.dart';
-import 'features/auth/screens/login_screen.dart';
-import 'features/auth/screens/splash_screen.dart';
-import 'features/cart/services/cart_provider.dart';
-import 'features/home/screens/home_screen.dart';
-import 'features/checkout/screens/checkout_screen.dart';
-import 'features/orders/screens/order_chat_screen.dart';
-import 'features/orders/screens/order_tracking_screen.dart';
+import 'features/address/presentation/screens/address_screen.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
+import 'features/cart/presentation/providers/cart_provider.dart';
+import 'features/home/presentation/screens/home_screen.dart';
+import 'features/checkout/presentation/screens/checkout_screen.dart';
+import 'features/orders/presentation/screens/order_chat_screen.dart';
+import 'features/orders/presentation/screens/order_tracking_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {

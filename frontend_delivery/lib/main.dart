@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 import 'core/notifications/notification_service.dart';
-import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 

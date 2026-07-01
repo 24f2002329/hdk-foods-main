@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../services/product_service.dart';
+import '../../data/repositories/product_service.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);

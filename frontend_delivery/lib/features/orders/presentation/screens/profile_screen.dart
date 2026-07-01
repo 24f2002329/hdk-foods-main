@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../auth/services/auth_service.dart';
-import '../../auth/screens/login_screen.dart';
+import '../../../auth/data/repositories/auth_service.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
