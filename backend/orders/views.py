@@ -42,7 +42,6 @@ from .serializers import (
 
 from django.utils import timezone
 from datetime import timedelta
-from threading import Timer
 
 from django.db.models import Sum, Count, F, Avg, Q
 from django.db.models.functions import TruncDate, ExtractHour
@@ -75,37 +74,6 @@ import hmac
 import hashlib
 
 logger = logging.getLogger(__name__)
-
-
-def _send_pending_online_payment_reminder(order_id):
-    try:
-        order = Order.objects.select_related("user").get(pk=order_id)
-    except Order.DoesNotExist:
-        return
-
-    if (
-        order.payment_method != "online"
-        or order.payment_status != "pending"
-        or order.status in ("delivered", "cancelled", "rejected")
-    ):
-        return
-
-    send_push(
-        order.user,
-        "Complete payment",
-        f"Your payment for order #{order.order_number} is still pending. Tap to complete it.",
-        {"order_id": str(order.id), "type": "payment_pending"},
-    )
-
-
-def _schedule_pending_online_payment_reminder(order_id):
-    reminder = Timer(
-        300,
-        _send_pending_online_payment_reminder,
-        args=(order_id,),
-    )
-    reminder.daemon = True
-    reminder.start()
 
 
 def _broadcast_order(order, event_type="order_update"):

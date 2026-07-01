@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "channels",
     "rest_framework_simplejwt.token_blacklist",
     "axes",
+    "django_q",
 ]
 
 MIDDLEWARE = [
@@ -155,6 +156,25 @@ else:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
+
+
+# ─── Django Q2 Task Queue ─────────────────────────────────────────────────────
+Q_CLUSTER = {
+    "name": "hdk_foods",
+    "workers": 4,
+    "recycle": 500,
+    "timeout": 60,
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "cpu_affinity": 1,
+    "label": "Django Q",
+}
+
+if redis_url:
+    Q_CLUSTER["redis"] = redis_url
+else:
+    Q_CLUSTER["orm"] = "default"
 
 
 # Database

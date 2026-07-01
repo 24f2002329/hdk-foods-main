@@ -2,8 +2,9 @@ import logging
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
-from threading import Timer
 from django.core.exceptions import ValidationError
+from django_q.tasks import schedule
+from django_q.models import Schedule
 from accounts.models import Address, User
 from products.models import Product
 from offers.models import Coupon
@@ -19,7 +20,7 @@ from .notifications import (
 logger = logging.getLogger(__name__)
 
 
-def _send_pending_online_payment_reminder(order_id):
+def send_pending_online_payment_reminder(order_id):
     try:
         order = Order.objects.select_related("user").get(pk=order_id)
     except Order.DoesNotExist:
@@ -36,13 +37,12 @@ def _send_pending_online_payment_reminder(order_id):
 
 
 def _schedule_pending_online_payment_reminder(order_id):
-    reminder = Timer(
-        300,
-        _send_pending_online_payment_reminder,
-        args=(order_id,),
+    schedule(
+        "services.order_service.send_pending_online_payment_reminder",
+        order_id,
+        schedule_type=Schedule.ONCE,
+        next_run=timezone.now() + timedelta(minutes=5),
     )
-    reminder.daemon = True
-    reminder.start()
 
 
 def create_order(
