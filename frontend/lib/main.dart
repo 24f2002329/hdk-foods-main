@@ -8,6 +8,7 @@ import 'features/address/presentation/screens/address_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 import 'features/cart/presentation/providers/cart_provider.dart';
+import 'features/home/presentation/providers/home_provider.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/checkout/presentation/screens/checkout_screen.dart';
 import 'features/orders/presentation/screens/order_chat_screen.dart';
@@ -134,8 +135,11 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => CartProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
+      ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,

@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../address/presentation/screens/address_screen.dart';
-import '../../../address/data/repositories/address_service.dart';
 import '../../../address/data/models/customer_address.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../cart/presentation/screens/cart_screen.dart';
@@ -17,11 +16,9 @@ import '../../../../shared/widgets/fly_to_cart.dart';
 import '../../../menu/presentation/screens/menu_screen.dart';
 import '../../../orders/presentation/screens/orders_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
-import '../../../accounts/data/repositories/user_service.dart';
-import '../../../orders/data/repositories/order_repository.dart';
-import '../../data/repositories/config_service.dart';
 import '../../data/repositories/product_service.dart';
-import '../../data/repositories/notification_service.dart';
+import '../../data/repositories/config_service.dart';
+import '../providers/home_provider.dart';
 import './notification_screen.dart';
 
 // Styling constants
@@ -32,39 +29,26 @@ const _stroke = Color(0xFF2A2A2A);
 const _mutedText = Color(0xFF9E9E9E);
 const _gold = Color(0xFFFFC107);
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int activeTab = 0; // 0 maps to Home, 1 maps to Profile
-
-  final _navigatorKeys = [
-    GlobalKey<NavigatorState>(),
-    GlobalKey<NavigatorState>(),
-  ];
-
-  final screens = const [HomeTab(), ProfileScreen()];
-
-  @override
   Widget build(BuildContext context) {
+    final homeProvider = context.watch<HomeProvider>();
     final cartCount = context.watch<CartProvider>().itemCount;
+    final activeTab = homeProvider.activeTab;
+    final screens = const [HomeTab(), ProfileScreen()];
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final isFirstRouteInCurrentTab = !await _navigatorKeys[activeTab]
+        final isFirstRouteInCurrentTab = !await homeProvider.navigatorKeys[activeTab]
             .currentState!
             .maybePop();
         if (isFirstRouteInCurrentTab) {
           if (activeTab != 0) {
-            setState(() {
-              activeTab = 0;
-            });
+            homeProvider.setActiveTab(0);
           } else {
             SystemNavigator.pop();
           }
@@ -77,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
           index: activeTab,
           children: List.generate(2, (index) {
             return Navigator(
-              key: _navigatorKeys[index],
+              key: homeProvider.navigatorKeys[index],
               onGenerateRoute: (settings) {
                 WidgetBuilder builder;
                 switch (settings.name) {
@@ -100,13 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
           cartCount: cartCount,
           onTap: (index) {
             if (index == 0) {
-              if (activeTab == 0) {
-                _navigatorKeys[0].currentState?.popUntil(
-                  (route) => route.isFirst,
-                );
-              } else {
-                setState(() => activeTab = 0);
-              }
+              homeProvider.setActiveTab(0);
             } else if (index == 1) {
               Navigator.of(
                 context,
@@ -123,13 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 rootNavigator: true,
               ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
             } else if (index == 4) {
-              if (activeTab == 1) {
-                _navigatorKeys[1].currentState?.popUntil(
-                  (route) => route.isFirst,
-                );
-              } else {
-                setState(() => activeTab = 1);
-              }
+              homeProvider.setActiveTab(1);
             }
           },
         ),
@@ -138,124 +110,227 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HomeTab extends StatefulWidget {
+class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
   @override
-  State<HomeTab> createState() => _HomeTabState();
-}
+  Widget build(BuildContext context) {
+    final homeProvider = context.watch<HomeProvider>();
+    final cart = context.watch<CartProvider>();
 
-class _HomeTabState extends State<HomeTab> {
-  late Future<List<Product>> productsFuture; // Featured
-  late Future<List<Product>>
-  allProductsFuture; // All products for BestSellers, Trending, Combos, NewArrivals
-  late Future<List<Category>> categoriesFuture;
-  late Future<SiteConfig> configFuture;
-  late Future<List<AppBanner>> bannersFuture;
-  late Future<List<Order>> ordersFuture;
-  late Future<List<Map<String, dynamic>>> activeCouponsFuture;
+    return Scaffold(
+      backgroundColor: _surface,
+      body: SafeArea(
+        child: FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            homeProvider.configFuture ?? Future.value(const SiteConfig()),
+            homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+          ]),
+          builder: (context, snapshot) {
+            if (snapshot.hasError &&
+                snapshot.connectionState != ConnectionState.waiting) {
+              return ErrorRetryWidget(
+                error: snapshot.error.toString(),
+                onRetry: homeProvider.reload,
+              );
+            }
+            return Stack(
+              children: [
+                RefreshIndicator(
+                  color: _brandRed,
+                  backgroundColor: _panel,
+                  onRefresh: () async {
+                    homeProvider.reload();
+                    await Future.wait([
+                      homeProvider.productsFuture ?? Future.value(<Product>[]),
+                      homeProvider.allProductsFuture ?? Future.value(<Product>[]),
+                      homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+                      homeProvider.configFuture ?? Future.value(const SiteConfig()),
+                      homeProvider.bannersFuture ?? Future.value(<AppBanner>[]),
+                      homeProvider.ordersFuture ?? Future.value(<Order>[]),
+                      homeProvider.activeCouponsFuture ?? Future.value(<Map<String, dynamic>>[]),
+                    ]);
+                  },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      // Phase 1 — Premium Header (Dynamic)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                          child: _HomeHeader(
+                            currentUser: homeProvider.currentUser,
+                            selectedAddress: homeProvider.selectedAddress,
+                            isLoggedIn: homeProvider.isLoggedIn,
+                            unreadNotificationCount: homeProvider.unreadNotificationCount,
+                            onSelectAddress: () => _selectAddress(context, homeProvider),
+                            onLoginPressed: () {
+                              Navigator.of(context, rootNavigator: true)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginScreen(),
+                                    ),
+                                  )
+                                  .then((_) {
+                                    homeProvider.reload();
+                                  });
+                            },
+                            onNotificationPressed: () => _openNotifications(context, homeProvider),
+                          ),
+                        ),
+                      ),
 
-  User? _currentUser;
-  CustomerAddress? _selectedAddress;
-  bool _isLoggedIn = false;
-  int _unreadNotificationCount = 0;
+                      // Phase 2 — Sticky Glassmorphic Search Bar
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _StickySearchDelegate(
+                          child: _StickyGlassmorphicSearchBar(
+                            onTap: () {
+                              Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const MenuScreen(autofocusSearch: true),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
 
-  Timer? _autoReloadTimer;
+                      // Phase 2 — Kitchen Status Card (Dynamic)
+                      SliverToBoxAdapter(
+                        child: FutureBuilder<SiteConfig>(
+                          future: homeProvider.configFuture,
+                          builder: (context, snap) {
+                            return _KitchenStatusCard(config: snap.data);
+                          },
+                        ),
+                      ),
 
-  @override
-  void initState() {
-    super.initState();
-    _reload();
-    _autoReloadTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted && _isLoggedIn) {
-        setState(() {
-          ordersFuture = _fetchOrdersSafely();
-        });
-      }
-    });
+                      // Phase 3 — Hero Banner Carousel (Dynamic)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                          child: FutureBuilder<List<AppBanner>>(
+                            future: homeProvider.bannersFuture,
+                            builder: (context, snap) =>
+                                _BannerCarousel(banners: snap.data ?? []),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 4 — Categories (Dynamic)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 0, 8),
+                          child: _CategoriesSection(
+                            categoriesFuture: homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 5 — Today's Specials (Dynamic: config via is_featured)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
+                          child: _SpecialsSection(
+                            productsFuture: homeProvider.productsFuture ?? Future.value(<Product>[]),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 7 — Combo Offers (Dynamic: parsed from category "Combos")
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
+                          child: _ComboOffersSection(
+                            allProductsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[]),
+                            categoriesFuture: homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 8 — Offers & Coupons (Dynamic: fetched from active backend coupons)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
+                          child: _CouponsSection(
+                            activeCouponsFuture: homeProvider.activeCouponsFuture ?? Future.value(<Map<String, dynamic>>[]),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 9 — New Arrivals & Trending (Dynamic: computed based on rating and date)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _TrendingAndNewSection(
+                            productsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[]),
+                          ),
+                        ),
+                      ),
+
+                      // Phase 6 — Best Sellers (Dynamic: Products with rating >= 4.0)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                          child: Text(
+                            'Best Sellers 🌟',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _BestSellersGrid(productsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[])),
+
+                      // Phase 10 — Recently Ordered (Dynamic: fetched from order history)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                          child: _RecentlyOrderedSection(
+                            ordersFuture: homeProvider.ordersFuture ?? Future.value(<Order>[]),
+                            onReload: homeProvider.reload,
+                          ),
+                        ),
+                      ),
+
+                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                    ],
+                  ),
+                ),
+                // Phase 11 — Floating Cart Summary
+                if (cart.itemCount > 0)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: _FloatingCartSummary(
+                      cartCount: cart.itemCount,
+                      totalAmount: cart.totalAmount,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _autoReloadTimer?.cancel();
-    super.dispose();
-  }
-
-  void _reload() {
-    productsFuture = ProductService.getFeaturedProducts();
-    allProductsFuture = ProductService.getProducts();
-    categoriesFuture = ProductService.getCategories();
-    configFuture = ConfigService().getConfig();
-    bannersFuture = ConfigService().getBanners();
-    activeCouponsFuture = OrderRepository().getActiveCoupons();
-    ordersFuture = _fetchOrdersSafely();
-    _loadUserData();
-  }
-
-  Future<List<Order>> _fetchOrdersSafely() async {
-    final loggedIn = await TokenStorage.isLoggedIn();
-    if (!loggedIn) {
-      return <Order>[];
-    }
-    try {
-      return await OrderRepository().getMyOrders();
-    } catch (_) {
-      return <Order>[];
-    }
-  }
-
-  Future<void> _loadUserData() async {
-    final loggedIn = await TokenStorage.isLoggedIn();
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = loggedIn;
-      });
-    }
-    if (!loggedIn) {
-      return;
-    }
-    try {
-      final user = await UserService().getCurrentUser();
-      List<CustomerAddress> addresses = [];
-      try {
-        addresses = await AddressService().getAddresses();
-      } catch (_) {}
-
-      CustomerAddress? activeAddr;
-      if (addresses.isNotEmpty) {
-        activeAddr = addresses.firstWhere(
-          (a) => a.isDefault,
-          orElse: () => addresses.first,
-        );
-      }
-
-      int unreadCount = 0;
-      try {
-        final res = await NotificationService().getNotifications();
-        unreadCount = res['unread_count'] as int;
-      } catch (_) {}
-
-      if (mounted) {
-        setState(() {
-          _currentUser = user;
-          _selectedAddress = activeAddr;
-          _unreadNotificationCount = unreadCount;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _openNotifications() async {
+  Future<void> _openNotifications(BuildContext context, HomeProvider homeProvider) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
     );
-    _loadUserData();
+    homeProvider.loadUserData();
   }
 
-  Future<void> _selectAddress() async {
-    if (!_isLoggedIn) {
-      _promptLogin();
+  Future<void> _selectAddress(BuildContext context, HomeProvider homeProvider) async {
+    if (!homeProvider.isLoggedIn) {
+      _promptLogin(context, homeProvider);
       return;
     }
     final result = await Navigator.of(context, rootNavigator: true)
@@ -264,14 +339,12 @@ class _HomeTabState extends State<HomeTab> {
             builder: (_) => const AddressScreen(selectionMode: true),
           ),
         );
-    if (result != null && mounted) {
-      setState(() {
-        _selectedAddress = result;
-      });
+    if (result != null) {
+      homeProvider.setSelectedAddress(result);
     }
   }
 
-  void _promptLogin() {
+  void _promptLogin(BuildContext context, HomeProvider homeProvider) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -298,7 +371,7 @@ class _HomeTabState extends State<HomeTab> {
               Navigator.of(context, rootNavigator: true)
                   .push(MaterialPageRoute(builder: (_) => const LoginScreen()))
                   .then((_) {
-                    if (mounted) _reload();
+                    homeProvider.reload();
                   });
             },
             child: const Text(
@@ -307,209 +380,6 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
-
-    return Scaffold(
-      backgroundColor: _surface,
-      body: SafeArea(
-        child: FutureBuilder<List<dynamic>>(
-          future: Future.wait([configFuture, categoriesFuture]),
-          builder: (context, snapshot) {
-            if (snapshot.hasError &&
-                snapshot.connectionState != ConnectionState.waiting) {
-              return ErrorRetryWidget(
-                error: snapshot.error.toString(),
-                onRetry: () => setState(_reload),
-              );
-            }
-            return Stack(
-              children: [
-                RefreshIndicator(
-                  color: _brandRed,
-                  backgroundColor: _panel,
-                  onRefresh: () async {
-                    setState(_reload);
-                    await Future.wait([
-                      productsFuture,
-                      allProductsFuture,
-                      categoriesFuture,
-                      configFuture,
-                      bannersFuture,
-                      ordersFuture,
-                      activeCouponsFuture,
-                    ]);
-                  },
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      // Phase 1 — Premium Header (Dynamic)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                          child: _HomeHeader(
-                            currentUser: _currentUser,
-                            selectedAddress: _selectedAddress,
-                            isLoggedIn: _isLoggedIn,
-                            unreadNotificationCount: _unreadNotificationCount,
-                            onSelectAddress: _selectAddress,
-                            onLoginPressed: () {
-                              Navigator.of(context, rootNavigator: true)
-                                  .push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                  )
-                                  .then((_) {
-                                    if (mounted) _reload();
-                                  });
-                            },
-                            onNotificationPressed: _openNotifications,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 2 — Sticky Glassmorphic Search Bar
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _StickySearchDelegate(
-                          child: _StickyGlassmorphicSearchBar(
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const MenuScreen(autofocusSearch: true),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Phase 2 — Kitchen Status Card (Dynamic)
-                      SliverToBoxAdapter(
-                        child: FutureBuilder<SiteConfig>(
-                          future: configFuture,
-                          builder: (context, snap) {
-                            return _KitchenStatusCard(config: snap.data);
-                          },
-                        ),
-                      ),
-
-                      // Phase 3 — Hero Banner Carousel (Dynamic)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                          child: FutureBuilder<List<AppBanner>>(
-                            future: bannersFuture,
-                            builder: (context, snap) =>
-                                _BannerCarousel(banners: snap.data ?? []),
-                          ),
-                        ),
-                      ),
-
-                      // Phase 4 — Categories (Dynamic)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 0, 8),
-                          child: _CategoriesSection(
-                            categoriesFuture: categoriesFuture,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 5 — Today's Specials (Dynamic: config via is_featured)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
-                          child: _SpecialsSection(
-                            productsFuture: productsFuture,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 7 — Combo Offers (Dynamic: parsed from category "Combos")
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
-                          child: _ComboOffersSection(
-                            allProductsFuture: allProductsFuture,
-                            categoriesFuture: categoriesFuture,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 8 — Offers & Coupons (Dynamic: fetched from active backend coupons)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
-                          child: _CouponsSection(
-                            activeCouponsFuture: activeCouponsFuture,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 9 — New Arrivals & Trending (Dynamic: computed based on rating and date)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _TrendingAndNewSection(
-                            productsFuture: allProductsFuture,
-                          ),
-                        ),
-                      ),
-
-                      // Phase 6 — Best Sellers (Dynamic: Products with rating >= 4.0)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                          child: Text(
-                            'Best Sellers 🌟',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                      _BestSellersGrid(productsFuture: allProductsFuture),
-
-                      // Phase 10 — Recently Ordered (Dynamic: fetched from order history)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                          child: _RecentlyOrderedSection(
-                            ordersFuture: ordersFuture,
-                            onReload: _reload,
-                          ),
-                        ),
-                      ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                    ],
-                  ),
-                ),
-                // Phase 11 — Floating Cart Summary
-                if (cart.itemCount > 0)
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    child: _FloatingCartSummary(
-                      cartCount: cart.itemCount,
-                      totalAmount: cart.totalAmount,
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
       ),
     );
   }
