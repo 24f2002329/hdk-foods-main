@@ -49,10 +49,14 @@ class CategoryGridCard extends StatelessWidget {
                           child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: _brandRed,
+                            ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => const _CategoryImageFallback(),
+                        errorWidget: (context, url, error) =>
+                            const _CategoryImageFallback(),
                       ),
               ),
               Padding(

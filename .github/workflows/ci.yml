@@ -1,0 +1,135 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  formatting:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Check Python Formatting (Black)
+        run: |
+          pip install black
+          black --check backend/
+
+      - name: Check Dart Formatting
+        run: |
+          dart format --output=none --set-exit-if-changed packages/hdk_core
+          dart format --output=none --set-exit-if-changed frontend
+          dart format --output=none --set-exit-if-changed frontend_admin
+          dart format --output=none --set-exit-if-changed frontend_delivery
+
+  security-scan:
+    name: Security Scan (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Bandit Security Scan
+        run: |
+          pip install bandit
+          bandit -r backend/ -ll
+
+  backend-tests:
+    name: Django Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m venv antenv
+          source antenv/bin/activate
+          pip install -r backend/requirements.txt
+
+      - name: Run Django Tests
+        run: |
+          source antenv/bin/activate
+          python manage.py test --verbosity=2
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+          SECRET_KEY: ci-test-secret-key-not-for-production
+          DEBUG: "True"
+
+  flutter-validation:
+    name: Flutter Analyze, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies (hdk_core)
+        run: flutter pub get
+        working-directory: packages/hdk_core
+
+      - name: Install dependencies (frontend)
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: Install dependencies (frontend_admin)
+        run: flutter pub get
+        working-directory: frontend_admin
+
+      - name: Install dependencies (frontend_delivery)
+        run: flutter pub get
+        working-directory: frontend_delivery
+
+      - name: Flutter Analyze
+        run: |
+          flutter analyze packages/hdk_core
+          flutter analyze frontend
+          flutter analyze frontend_delivery
+          flutter analyze frontend_admin
+
+      - name: Flutter Test
+        run: |
+          cd frontend && flutter test
+          cd ../frontend_admin && flutter test
+          cd ../frontend_delivery && flutter test
+
+      - name: Build Android APK (Customer App)
+        run: flutter build apk --debug --dart-define=ENV=dev --dart-define=GOOGLE_MAPS_API_KEY=mock_key
+        working-directory: frontend
+
+      - name: Build Web (Admin App)
+        run: flutter build web --dart-define=ENV=dev --dart-define=GOOGLE_MAPS_API_KEY=mock_key
+        working-directory: frontend_admin

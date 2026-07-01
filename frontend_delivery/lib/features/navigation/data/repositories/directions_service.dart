@@ -19,12 +19,10 @@ class RouteResult {
 }
 
 class DirectionsService {
-  static const String _apiKey =
-      String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+  static const String _apiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
   final http.Client _client;
-  DirectionsService({http.Client? client})
-      : _client = client ?? http.Client();
+  DirectionsService({http.Client? client}) : _client = client ?? http.Client();
 
   /// Fetches a driving route from [origin] to [destination].
   /// Returns null if no route exists (ZERO_RESULTS / NOT_FOUND).
@@ -33,25 +31,19 @@ class DirectionsService {
     required LatLng origin,
     required LatLng destination,
   }) async {
-    final uri = Uri.https(
-      'maps.googleapis.com',
-      '/maps/api/directions/json',
-      {
-        'origin': '${origin.latitude},${origin.longitude}',
-        'destination':
-            '${destination.latitude},${destination.longitude}',
-        'mode': 'driving',
-        'key': _apiKey,
-      },
-    );
+    final uri = Uri.https('maps.googleapis.com', '/maps/api/directions/json', {
+      'origin': '${origin.latitude},${origin.longitude}',
+      'destination': '${destination.latitude},${destination.longitude}',
+      'mode': 'driving',
+      'key': _apiKey,
+    });
 
-    final response = await _client.get(uri).timeout(
-      const Duration(seconds: 15),
-    );
+    final response = await _client
+        .get(uri)
+        .timeout(const Duration(seconds: 15));
 
     if (response.statusCode != 200) {
-      throw Exception(
-          'Directions API error ${response.statusCode}');
+      throw Exception('Directions API error ${response.statusCode}');
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -62,8 +54,10 @@ class DirectionsService {
     }
 
     if (status != 'OK') {
-      throw Exception('Directions API: $status — '
-          '${data['error_message'] ?? ''}');
+      throw Exception(
+        'Directions API: $status — '
+        '${data['error_message'] ?? ''}',
+      );
     }
 
     final routes = data['routes'] as List? ?? [];
@@ -79,9 +73,9 @@ class DirectionsService {
         ((leg['duration'] as Map?)?['value'] as num?)?.toInt() ?? 0;
 
     final encodedPolyline =
-        ((routes.first as Map)['overview_polyline']
-                    as Map?)?['points'] as String? ??
-            '';
+        ((routes.first as Map)['overview_polyline'] as Map?)?['points']
+            as String? ??
+        '';
 
     final points = PolylinePoints()
         .decodePolyline(encodedPolyline)
@@ -98,5 +92,9 @@ class DirectionsService {
   /// Straight-line distance in metres between two coordinates.
   static double distanceBetween(LatLng a, LatLng b) =>
       Geolocator.distanceBetween(
-          a.latitude, a.longitude, b.latitude, b.longitude);
+        a.latitude,
+        a.longitude,
+        b.latitude,
+        b.longitude,
+      );
 }

@@ -66,7 +66,6 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -90,7 +89,9 @@ class _MyAppState extends State<MyApp> {
     });
 
     // 2. App terminated when notification clicked
-    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+    FirebaseMessaging.instance.getInitialMessage().then((
+      RemoteMessage? message,
+    ) {
       if (message != null) {
         Future.delayed(const Duration(milliseconds: 1500), () {
           _handleNotificationClick(message);
@@ -118,10 +119,8 @@ class _MyAppState extends State<MyApp> {
         if (orderId != null) {
           _navigatorKey.currentState?.push(
             MaterialPageRoute(
-              builder: (_) => OrderChatScreen(
-                orderId: orderId,
-                orderNumber: orderNumber,
-              ),
+              builder: (_) =>
+                  OrderChatScreen(orderId: orderId, orderNumber: orderNumber),
             ),
           );
         }

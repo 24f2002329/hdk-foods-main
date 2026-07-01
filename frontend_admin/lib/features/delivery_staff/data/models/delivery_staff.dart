@@ -12,12 +12,11 @@ class DeliveryStaff {
   });
 
   factory DeliveryStaff.fromJson(Map<String, dynamic> json) => DeliveryStaff(
-        id: json['id'],
-        phoneNumber: json['phone_number'] ?? '',
-        name: json['name'] ?? '',
-        isDefaultDelivery: json['is_default_delivery'] ?? false,
-      );
+    id: json['id'],
+    phoneNumber: json['phone_number'] ?? '',
+    name: json['name'] ?? '',
+    isDefaultDelivery: json['is_default_delivery'] ?? false,
+  );
 
-  String get displayName =>
-      name.isNotEmpty ? name : phoneNumber;
+  String get displayName => name.isNotEmpty ? name : phoneNumber;
 }

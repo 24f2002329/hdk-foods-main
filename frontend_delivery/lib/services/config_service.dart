@@ -15,10 +15,14 @@ class KitchenConfig {
   });
 
   factory KitchenConfig.fromJson(Map<String, dynamic> json) => KitchenConfig(
-        name: json['kitchen_name'] ?? 'HDK Foods Kitchen',
-        latitude: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.861067,
-        longitude: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.749343,
-      );
+    name: json['kitchen_name'] ?? 'HDK Foods Kitchen',
+    latitude:
+        double.tryParse(json['kitchen_latitude']?.toString() ?? '') ??
+        25.861067,
+    longitude:
+        double.tryParse(json['kitchen_longitude']?.toString() ?? '') ??
+        73.749343,
+  );
 }
 
 class DeliveryConfigService {

@@ -88,10 +88,9 @@ class OrderService {
   }
 
   Future<Order> confirmOrder(int id, int prepTime) async {
-    final response = await ApiClient().patch(
-      '$_base/$id/confirm/',
-      {'estimated_preparation_time': prepTime},
-    );
+    final response = await ApiClient().patch('$_base/$id/confirm/', {
+      'estimated_preparation_time': prepTime,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -99,10 +98,9 @@ class OrderService {
   }
 
   Future<Order> rejectOrder(int id, String reason) async {
-    final response = await ApiClient().patch(
-      '$_base/$id/reject/',
-      {'reason': reason},
-    );
+    final response = await ApiClient().patch('$_base/$id/reject/', {
+      'reason': reason,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -120,10 +118,9 @@ class OrderService {
   }
 
   Future<Order> updateStatus(int id, String status) async {
-    final response = await ApiClient().patch(
-      '$_base/$id/status/',
-      {'status': status},
-    );
+    final response = await ApiClient().patch('$_base/$id/status/', {
+      'status': status,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -163,10 +160,9 @@ class OrderService {
 
   /// Admin force-override to any status (with automatic loyalty coin correction).
   Future<Order> overrideStatus(int id, String status) async {
-    final response = await ApiClient().patch(
-      '$_base/$id/override-status/',
-      {'status': status},
-    );
+    final response = await ApiClient().patch('$_base/$id/override-status/', {
+      'status': status,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -189,10 +185,7 @@ class OrderService {
   Future<Order> applyDiscount(int orderId, double amount, String reason) async {
     final response = await ApiClient().patch(
       '$_base/$orderId/apply-discount/',
-      {
-        'discount_amount': amount.toStringAsFixed(2),
-        'discount_reason': reason,
-      },
+      {'discount_amount': amount.toStringAsFixed(2), 'discount_reason': reason},
     );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
@@ -222,10 +215,9 @@ class OrderService {
   /// Edit order items before confirmation (chef/admin only).
   /// [items] is a list of {product_id, quantity}.
   Future<Order> editItems(int orderId, List<Map<String, dynamic>> items) async {
-    final response = await ApiClient().patch(
-      '$_base/$orderId/edit-items/',
-      {'items': items},
-    );
+    final response = await ApiClient().patch('$_base/$orderId/edit-items/', {
+      'items': items,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -277,10 +269,9 @@ class OrderService {
     required int orderId,
     required String reason,
   }) async {
-    final response = await ApiClient().post(
-      '$_base/$orderId/admin-cancel/',
-      {'reason': reason},
-    );
+    final response = await ApiClient().post('$_base/$orderId/admin-cancel/', {
+      'reason': reason,
+    });
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }
@@ -304,10 +295,9 @@ class OrderService {
     int orderId,
     String message,
   ) async {
-    final response = await ApiClient().post(
-      '$_base/$orderId/messages/',
-      {'message': message},
-    );
+    final response = await ApiClient().post('$_base/$orderId/messages/', {
+      'message': message,
+    });
     if (response.statusCode == 201) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }

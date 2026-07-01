@@ -16,7 +16,10 @@ class DeliveryStaffService {
   }
 
   Future<void> setDefaultDelivery(int userId) async {
-    final response = await ApiClient().patch('$_base/delivery-staff/$userId/set-default/', {});
+    final response = await ApiClient().patch(
+      '$_base/delivery-staff/$userId/set-default/',
+      {},
+    );
     if (response.statusCode != 200) {
       throw Exception('Failed to set default: ${response.body}');
     }
@@ -27,10 +30,11 @@ class DeliveryStaffService {
     required String name,
     required String password,
   }) async {
-    final response = await ApiClient().post(
-      '$_base/delivery-staff/create/',
-      {'phone_number': phone, 'name': name, 'password': password},
-    );
+    final response = await ApiClient().post('$_base/delivery-staff/create/', {
+      'phone_number': phone,
+      'name': name,
+      'password': password,
+    });
     if (response.statusCode == 201) {
       return DeliveryStaff.fromJson(jsonDecode(response.body));
     }

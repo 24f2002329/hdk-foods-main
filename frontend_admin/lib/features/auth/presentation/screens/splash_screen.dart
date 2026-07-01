@@ -45,11 +45,14 @@ class _AdminSplashScreenState extends State<AdminSplashScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
       body: Center(
-        child: Text('HDK Admin',
-            style: GoogleFonts.poppins(
-                color: const Color(0xFFFF1E1E),
-                fontSize: 36,
-                fontWeight: FontWeight.w900)),
+        child: Text(
+          'HDK Admin',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFFFF1E1E),
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }

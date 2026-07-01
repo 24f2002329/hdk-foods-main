@@ -119,9 +119,9 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
       _loadMessages(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send message: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
         setState(() {
           _messages.remove(tempMsg);
         });
@@ -157,7 +157,11 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
             ),
             Text(
               'Order Support',
-              style: TextStyle(fontSize: 12, color: _mutedText, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 12,
+                color: _mutedText,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -174,110 +178,139 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
             child: _loading
                 ? const Center(child: HdkPreloader())
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text(
-                            'Error: $_error',
-                            style: const TextStyle(color: Colors.redAccent),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'Error: $_error',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  )
+                : _messages.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 48,
+                            color: _mutedText,
                           ),
-                        ),
-                      )
-                    : _messages.isEmpty
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.chat_bubble_outline_rounded, size: 48, color: _mutedText),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'No messages yet',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Need help with payment or items? Send a message to the kitchen.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: _mutedText, fontSize: 13),
-                                  ),
-                                ],
-                              ),
+                          SizedBox(height: 12),
+                          Text(
+                            'No messages yet',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                          )
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _messages.length,
-                            itemBuilder: (context, index) {
-                              final msg = _messages[index];
-                              final isAdmin = msg['is_admin'] == true;
-                              final senderName = msg['sender_name'] ?? (isAdmin ? 'Kitchen' : 'User');
-                              final time = msg['created_at'] != null ? _formatTime(msg['created_at']) : '';
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Need help with payment or items? Send a message to the kitchen.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: _mutedText, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
+                      final isAdmin = msg['is_admin'] == true;
+                      final senderName =
+                          msg['sender_name'] ?? (isAdmin ? 'Kitchen' : 'User');
+                      final time = msg['created_at'] != null
+                          ? _formatTime(msg['created_at'])
+                          : '';
 
-                              return Align(
-                                alignment: isAdmin ? Alignment.centerLeft : Alignment.centerRight,
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  constraints: BoxConstraints(
-                                    maxWidth: MediaQuery.sizeOf(context).width * 0.75,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isAdmin ? _panel : _brandRed.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
-                                      bottomLeft: isAdmin ? Radius.zero : const Radius.circular(16),
-                                      bottomRight: isAdmin ? const Radius.circular(16) : Radius.zero,
-                                    ),
-                                    border: Border.all(
-                                      color: isAdmin ? _stroke : _brandRed.withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (isAdmin) ...[
-                                        Text(
-                                          senderName,
-                                          style: const TextStyle(
-                                            color: _brandRed,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                      ],
-                                      Text(
-                                        msg['message'] ?? '',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Align(
-                                        alignment: Alignment.bottomRight,
-                                        child: Text(
-                                          time,
-                                          style: const TextStyle(
-                                            color: _mutedText,
-                                            fontSize: 9,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                      return Align(
+                        alignment: isAdmin
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.sizeOf(context).width * 0.75,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isAdmin
+                                ? _panel
+                                : _brandRed.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(16),
+                              topRight: const Radius.circular(16),
+                              bottomLeft: isAdmin
+                                  ? Radius.zero
+                                  : const Radius.circular(16),
+                              bottomRight: isAdmin
+                                  ? const Radius.circular(16)
+                                  : Radius.zero,
+                            ),
+                            border: Border.all(
+                              color: isAdmin
+                                  ? _stroke
+                                  : _brandRed.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isAdmin) ...[
+                                Text(
+                                  senderName,
+                                  style: const TextStyle(
+                                    color: _brandRed,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                              );
-                            },
+                                const SizedBox(height: 4),
+                              ],
+                              Text(
+                                msg['message'] ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  time,
+                                  style: const TextStyle(
+                                    color: _mutedText,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.paddingOf(context).bottom),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              12 + MediaQuery.paddingOf(context).bottom,
+            ),
             decoration: const BoxDecoration(
               color: _panel,
               border: Border(top: BorderSide(color: _stroke)),
@@ -291,10 +324,16 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: 'Type your message...',
-                      hintStyle: const TextStyle(color: _mutedText, fontSize: 14),
+                      hintStyle: const TextStyle(
+                        color: _mutedText,
+                        fontSize: 14,
+                      ),
                       filled: true,
                       fillColor: _panelAlt,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: const BorderSide(color: _stroke),
@@ -305,7 +344,9 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: _brandRed.withValues(alpha: 0.5)),
+                        borderSide: BorderSide(
+                          color: _brandRed.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                     onSubmitted: (_) => _sendMessage(),

@@ -23,7 +23,10 @@ class ApiConfig {
       case Environment.staging:
         return "wss://staging-api.hdkfoods.in";
       case Environment.dev:
-        final String devApi = const String.fromEnvironment('DEV_API_URL', defaultValue: "");
+        final String devApi = const String.fromEnvironment(
+          'DEV_API_URL',
+          defaultValue: "",
+        );
         if (devApi.isNotEmpty) {
           final Uri uri = Uri.parse(devApi);
           final String protocol = uri.scheme == 'https' ? 'wss' : 'ws';
@@ -32,5 +35,4 @@ class ApiConfig {
         return "ws://localhost:8000";
     }
   }
-
 }

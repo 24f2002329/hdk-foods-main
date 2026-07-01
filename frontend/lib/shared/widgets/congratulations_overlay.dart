@@ -22,10 +22,7 @@ class CongratulationsOverlay extends StatefulWidget {
         return FadeTransition(
           opacity: anim1,
           child: ScaleTransition(
-            scale: CurvedAnimation(
-              parent: anim1,
-              curve: Curves.elasticOut,
-            ),
+            scale: CurvedAnimation(parent: anim1, curve: Curves.elasticOut),
             child: child,
           ),
         );
@@ -96,7 +93,10 @@ class _CongratulationsOverlayState extends State<CongratulationsOverlay>
                   child: Transform.rotate(
                     angle: _rotationAnimation.value,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 36,
+                      ),
                       margin: const EdgeInsets.symmetric(horizontal: 32),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -114,7 +114,9 @@ class _CongratulationsOverlayState extends State<CongratulationsOverlay>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFD700).withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFFFFD700,
+                            ).withValues(alpha: 0.15),
                             blurRadius: 30,
                             spreadRadius: 2,
                           ),
@@ -128,7 +130,9 @@ class _CongratulationsOverlayState extends State<CongratulationsOverlay>
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFFFFD700).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFFFFD700,
+                              ).withValues(alpha: 0.1),
                               border: Border.all(
                                 color: const Color(0xFFFFD700),
                                 width: 2,

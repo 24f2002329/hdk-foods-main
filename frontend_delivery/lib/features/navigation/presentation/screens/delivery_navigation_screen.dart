@@ -18,12 +18,7 @@ const _kPanel = Color(0xDD111111);
 const _kStroke = Color(0xFF2A2A2A);
 const _kMuted = Color(0xFFB8B8B8);
 
-enum _ArrivalState {
-  navigating,
-  approaching,
-  arrivedManual,
-  arrivedAuto,
-}
+enum _ArrivalState { navigating, approaching, arrivedManual, arrivedAuto }
 
 class DeliveryNavigationScreen extends StatefulWidget {
   final Order order;
@@ -35,8 +30,7 @@ class DeliveryNavigationScreen extends StatefulWidget {
       _DeliveryNavigationScreenState();
 }
 
-class _DeliveryNavigationScreenState
-    extends State<DeliveryNavigationScreen>
+class _DeliveryNavigationScreenState extends State<DeliveryNavigationScreen>
     with WidgetsBindingObserver {
   // ── Services ────────────────────────────────────────────────────────────────
   final DirectionsService _directionsService = DirectionsService();
@@ -68,10 +62,8 @@ class _DeliveryNavigationScreenState
   double _speedKmh = 0;
 
   // ── Computed destination ────────────────────────────────────────────────────
-  LatLng get _destination => LatLng(
-        widget.order.address!.latitude!,
-        widget.order.address!.longitude!,
-      );
+  LatLng get _destination =>
+      LatLng(widget.order.address!.latitude!, widget.order.address!.longitude!);
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -104,8 +96,14 @@ class _DeliveryNavigationScreenState
 
   Future<void> _loadCustomMarkers() async {
     try {
-      final dest = await _getCustomMarker(Icons.home_rounded, const Color(0xFFFF1E1E));
-      final driv = await _getCustomMarker(Icons.directions_bike_rounded, Colors.blueAccent);
+      final dest = await _getCustomMarker(
+        Icons.home_rounded,
+        const Color(0xFFFF1E1E),
+      );
+      final driv = await _getCustomMarker(
+        Icons.directions_bike_rounded,
+        Colors.blueAccent,
+      );
       if (mounted) {
         setState(() {
           _destinationIcon = dest;
@@ -115,7 +113,10 @@ class _DeliveryNavigationScreenState
     } catch (_) {}
   }
 
-  Future<BitmapDescriptor> _getCustomMarker(IconData iconData, Color color) async {
+  Future<BitmapDescriptor> _getCustomMarker(
+    IconData iconData,
+    Color color,
+  ) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
 
@@ -131,7 +132,9 @@ class _DeliveryNavigationScreenState
     canvas.drawCircle(const Offset(40, 40), 38, borderPaint);
 
     // Icon
-    final TextPainter textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    final TextPainter textPainter = TextPainter(
+      textDirection: ui.TextDirection.ltr,
+    );
     textPainter.text = TextSpan(
       text: String.fromCharCode(iconData.codePoint),
       style: TextStyle(
@@ -142,7 +145,10 @@ class _DeliveryNavigationScreenState
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2));
+    textPainter.paint(
+      canvas,
+      Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2),
+    );
 
     final ui.Image image = await pictureRecorder.endRecording().toImage(80, 80);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -153,16 +159,23 @@ class _DeliveryNavigationScreenState
     final lat = _destination.latitude;
     final lng = _destination.longitude;
     final googleMapsUrl = 'google.navigation:q=$lat,$lng&mode=d';
-    final fallbackUrl = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+    final fallbackUrl =
+        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
 
     try {
       if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
         await launchUrl(Uri.parse(googleMapsUrl));
       } else {
-        await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+        await launchUrl(
+          Uri.parse(fallbackUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
     } catch (_) {
-      await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(
+        Uri.parse(fallbackUrl),
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 
@@ -185,9 +198,7 @@ class _DeliveryNavigationScreenState
       );
       _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
     } else {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(dest),
-      );
+      _mapController!.animateCamera(CameraUpdate.newLatLng(dest));
     }
   }
 
@@ -198,7 +209,9 @@ class _DeliveryNavigationScreenState
       Marker(
         markerId: const MarkerId('destination'),
         position: _destination,
-        icon: _destinationIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon:
+            _destinationIcon ??
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
           title: widget.order.address?.label.isNotEmpty == true
               ? widget.order.address!.label
@@ -220,17 +233,18 @@ class _DeliveryNavigationScreenState
     }
 
     _positionSub?.cancel();
-    _positionSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
-      ),
-    ).listen(
-      _onPositionUpdate,
-      onError: (e) {
-        if (mounted) _showSnack('Location error: $e');
-      },
-    );
+    _positionSub =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 5,
+          ),
+        ).listen(
+          _onPositionUpdate,
+          onError: (e) {
+            if (mounted) _showSnack('Location error: $e');
+          },
+        );
   }
 
   Future<bool> _requestPermission() async {
@@ -267,22 +281,20 @@ class _DeliveryNavigationScreenState
 
       // Driver marker
       _markers = {
-        ..._markers
-            .where((m) => m.markerId.value != 'driver'),
+        ..._markers.where((m) => m.markerId.value != 'driver'),
         Marker(
           markerId: const MarkerId('driver'),
           position: driverLatLng,
-          icon: _driverIcon ?? BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueBlue),
+          icon:
+              _driverIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
           infoWindow: const InfoWindow(title: 'You'),
         ),
       };
     });
 
     // Camera follows driver
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLng(driverLatLng),
-    );
+    _mapController?.animateCamera(CameraUpdate.newLatLng(driverLatLng));
 
     // Fetch initial route once we have a fix
     if (_routePoints.isEmpty && !_routeLoading && !_routeFailed) {
@@ -392,8 +404,7 @@ class _DeliveryNavigationScreenState
     if (newState == _ArrivalState.arrivedAuto && !_arrivedDialogShown) {
       _arrivedDialogShown = true;
       _positionSub?.cancel();
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _showArrivedDialog());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showArrivedDialog());
     }
   }
 
@@ -413,8 +424,7 @@ class _DeliveryNavigationScreenState
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Column(
           children: [
             Icon(Icons.check_circle, color: Colors.greenAccent, size: 48),
@@ -423,9 +433,10 @@ class _DeliveryNavigationScreenState
               "You've Arrived!",
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
             ),
           ],
         ),
@@ -442,14 +453,17 @@ class _DeliveryNavigationScreenState
               foregroundColor: Colors.black87,
               minimumSize: const Size(200, 48),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () {
               Navigator.pop(ctx);
               _goToPayment();
             },
-            child: const Text('Collect Payment',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Collect Payment',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -461,8 +475,10 @@ class _DeliveryNavigationScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Stop Navigation?',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Stop Navigation?',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'Your delivery is in progress. Are you sure you want to leave?',
           style: TextStyle(color: Color(0xFFB8B8B8)),
@@ -470,16 +486,20 @@ class _DeliveryNavigationScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Stay',
-                style: TextStyle(color: Colors.blueAccent)),
+            child: const Text(
+              'Stay',
+              style: TextStyle(color: Colors.blueAccent),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx, true);
               Navigator.pop(context);
             },
-            child: const Text('Leave',
-                style: TextStyle(color: Color(0xFFFF1E1E))),
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: Color(0xFFFF1E1E)),
+            ),
           ),
         ],
       ),
@@ -491,8 +511,10 @@ class _DeliveryNavigationScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('GPS Disabled',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'GPS Disabled',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'Please enable location services to use navigation.',
           style: TextStyle(color: Color(0xFFB8B8B8)),
@@ -500,8 +522,7 @@ class _DeliveryNavigationScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _kRed),
@@ -521,8 +542,10 @@ class _DeliveryNavigationScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Location Permission Required',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Location Permission Required',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'HDK Delivery needs location permission for in-app navigation. '
           'Please grant it in app settings.',
@@ -531,8 +554,7 @@ class _DeliveryNavigationScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _kRed),
@@ -553,8 +575,7 @@ class _DeliveryNavigationScreenState
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            PaymentCollectionScreen(order: widget.order),
+        builder: (_) => PaymentCollectionScreen(order: widget.order),
       ),
     );
   }
@@ -568,8 +589,7 @@ class _DeliveryNavigationScreenState
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   String _formatDistance(double meters) {
@@ -592,7 +612,8 @@ class _DeliveryNavigationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final hasAddress = widget.order.address?.latitude != null &&
+    final hasAddress =
+        widget.order.address?.latitude != null &&
         widget.order.address?.longitude != null;
 
     if (!hasAddress) {
@@ -651,7 +672,9 @@ class _DeliveryNavigationScreenState
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: _kPanel,
                       borderRadius: BorderRadius.circular(20),
@@ -663,12 +686,15 @@ class _DeliveryNavigationScreenState
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.blueAccent),
+                            strokeWidth: 2,
+                            color: Colors.blueAccent,
+                          ),
                         ),
                         SizedBox(width: 8),
-                        Text('Calculating route…',
-                            style: TextStyle(
-                                color: Colors.white70, fontSize: 13)),
+                        Text(
+                          'Calculating route…',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
@@ -716,34 +742,38 @@ class _DeliveryNavigationScreenState
                 right: 0,
                 child: SafeArea(
                   child: Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(60, 0, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(60, 0, 12, 0),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orangeAccent,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.orangeAccent
-                                .withValues(alpha: 0.4),
+                            color: Colors.orangeAccent.withValues(alpha: 0.4),
                             blurRadius: 12,
                           ),
                         ],
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.location_on_rounded,
-                              color: Colors.black87, size: 18),
+                          Icon(
+                            Icons.location_on_rounded,
+                            color: Colors.black87,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'You are approaching the delivery location.',
                               style: TextStyle(
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13),
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -754,12 +784,7 @@ class _DeliveryNavigationScreenState
               ),
 
             // ── Bottom HUD ───────────────────────────────────────────────
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomHud(),
-            ),
+            Positioned(left: 0, right: 0, bottom: 0, child: _buildBottomHud()),
           ],
         ),
       ),
@@ -767,14 +792,12 @@ class _DeliveryNavigationScreenState
   }
 
   Widget _buildBottomHud() {
-    final isManualArrival =
-        _arrivalState == _ArrivalState.arrivedManual;
+    final isManualArrival = _arrivalState == _ArrivalState.arrivedManual;
 
     return Container(
       decoration: BoxDecoration(
         color: _kPanel,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(top: BorderSide(color: _kStroke)),
         boxShadow: [
           BoxShadow(
@@ -787,8 +810,7 @@ class _DeliveryNavigationScreenState
       child: SafeArea(
         top: false,
         child: Padding(
-          padding:
-              const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -806,8 +828,7 @@ class _DeliveryNavigationScreenState
               // Metrics row
               if (_currentPosition != null)
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _MetricChip(
                       icon: Icons.route_rounded,
@@ -824,8 +845,7 @@ class _DeliveryNavigationScreenState
                     _MetricChip(
                       icon: Icons.speed_rounded,
                       label: 'Speed',
-                      value:
-                          '${_speedKmh.toStringAsFixed(0)} km/h',
+                      value: '${_speedKmh.toStringAsFixed(0)} km/h',
                       color: Colors.amberAccent,
                     ),
                   ],
@@ -840,12 +860,15 @@ class _DeliveryNavigationScreenState
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: _kRed),
+                          strokeWidth: 2,
+                          color: _kRed,
+                        ),
                       ),
                       SizedBox(width: 10),
-                      Text('Waiting for GPS…',
-                          style: TextStyle(
-                              color: _kMuted, fontSize: 14)),
+                      Text(
+                        'Waiting for GPS…',
+                        style: TextStyle(color: _kMuted, fontSize: 14),
+                      ),
                     ],
                   ),
                 ),
@@ -855,23 +878,28 @@ class _DeliveryNavigationScreenState
               // Address label
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded,
-                        color: _kRed, size: 16),
+                    const Icon(
+                      Icons.location_on_rounded,
+                      color: _kRed,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        widget.order.address?.lineOne ??
-                            'Delivery address',
+                        widget.order.address?.lineOne ?? 'Delivery address',
                         style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13),
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -879,20 +907,33 @@ class _DeliveryNavigationScreenState
                     InkWell(
                       onTap: _launchNativeNavigation,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.blueAccent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
+                          border: Border.all(
+                            color: Colors.blueAccent.withValues(alpha: 0.4),
+                          ),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.map_rounded, color: Colors.blueAccent, size: 12),
+                            Icon(
+                              Icons.map_rounded,
+                              color: Colors.blueAccent,
+                              size: 12,
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Open Maps',
-                              style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.blueAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -914,14 +955,16 @@ class _DeliveryNavigationScreenState
                       foregroundColor: Colors.black87,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     icon: const Icon(Icons.check_circle_rounded),
                     label: const Text(
                       "I've Arrived",
                       style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
                     ),
                     onPressed: _onManualArrival,
                   ),
@@ -929,8 +972,11 @@ class _DeliveryNavigationScreenState
               else
                 TextButton.icon(
                   onPressed: _onManualArrival,
-                  icon: const Icon(Icons.flag_rounded,
-                      color: _kMuted, size: 16),
+                  icon: const Icon(
+                    Icons.flag_rounded,
+                    color: _kMuted,
+                    size: 16,
+                  ),
                   label: const Text(
                     "I've Arrived",
                     style: TextStyle(color: _kMuted, fontSize: 13),
@@ -975,9 +1021,10 @@ class _MetricChip extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w800,
-                fontSize: 14),
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
           ),
           Text(
             label,

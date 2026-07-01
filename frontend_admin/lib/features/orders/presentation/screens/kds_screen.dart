@@ -22,17 +22,18 @@ class KdsScreen extends StatefulWidget {
   State<KdsScreen> createState() => _KdsScreenState();
 }
 
-class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixin {
+class _KdsScreenState extends State<KdsScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   final OrderService _orderSvc = OrderService();
   final DeliveryStaffService _deliverySvc = DeliveryStaffService();
-  
+
   List<Order> _orders = [];
   bool _loading = true;
   String? _error;
-  
+
   Timer? _pollTimer;
   AdminOrderWebSocketService? _ws;
   bool _isBusy = false;
@@ -41,9 +42,12 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
   void initState() {
     super.initState();
     _loadData();
-    
+
     // Fallback polling every 20 seconds
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _loadData(silent: true));
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _loadData(silent: true),
+    );
 
     // Connect real-time WebSockets
     _ws = AdminOrderWebSocketService();
@@ -79,12 +83,16 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
       if (mounted) {
         setState(() {
           // Filter to only active KDS statuses
-          _orders = all.where((o) => [
-            'pending_confirmation',
-            'confirmed',
-            'preparing',
-            'out_for_delivery'
-          ].contains(o.status)).toList();
+          _orders = all
+              .where(
+                (o) => [
+                  'pending_confirmation',
+                  'confirmed',
+                  'preparing',
+                  'out_for_delivery',
+                ].contains(o.status),
+              )
+              .toList();
           _loading = false;
         });
       }
@@ -145,7 +153,10 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('Reject Order', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Reject Order',
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: ctrl,
           style: const TextStyle(color: Colors.white),
@@ -223,7 +234,8 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
 
     final selectedStaff = await showDialog<DeliveryStaff>(
       context: context,
-      builder: (ctx) => _AssignDriverDialog(staffList: staff, initial: defaultStaff),
+      builder: (ctx) =>
+          _AssignDriverDialog(staffList: staff, initial: defaultStaff),
     );
 
     if (selectedStaff == null) return;
@@ -264,8 +276,9 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
   List<Order> _getPendingOrders() =>
       _orders.where((o) => o.status == 'pending_confirmation').toList();
 
-  List<Order> _getPreparingOrders() =>
-      _orders.where((o) => o.status == 'confirmed' || o.status == 'preparing').toList();
+  List<Order> _getPreparingOrders() => _orders
+      .where((o) => o.status == 'confirmed' || o.status == 'preparing')
+      .toList();
 
   List<Order> _getReadyOrders() =>
       _orders.where((o) => o.status == 'out_for_delivery').toList();
@@ -273,7 +286,7 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    
+
     if (_loading) {
       return const Scaffold(
         backgroundColor: _surface,
@@ -543,7 +556,12 @@ class _KdsColumn extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: accentColor.withValues(alpha: 0.3), width: 2)),
+                border: Border(
+                  bottom: BorderSide(
+                    color: accentColor.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,11 +575,16 @@ class _KdsColumn extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: accentColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       '${orders.length}',
@@ -581,13 +604,17 @@ class _KdsColumn extends StatelessWidget {
                 ? Center(
                     child: Text(
                       'No Orders',
-                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13),
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey,
+                        fontSize: 13,
+                      ),
                     ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: orders.length,
-                    itemBuilder: (context, index) => childBuilder(orders[index]),
+                    itemBuilder: (context, index) =>
+                        childBuilder(orders[index]),
                   ),
           ),
         ],
@@ -619,7 +646,9 @@ class _KdsOrderCard extends StatelessWidget {
       child: InkWell(
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => AdminOrderDetailScreen(orderId: order.id)),
+          MaterialPageRoute(
+            builder: (_) => AdminOrderDetailScreen(orderId: order.id),
+          ),
         ),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -710,7 +739,9 @@ class _KdsOrderCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      order.customerName.isNotEmpty ? order.customerName : 'Guest Customer',
+                      order.customerName.isNotEmpty
+                          ? order.customerName
+                          : 'Guest Customer',
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
                         color: Colors.grey,
@@ -721,7 +752,9 @@ class _KdsOrderCard extends StatelessWidget {
                   Text(
                     order.paymentMethod.toUpperCase(),
                     style: GoogleFonts.poppins(
-                      color: order.paymentMethod == 'online' ? Colors.green : Colors.grey,
+                      color: order.paymentMethod == 'online'
+                          ? Colors.green
+                          : Colors.grey,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
                     ),
@@ -734,32 +767,37 @@ class _KdsOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: actions
-                      .map((act) => Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: act.color,
-                                  foregroundColor: act.color == Colors.tealAccent ||
-                                          act.color == Colors.greenAccent
-                                      ? Colors.black87
-                                      : Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                      .map(
+                        (act) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: act.color,
+                                foregroundColor:
+                                    act.color == Colors.tealAccent ||
+                                        act.color == Colors.greenAccent
+                                    ? Colors.black87
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
                                 ),
-                                onPressed: act.onPressed,
-                                child: Text(
-                                  act.label,
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: act.onPressed,
+                              child: Text(
+                                act.label,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
-                          ))
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -863,7 +901,10 @@ class _PrepTimeDialogState extends State<_PrepTimeDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: _card,
-      title: const Text('Confirm Prep Time', style: TextStyle(color: Colors.white)),
+      title: const Text(
+        'Confirm Prep Time',
+        style: TextStyle(color: Colors.white),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -923,18 +964,23 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: _card,
-      title: const Text('Assign Delivery Partner', style: TextStyle(color: Colors.white)),
+      title: const Text(
+        'Assign Delivery Partner',
+        style: TextStyle(color: Colors.white),
+      ),
       content: DropdownButtonFormField<DeliveryStaff>(
         dropdownColor: _card,
         value: selected,
         items: widget.staffList
-            .map((s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(
-                    s.name,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ))
+            .map(
+              (s) => DropdownMenuItem(
+                value: s,
+                child: Text(
+                  s.name,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            )
             .toList(),
         onChanged: (v) => setState(() {
           if (v != null) selected = v;
@@ -943,7 +989,10 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Skip / Auto Assign', style: TextStyle(color: Colors.grey)),
+          child: const Text(
+            'Skip / Auto Assign',
+            style: TextStyle(color: Colors.grey),
+          ),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),

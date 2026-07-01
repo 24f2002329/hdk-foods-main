@@ -81,8 +81,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Logout',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
         content: const Text(
           'Are you sure you want to log out?',
           style: TextStyle(color: _mutedText),
@@ -113,8 +115,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Edit Name',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Edit Name',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -147,8 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _user = updated);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
       }
     }
   }
@@ -168,14 +173,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Help & Support',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
+              const Text(
+                'Help & Support',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('Reach us any time',
-                  style: TextStyle(color: _mutedText, fontSize: 13)),
+              const Text(
+                'Reach us any time',
+                style: TextStyle(color: _mutedText, fontSize: 13),
+              ),
               const SizedBox(height: 20),
               _HelpTile(
                 icon: Icons.call_rounded,
@@ -215,8 +225,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: _surface,
         foregroundColor: Colors.white,
-        title: const Text('Profile',
-            style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         actions: [
           if (_isLoggedIn)
             IconButton(
@@ -229,259 +241,283 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _loading
           ? const Center(child: HdkPreloader())
           : !_isLoggedIn
-              ? const LoginPromptWidget(
-                  icon: Icons.person_outline_rounded,
-                  title: 'Your Profile',
-                  subtitle:
-                      'Login to view your profile, orders, and saved addresses.',
-                )
-              : _error != null
-                  ? ErrorRetryWidget(error: _error!, onRetry: _loadUser)
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-                      children: [
-                        // ── Avatar + name ─────────────────────────────────
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: _panel,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _stroke),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: _brandRed,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    (_user?.name.isNotEmpty == true)
-                                        ? _user!.name[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _user?.name.isNotEmpty == true
-                                          ? _user!.name
-                                          : 'Set your name',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _user?.phoneNumber ?? '',
-                                      style: const TextStyle(
-                                        color: _mutedText,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: _editName,
-                                icon: const Icon(Icons.edit_rounded,
-                                    color: _mutedText, size: 20),
-                                tooltip: 'Edit name',
-                              ),
-                            ],
-                          ),
+          ? const LoginPromptWidget(
+              icon: Icons.person_outline_rounded,
+              title: 'Your Profile',
+              subtitle:
+                  'Login to view your profile, orders, and saved addresses.',
+            )
+          : _error != null
+          ? ErrorRetryWidget(error: _error!, onRetry: _loadUser)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              children: [
+                // ── Avatar + name ─────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _stroke),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: _brandRed,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [const Color(0xFFFF1E1E).withValues(alpha: 0.15), const Color(0xFFFF8A00).withValues(alpha: 0.05)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        child: Center(
+                          child: Text(
+                            (_user?.name.isNotEmpty == true)
+                                ? _user!.name[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
                             ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFFF8A00).withValues(alpha: 0.25)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFFFF8A00), width: 1.5),
-                                ),
-                                child: const Icon(
-                                  Icons.stars_rounded,
-                                  color: Color(0xFFFF8A00),
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'HDK Coins',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Earn ${_config?.loyaltyCoinsPercentage ?? 10}% coins back on every order',
-                                      style: TextStyle(
-                                        color: _mutedText.withValues(alpha: 0.8),
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                '${_user?.loyaltyCoins ?? 0}',
-                                style: const TextStyle(
-                                  color: Color(0xFFFF8A00),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        // ── Navigation tiles ───────────────────────────────
-                        _ProfileTile(
-                          icon: Icons.receipt_long_rounded,
-                          label: 'My Orders',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const OrdersScreen()),
-                          ),
-                        ),
-                        _ProfileTile(
-                          icon: Icons.location_on_rounded,
-                          label: 'Saved Addresses',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const AddressScreen()),
-                          ),
-                        ),
-                        _ProfileTile(
-                          icon: Icons.help_outline_rounded,
-                          label: 'Help & Support',
-                          onTap: _showHelp,
-                        ),
-                        const SizedBox(height: 24),
-
-                        // ── Social Media & Community ──────────────────────────
-                        const Text(
-                          'Connect with Us',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _SocialButton(
-                              icon: Icons.camera_alt_outlined,
-                              label: 'Instagram',
-                              color: const Color(0xFFE1306C),
-                              onTap: () => launchUrl(Uri.parse('https://instagram.com/hungrydesikitchen')),
+                            Text(
+                              _user?.name.isNotEmpty == true
+                                  ? _user!.name
+                                  : 'Set your name',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                            _SocialButton(
-                              icon: Icons.facebook_rounded,
-                              label: 'Facebook',
-                              color: const Color(0xFF1877F2),
-                              onTap: () => launchUrl(Uri.parse('https://facebook.com/hungrydesikitchen')),
-                            ),
-                            _SocialButton(
-                              icon: Icons.chat_bubble_rounded,
-                              label: 'WhatsApp',
-                              color: const Color(0xFF25D366),
-                              onTap: () => launchUrl(Uri.parse('https://wa.me/918875775282')),
+                            const SizedBox(height: 4),
+                            Text(
+                              _user?.phoneNumber ?? '',
+                              style: const TextStyle(
+                                color: _mutedText,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-
-                        // ── Developer Information ─────────────────────────────
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: _panel,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _stroke),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.code_rounded, color: _brandRed, size: 20),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Developer Information',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Developed and maintained by the HDK Foods Tech Department. For technical queries, API collaborations, or suggestions, contact developers at tech@hdkfoods.com.',
-                                style: TextStyle(color: _mutedText, fontSize: 12, height: 1.4),
-                              ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: () => launchUrl(Uri.parse('mailto:tech@hdkfoods.com')),
-                                child: const Text(
-                                  'Contact Developer',
-                                  style: TextStyle(
-                                    color: _brandRed,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
+                      ),
+                      IconButton(
+                        onPressed: _editName,
+                        icon: const Icon(
+                          Icons.edit_rounded,
+                          color: _mutedText,
+                          size: 20,
+                        ),
+                        tooltip: 'Edit name',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF1E1E).withValues(alpha: 0.15),
+                        const Color(0xFFFF8A00).withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFFF8A00).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFFF8A00,
+                          ).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFFF8A00),
+                            width: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                      ],
+                        child: const Icon(
+                          Icons.stars_rounded,
+                          color: Color(0xFFFF8A00),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'HDK Coins',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Earn ${_config?.loyaltyCoinsPercentage ?? 10}% coins back on every order',
+                              style: TextStyle(
+                                color: _mutedText.withValues(alpha: 0.8),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${_user?.loyaltyCoins ?? 0}',
+                        style: const TextStyle(
+                          color: Color(0xFFFF8A00),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Navigation tiles ───────────────────────────────
+                _ProfileTile(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'My Orders',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                  ),
+                ),
+                _ProfileTile(
+                  icon: Icons.location_on_rounded,
+                  label: 'Saved Addresses',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddressScreen()),
+                  ),
+                ),
+                _ProfileTile(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Help & Support',
+                  onTap: _showHelp,
+                ),
+                const SizedBox(height: 24),
+
+                // ── Social Media & Community ──────────────────────────
+                const Text(
+                  'Connect with Us',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _SocialButton(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Instagram',
+                      color: const Color(0xFFE1306C),
+                      onTap: () => launchUrl(
+                        Uri.parse('https://instagram.com/hungrydesikitchen'),
+                      ),
                     ),
+                    _SocialButton(
+                      icon: Icons.facebook_rounded,
+                      label: 'Facebook',
+                      color: const Color(0xFF1877F2),
+                      onTap: () => launchUrl(
+                        Uri.parse('https://facebook.com/hungrydesikitchen'),
+                      ),
+                    ),
+                    _SocialButton(
+                      icon: Icons.chat_bubble_rounded,
+                      label: 'WhatsApp',
+                      color: const Color(0xFF25D366),
+                      onTap: () =>
+                          launchUrl(Uri.parse('https://wa.me/918875775282')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ── Developer Information ─────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _stroke),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.code_rounded, color: _brandRed, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Developer Information',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Developed and maintained by the HDK Foods Tech Department. For technical queries, API collaborations, or suggestions, contact developers at tech@hdkfoods.com.',
+                        style: TextStyle(
+                          color: _mutedText,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () =>
+                            launchUrl(Uri.parse('mailto:tech@hdkfoods.com')),
+                        child: const Text(
+                          'Contact Developer',
+                          style: TextStyle(
+                            color: _brandRed,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
     );
   }
 }
@@ -514,7 +550,9 @@ class _ProfileTile extends StatelessWidget {
           title: Text(
             label,
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w800),
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           trailing: const Icon(Icons.chevron_right_rounded, color: _mutedText),
           onTap: onTap,
@@ -553,31 +591,39 @@ class _HelpTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: _stroke),
           ),
-          child: Row(children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
               ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w700)),
-                  Text(subtitle,
-                      style: const TextStyle(color: _mutedText, fontSize: 12)),
-                ],
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: _mutedText, fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: _mutedText),
-          ]),
+              const Icon(Icons.chevron_right_rounded, color: _mutedText),
+            ],
+          ),
         ),
       ),
     );

@@ -70,7 +70,9 @@ class HdkDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               content,
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.mutedText),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.mutedText,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -81,7 +83,9 @@ class HdkDialog extends StatelessWidget {
                     child: HdkButton(
                       label: secondaryActionLabel!,
                       isOutlined: true,
-                      onPressed: onSecondaryAction ?? () => Navigator.of(context).pop(),
+                      onPressed:
+                          onSecondaryAction ??
+                          () => Navigator.of(context).pop(),
                     ),
                   ),
                 if (secondaryActionLabel != null && primaryActionLabel != null)

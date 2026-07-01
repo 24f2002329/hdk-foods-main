@@ -126,18 +126,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         orderTotal: cartTotal,
       );
       if (!mounted) return;
-        if (result == null || result['valid'] == false) {
-          setState(() {
-            _couponError = result?['detail'] ?? 'Invalid coupon.';
-            _couponResult = null;
-          });
-        } else {
-          setState(() => _couponResult = result);
-          final discount = double.tryParse(result['discount_amount'].toString()) ?? 0.0;
-          if (discount > 0) {
-            CongratulationsOverlay.show(context, discount);
-          }
+      if (result == null || result['valid'] == false) {
+        setState(() {
+          _couponError = result?['detail'] ?? 'Invalid coupon.';
+          _couponResult = null;
+        });
+      } else {
+        setState(() => _couponResult = result);
+        final discount =
+            double.tryParse(result['discount_amount'].toString()) ?? 0.0;
+        if (discount > 0) {
+          CongratulationsOverlay.show(context, discount);
         }
+      }
     } catch (e) {
       if (mounted) setState(() => _couponError = 'Could not validate coupon.');
     } finally {
@@ -164,10 +165,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isCreatingOrder = true);
 
     try {
-      final items = cart.items.map((item) => {
-        'product_id': item.product.id,
-        'quantity': item.quantity,
-      }).toList();
+      final items = cart.items
+          .map(
+            (item) => {
+              'product_id': item.product.id,
+              'quantity': item.quantity,
+            },
+          )
+          .toList();
 
       final appliedCode = (_couponResult?['valid'] == true)
           ? (_couponResult!['coupon']['code'] as String)
@@ -185,7 +190,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           specs.add("Note: ${item.notes}");
         }
         if (specs.isNotEmpty) {
-          customDetails.add("${item.product.name} (${item.quantity}x) -> ${specs.join(', ')}");
+          customDetails.add(
+            "${item.product.name} (${item.quantity}x) -> ${specs.join(', ')}",
+          );
         }
       }
 
@@ -193,7 +200,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (customDetails.isNotEmpty) {
         notesParts.add(customDetails.join(' | '));
       }
-      notesParts.add(_cutleryNeeded ? "Cutlery Needed: Yes" : "Cutlery Needed: No");
+      notesParts.add(
+        _cutleryNeeded ? "Cutlery Needed: Yes" : "Cutlery Needed: No",
+      );
       final String finalDeliveryNotes = notesParts.join(' | ');
 
       final order = await _orderService.createOrder(
@@ -227,14 +236,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => KitchenClosedScreen(
-                closedMessage: e.toString().replaceAll('Exception: ', '').replaceAll('Error: ', ''),
+                closedMessage: e
+                    .toString()
+                    .replaceAll('Exception: ', '')
+                    .replaceAll('Error: ', ''),
               ),
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error placing order: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error placing order: $e')));
         }
       }
     } finally {
@@ -250,13 +262,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }) {
     final selected = _selectedPaymentMethod == value;
     return GestureDetector(
-      onTap: _isCreatingOrder ? null : () => setState(() => _selectedPaymentMethod = value),
+      onTap: _isCreatingOrder
+          ? null
+          : () => setState(() => _selectedPaymentMethod = value),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: _panel,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? _brandRed : _stroke, width: selected ? 2 : 1),
+          border: Border.all(
+            color: selected ? _brandRed : _stroke,
+            width: selected ? 2 : 1,
+          ),
         ),
         child: Row(
           children: [
@@ -266,9 +283,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -286,14 +312,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final discount = _couponResult?['valid'] == true
         ? double.tryParse(_couponResult!['discount_amount'].toString()) ?? 0.0
         : 0.0;
-    final coinsDiscount = _redeemCoins ? _calculateCoinsDiscount(cartTotal - discount) : 0.0;
+    final coinsDiscount = _redeemCoins
+        ? _calculateCoinsDiscount(cartTotal - discount)
+        : 0.0;
     final finalTotal = cartTotal - discount - coinsDiscount;
 
     if (cart.items.isEmpty && !_isCreatingOrder) {
       return Scaffold(
         backgroundColor: _surface,
         appBar: AppBar(title: const Text('Checkout')),
-        body: const Center(child: Text('Cart is empty', style: TextStyle(color: Colors.white))),
+        body: const Center(
+          child: Text('Cart is empty', style: TextStyle(color: Colors.white)),
+        ),
       );
     }
 
@@ -301,338 +331,531 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: const Text('Checkout',
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text(
+          'Checkout',
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoadingAddresses
           ? const Center(child: HdkPreloader())
           : _addressError != null
-              ? Center(child: Text(_addressError!, style: const TextStyle(color: Colors.red)))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Delivery address ──────────────────────────────────
-                      const Text('Delivery Address',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      _selectedAddress == null
-                          ? Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(12)),
-                              child: Row(children: [
-                                const Expanded(child: Text('No address selected', style: TextStyle(color: Colors.white))),
-                                TextButton(
-                                  onPressed: _pickAddress,
-                                  child: const Text('Add Address', style: TextStyle(color: _brandRed)),
-                                ),
-                              ]),
-                            )
-                          : Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                  color: _panel,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _stroke)),
-                              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                const Icon(Icons.location_on, color: _brandRed),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(_selectedAddress!.label,
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                        '${_selectedAddress!.house}, ${_selectedAddress!.street}, ${_selectedAddress!.city}',
-                                        style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                                  ]),
-                                ),
-                                TextButton(
-                                  onPressed: _pickAddress,
-                                  child: const Text('Change', style: TextStyle(color: _brandRed)),
-                                ),
-                              ]),
-                            ),
-                      const SizedBox(height: 24),
-
-                      // ── Order summary ─────────────────────────────────────
-                      const Text('Order Summary',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                            color: _panel,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _stroke)),
-                        child: Column(children: [
-                          ...cart.items.map((item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(children: [
-                                  Expanded(
-                                    child: Text('${item.quantity}x ${item.product.name}',
-                                        style: const TextStyle(color: Colors.grey),
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text('₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
-                                      style: const TextStyle(color: Colors.white)),
-                                ]),
-                              )),
-                          const Divider(color: _stroke, height: 24),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                            const Text('Subtotal', style: TextStyle(color: _mutedText)),
-                            Text('₹${cartTotal.toStringAsFixed(0)}',
-                                style: const TextStyle(color: _mutedText)),
-                          ]),
-                          if (discount > 0) ...[
-                            const SizedBox(height: 6),
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              Text('Discount (${_couponResult!['coupon']['code']})',
-                                  style: const TextStyle(color: Colors.greenAccent, fontSize: 13)),
-                              Text('-₹${discount.toStringAsFixed(0)}',
-                                  style: const TextStyle(color: Colors.greenAccent, fontSize: 13)),
-                            ]),
-                          ],
-                          if (coinsDiscount > 0) ...[
-                            const SizedBox(height: 6),
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              const Text('Coins Redeemed',
-                                  style: TextStyle(color: Color(0xFFFF8A00), fontSize: 13)),
-                              Text('-₹${coinsDiscount.toStringAsFixed(0)}',
-                                  style: const TextStyle(color: Color(0xFFFF8A00), fontSize: 13)),
-                            ]),
-                          ],
-                          const SizedBox(height: 12),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                            const Text('Total',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text('₹${finalTotal.toStringAsFixed(0)}',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          ]),
-                        ]),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Coupon ────────────────────────────────────────────
-                      const Text('Promo Code',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      if (_couponResult?['valid'] == true)
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                              color: Colors.greenAccent.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4))),
-                          child: Row(children: [
-                            const Icon(Icons.local_offer_rounded, color: Colors.greenAccent, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(_couponResult!['coupon']['code'],
-                                    style: const TextStyle(
-                                        color: Colors.greenAccent,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 15)),
-                                Text('You save ₹${discount.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: Colors.green, fontSize: 12)),
-                              ]),
-                            ),
-                            IconButton(
-                              onPressed: _removeCoupon,
-                              icon: const Icon(Icons.close, color: Colors.greenAccent, size: 18),
-                            ),
-                          ]),
-                        )
-                      else
-                        Row(children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _couponCtrl,
-                              style: const TextStyle(color: Colors.white),
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: InputDecoration(
-                                hintText: 'Enter promo code',
-                                hintStyle: const TextStyle(color: _mutedText),
-                                filled: true,
-                                fillColor: _panel,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: _stroke)),
-                                enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: _stroke)),
-                                focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: _brandRed)),
-                                errorText: _couponError,
-                                errorStyle: const TextStyle(color: Colors.redAccent),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          SizedBox(
-                            width: 82,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _isValidatingCoupon ? null : () => _validateCoupon(cartTotal),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _brandRed,
-                                minimumSize: Size.zero,
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: _isValidatingCoupon
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text('Apply', style: TextStyle(color: Colors.white)),
-                            ),
-                          ),
-                        ]),
-                      // ── Redeem Loyalty Coins ──────────────────────────────
-                      if (_userCoins > 0) ...[
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ? Center(
+              child: Text(
+                _addressError!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Delivery address ──────────────────────────────────
+                  const Text(
+                    'Delivery Address',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _selectedAddress == null
+                      ? Container(
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: _panel,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _redeemCoins
-                                  ? const Color(0xFFFF8A00).withValues(alpha: 0.4)
-                                  : _stroke,
-                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.stars_rounded, color: Color(0xFFFF8A00), size: 24),
+                              const Expanded(
+                                child: Text(
+                                  'No address selected',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _pickAddress,
+                                child: const Text(
+                                  'Add Address',
+                                  style: TextStyle(color: _brandRed),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _panel,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _stroke),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.location_on, color: _brandRed),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Redeem $_userCoins HDK Coins',
+                                      _selectedAddress!.label,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 14,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      'Save ₹${_calculateCoinsDiscount(cartTotal - discount).toStringAsFixed(0)} on this order',
+                                      '${_selectedAddress!.house}, ${_selectedAddress!.street}, ${_selectedAddress!.city}',
                                       style: const TextStyle(
-                                        color: _mutedText,
-                                        fontSize: 11,
+                                        color: Colors.grey,
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                                Switch(
-                                  value: _redeemCoins,
-                                  activeThumbColor: const Color(0xFFFF8A00),
-                                  activeTrackColor: const Color(0xFFFF8A00).withValues(alpha: 0.2),
-                                inactiveTrackColor: const Color(0xFF2A2A2A),
-                                onChanged: (val) {
-                                  setState(() => _redeemCoins = val);
-                                  if (val) {
-                                    final coinsDiscount = _calculateCoinsDiscount(cartTotal - discount);
-                                    if (coinsDiscount > 0) {
-                                      CongratulationsOverlay.show(context, coinsDiscount);
-                                    }
-                                  }
-                                },
+                              TextButton(
+                                onPressed: _pickAddress,
+                                child: const Text(
+                                  'Change',
+                                  style: TextStyle(color: _brandRed),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                      // ── Cutlery Option ───────────────────────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _panel,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _stroke),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.flatware_rounded, color: _brandRed, size: 24),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Cutlery Needed',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                  // ── Order summary ─────────────────────────────────────
+                  const Text(
+                    'Order Summary',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _panel,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _stroke),
+                    ),
+                    child: Column(
+                      children: [
+                        ...cart.items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.quantity}x ${item.product.name}',
+                                    style: const TextStyle(color: Colors.grey),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Ticked if you need spoons/forks/napkins',
-                                    style: TextStyle(
-                                      color: _mutedText,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
                             ),
-                            Checkbox(
-                              value: _cutleryNeeded,
-                              activeColor: _brandRed,
-                              checkColor: Colors.white,
-                              onChanged: (val) {
-                                setState(() => _cutleryNeeded = val ?? true);
-                              },
+                          ),
+                        ),
+                        const Divider(color: _stroke, height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Subtotal',
+                              style: TextStyle(color: _mutedText),
+                            ),
+                            Text(
+                              '₹${cartTotal.toStringAsFixed(0)}',
+                              style: const TextStyle(color: _mutedText),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Payment mode ──────────────────────────────────────
-                      const Text('Payment Mode',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      _paymentTile(
-                        value: 'online',
-                        icon: Icons.account_balance_wallet,
-                        title: 'Pay Online',
-                        subtitle: 'UPI, cards, netbanking via Cashfree',
-                      ),
-                      const SizedBox(height: 12),
-                      _paymentTile(
-                        value: 'cod',
-                        icon: Icons.money,
-                        title: 'Cash on Delivery',
-                        subtitle: 'Pay when your order arrives',
-                      ),
-                      const SizedBox(height: 80),
-                    ],
+                        if (discount > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Discount (${_couponResult!['coupon']['code']})',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '-₹${discount.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (coinsDiscount > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Coins Redeemed',
+                                style: TextStyle(
+                                  color: Color(0xFFFF8A00),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '-₹${coinsDiscount.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8A00),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              '₹${finalTotal.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 24),
+
+                  // ── Coupon ────────────────────────────────────────────
+                  const Text(
+                    'Promo Code',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_couponResult?['valid'] == true)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.greenAccent.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.local_offer_rounded,
+                            color: Colors.greenAccent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _couponResult!['coupon']['code'],
+                                  style: const TextStyle(
+                                    color: Colors.greenAccent,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  'You save ₹${discount.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _removeCoupon,
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.greenAccent,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _couponCtrl,
+                            style: const TextStyle(color: Colors.white),
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: InputDecoration(
+                              hintText: 'Enter promo code',
+                              hintStyle: const TextStyle(color: _mutedText),
+                              filled: true,
+                              fillColor: _panel,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: _stroke),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: _stroke),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: _brandRed),
+                              ),
+                              errorText: _couponError,
+                              errorStyle: const TextStyle(
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 82,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isValidatingCoupon
+                                ? null
+                                : () => _validateCoupon(cartTotal),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _brandRed,
+                              minimumSize: Size.zero,
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: _isValidatingCoupon
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Apply',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  // ── Redeem Loyalty Coins ──────────────────────────────
+                  if (_userCoins > 0) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _panel,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _redeemCoins
+                              ? const Color(0xFFFF8A00).withValues(alpha: 0.4)
+                              : _stroke,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.stars_rounded,
+                            color: Color(0xFFFF8A00),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Redeem $_userCoins HDK Coins',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Save ₹${_calculateCoinsDiscount(cartTotal - discount).toStringAsFixed(0)} on this order',
+                                  style: const TextStyle(
+                                    color: _mutedText,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _redeemCoins,
+                            activeThumbColor: const Color(0xFFFF8A00),
+                            activeTrackColor: const Color(
+                              0xFFFF8A00,
+                            ).withValues(alpha: 0.2),
+                            inactiveTrackColor: const Color(0xFF2A2A2A),
+                            onChanged: (val) {
+                              setState(() => _redeemCoins = val);
+                              if (val) {
+                                final coinsDiscount = _calculateCoinsDiscount(
+                                  cartTotal - discount,
+                                );
+                                if (coinsDiscount > 0) {
+                                  CongratulationsOverlay.show(
+                                    context,
+                                    coinsDiscount,
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  // ── Cutlery Option ───────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _panel,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _stroke),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.flatware_rounded,
+                          color: _brandRed,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Cutlery Needed',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Ticked if you need spoons/forks/napkins',
+                                style: TextStyle(
+                                  color: _mutedText,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Checkbox(
+                          value: _cutleryNeeded,
+                          activeColor: _brandRed,
+                          checkColor: Colors.white,
+                          onChanged: (val) {
+                            setState(() => _cutleryNeeded = val ?? true);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Payment mode ──────────────────────────────────────
+                  const Text(
+                    'Payment Mode',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _paymentTile(
+                    value: 'online',
+                    icon: Icons.account_balance_wallet,
+                    title: 'Pay Online',
+                    subtitle: 'UPI, cards, netbanking via Cashfree',
+                  ),
+                  const SizedBox(height: 12),
+                  _paymentTile(
+                    value: 'cod',
+                    icon: Icons.money,
+                    title: 'Cash on Delivery',
+                    subtitle: 'Pay when your order arrives',
+                  ),
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
       bottomNavigationBar: _isCreatingOrder
           ? const SafeArea(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Center(heightFactor: 1, child: HdkPreloader(width: 50, height: 50)),
-              ))
+                child: Center(
+                  heightFactor: 1,
+                  child: HdkPreloader(width: 50, height: 50),
+                ),
+              ),
+            )
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -642,12 +865,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _brandRed,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    onPressed: cart.items.isEmpty || _selectedAddress == null ? null : () => _placeOrder(cart),
+                    onPressed: cart.items.isEmpty || _selectedAddress == null
+                        ? null
+                        : () => _placeOrder(cart),
                     child: Text(
                       'Place Order  ₹${finalTotal.toStringAsFixed(0)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

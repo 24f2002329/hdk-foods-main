@@ -15,8 +15,7 @@ class TokenStorage {
     }
   }
 
-  static Future<String?> getAccessToken() async =>
-      _storage.read(key: 'access');
+  static Future<String?> getAccessToken() async => _storage.read(key: 'access');
 
   static Future<String?> getRefreshToken() async =>
       _storage.read(key: 'refresh');
@@ -30,10 +29,7 @@ class TokenStorage {
   }
 
   static Future<void> setOnboardingComplete() async {
-    await _storage.write(
-      key: "onboarding_complete",
-      value: "true",
-    );
+    await _storage.write(key: "onboarding_complete", value: "true");
   }
 
   static Future<bool> hasCompletedOnboarding() async {

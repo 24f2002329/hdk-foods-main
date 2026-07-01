@@ -21,17 +21,17 @@ class LocationTrackingService {
         perm == LocationPermission.always;
   }
 
-  Future<void> _postLocation({required bool heartbeat, required Position pos}) async {
+  Future<void> _postLocation({
+    required bool heartbeat,
+    required Position pos,
+  }) async {
     try {
       final token = await TokenStorage.getAccessToken();
       if (token == null) return;
 
       final body = heartbeat
           ? {'heartbeat': true}
-          : {
-              'latitude': pos.latitude,
-              'longitude': pos.longitude,
-            };
+          : {'latitude': pos.latitude, 'longitude': pos.longitude};
 
       await http.post(
         Uri.parse('${ApiConfig.baseUrl}/orders/$orderId/delivery-location/'),
@@ -57,8 +57,9 @@ class LocationTrackingService {
       double speed = 0.0;
       try {
         final pos = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         speed = pos.speed; // speed is in meters/second
 

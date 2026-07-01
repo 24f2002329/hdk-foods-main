@@ -68,15 +68,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 48),
-                Text('HDK Admin',
-                    style: GoogleFonts.poppins(
-                        color: const Color(0xFFFF1E1E),
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900)),
+                Text(
+                  'HDK Admin',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFFFF1E1E),
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('Admin access only',
-                    style: GoogleFonts.poppins(
-                        color: Colors.grey, fontSize: 14)),
+                Text(
+                  'Admin access only',
+                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                ),
                 const SizedBox(height: 48),
                 TextFormField(
                   controller: _phoneController,
@@ -96,16 +100,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   obscureText: _obscure,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock,
-                        color: Color(0xFFFF1E1E)),
+                    prefixIcon: const Icon(
+                      Icons.lock,
+                      color: Color(0xFFFF1E1E),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                          _obscure
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey),
-                      onPressed: () =>
-                          setState(() => _obscure = !_obscure),
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
                   validator: (v) =>
@@ -116,8 +120,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   onPressed: _loading ? null : _login,
                   child: _loading
                       ? const Center(child: HdkPreloader(width: 35, height: 35))
-                      : const Text('Sign In',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                 ),
               ],
             ),

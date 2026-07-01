@@ -21,19 +21,18 @@ class Customer {
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
-        id: json['id'] as int,
-        name: json['name'] ?? '',
-        phone: json['phone_number'] ?? '',
-        isActive: json['is_active'] ?? true,
-        createdAt: json['created_at'] != null
-            ? DateTime.tryParse(json['created_at'])
-            : null,
-        orderCount: json['order_count'] ?? 0,
-        loyaltyCoins: json['loyalty_coins'] ?? 0,
-      );
+    id: json['id'] as int,
+    name: json['name'] ?? '',
+    phone: json['phone_number'] ?? '',
+    isActive: json['is_active'] ?? true,
+    createdAt: json['created_at'] != null
+        ? DateTime.tryParse(json['created_at'])
+        : null,
+    orderCount: json['order_count'] ?? 0,
+    loyaltyCoins: json['loyalty_coins'] ?? 0,
+  );
 
-  String get displayName =>
-      name.isNotEmpty ? name : phone;
+  String get displayName => name.isNotEmpty ? name : phone;
   String get initials =>
       displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
 }
@@ -42,10 +41,7 @@ class CustomerDetail {
   final Customer customer;
   final List<Order> recentOrders;
 
-  const CustomerDetail({
-    required this.customer,
-    required this.recentOrders,
-  });
+  const CustomerDetail({required this.customer, required this.recentOrders});
 }
 
 class CustomerService {
@@ -66,7 +62,10 @@ class CustomerService {
         .toList();
   }
 
-  Future<Map<String, dynamic>> getCustomersPaged({int page = 1, String? search}) async {
+  Future<Map<String, dynamic>> getCustomersPaged({
+    int page = 1,
+    String? search,
+  }) async {
     final params = <String, String>{'page': page.toString()};
     if (search != null && search.isNotEmpty) params['search'] = search;
     final uri = Uri.parse('$_base/').replace(queryParameters: params);

@@ -55,8 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _smartAuth.requestPhoneNumberHint();
       if (result.hasData) {
         final digits = result.requireData.replaceAll(RegExp(r'\D'), '');
-        _phoneController.text =
-            digits.length >= 10 ? digits.substring(digits.length - 10) : digits;
+        _phoneController.text = digits.length >= 10
+            ? digits.substring(digits.length - 10)
+            : digits;
       }
     } catch (_) {}
   }
@@ -72,9 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _loading = true);
 
-    final verificationId = await _authService.sendOtp(
-      phoneNumber: "+91$phone",
-    );
+    final verificationId = await _authService.sendOtp(phoneNumber: "+91$phone");
 
     setState(() => _loading = false);
     if (!mounted) return;
@@ -89,10 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OtpScreen(
-          verificationId: verificationId,
-          phoneNumber: phone,
-        ),
+        builder: (_) =>
+            OtpScreen(verificationId: verificationId, phoneNumber: phone),
       ),
     );
   }
@@ -187,8 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 decoration: InputDecoration(
                   counterText: '',
-                  prefixIcon:
-                      const Icon(Icons.phone_rounded, color: _brandRed),
+                  prefixIcon: const Icon(Icons.phone_rounded, color: _brandRed),
                   prefixText: "+91  ",
                   prefixStyle: const TextStyle(
                     color: Colors.white,
@@ -287,7 +283,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 1.5,
                       ),
                       children: [
-                        const TextSpan(text: 'By continuing, you agree to our\n'),
+                        const TextSpan(
+                          text: 'By continuing, you agree to our\n',
+                        ),
                         TextSpan(
                           text: 'Terms & Conditions',
                           style: const TextStyle(
@@ -296,7 +294,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: TextDecoration.underline,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () => _launchUrl('https://hdkfoods.in/terms'),
+                            ..onTap = () =>
+                                _launchUrl('https://hdkfoods.in/terms'),
                         ),
                         const TextSpan(text: '  and  '),
                         TextSpan(
@@ -307,7 +306,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: TextDecoration.underline,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = () => _launchUrl('https://hdkfoods.in/privacy-policy'),
+                            ..onTap = () => _launchUrl(
+                              'https://hdkfoods.in/privacy-policy',
+                            ),
                         ),
                       ],
                     ),

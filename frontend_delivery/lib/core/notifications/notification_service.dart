@@ -42,7 +42,9 @@ class NotificationService {
   static Future<void> uploadToken() async {
     try {
       await FirebaseMessaging.instance.requestPermission(
-        alert: true, badge: true, sound: true,
+        alert: true,
+        badge: true,
+        sound: true,
       );
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
@@ -77,9 +79,11 @@ class NotificationService {
     try {
       final order = await OrderService().getOrder(orderId);
       if (!ctx.mounted) return;
-      Navigator.of(ctx).push(MaterialPageRoute(
-        builder: (_) => OrderDetailScreen(order: order, role: 'delivery'),
-      ));
+      Navigator.of(ctx).push(
+        MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(order: order, role: 'delivery'),
+        ),
+      );
     } catch (_) {}
   }
 
@@ -104,13 +108,16 @@ class NotificationService {
 
     await _local
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          _kChannelId,
-          _kChannelName,
-          importance: Importance.high,
-          enableVibration: true,
-        ));
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kChannelId,
+            _kChannelName,
+            importance: Importance.high,
+            enableVibration: true,
+          ),
+        );
   }
 
   static Future<void> _showLocal(RemoteMessage message) async {

@@ -65,29 +65,35 @@ class _AdminHomeState extends State<AdminHome> {
         onDestinationSelected: _onNavTap,
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard, color: _red),
-              label: 'Dashboard'),
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard, color: _red),
+            label: 'Dashboard',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.soup_kitchen_outlined),
-              selectedIcon: Icon(Icons.soup_kitchen, color: _red),
-              label: 'KDS'),
+            icon: Icon(Icons.soup_kitchen_outlined),
+            selectedIcon: Icon(Icons.soup_kitchen, color: _red),
+            label: 'KDS',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.local_shipping_outlined),
-              selectedIcon: Icon(Icons.local_shipping, color: _red),
-              label: 'Dispatch'),
+            icon: Icon(Icons.local_shipping_outlined),
+            selectedIcon: Icon(Icons.local_shipping, color: _red),
+            label: 'Dispatch',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long, color: _red),
-              label: 'Orders'),
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long, color: _red),
+            label: 'Orders',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.fastfood_outlined),
-              selectedIcon: Icon(Icons.fastfood, color: _red),
-              label: 'Products'),
+            icon: Icon(Icons.fastfood_outlined),
+            selectedIcon: Icon(Icons.fastfood, color: _red),
+            label: 'Products',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.tune_outlined),
-              selectedIcon: Icon(Icons.tune, color: _red),
-              label: 'Settings'),
+            icon: Icon(Icons.tune_outlined),
+            selectedIcon: Icon(Icons.tune, color: _red),
+            label: 'Settings',
+          ),
         ],
       ),
     );
@@ -135,11 +141,10 @@ class _DashboardTabState extends State<_DashboardTab>
     _load();
     _loadChart();
     _loadUnavailableProducts();
-    _timer = Timer.periodic(
-        const Duration(seconds: 30), (_) {
-          _load(silent: true);
-          _loadUnavailableProducts();
-        });
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _load(silent: true);
+      _loadUnavailableProducts();
+    });
 
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
@@ -173,7 +178,11 @@ class _DashboardTabState extends State<_DashboardTab>
   int _unreadNotificationCount = 0;
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() { _loading = true; _error = null; });
+    if (!silent)
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
     try {
       final data = await _svc.getDashboard(period: _period);
       int unread = 0;
@@ -181,7 +190,7 @@ class _DashboardTabState extends State<_DashboardTab>
         final res = await NotificationService().getNotifications();
         unread = res['unread_count'] as int;
       } catch (_) {}
-      
+
       if (mounted) {
         setState(() {
           _data = data;
@@ -191,7 +200,10 @@ class _DashboardTabState extends State<_DashboardTab>
       }
     } catch (e) {
       if (mounted && !silent) {
-        setState(() { _error = e.toString(); _loading = false; });
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
       }
     }
   }
@@ -199,9 +211,7 @@ class _DashboardTabState extends State<_DashboardTab>
   Future<void> _openNotifications() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const NotificationScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
     );
     _load(silent: true);
   }
@@ -218,12 +228,15 @@ class _DashboardTabState extends State<_DashboardTab>
 
   void _setPeriod(String p) {
     if (_period == p) return;
-    setState(() { _period = p; _loading = true; _error = null; });
+    setState(() {
+      _period = p;
+      _loading = true;
+      _error = null;
+    });
     _load();
   }
 
-  String get _periodLabel =>
-      _periods.firstWhere((p) => p.$1 == _period).$2;
+  String get _periodLabel => _periods.firstWhere((p) => p.$1 == _period).$2;
 
   String _fmt(String key) {
     final v = _data?[key];
@@ -246,11 +259,14 @@ class _DashboardTabState extends State<_DashboardTab>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        Text('Top Products Sold (Units)',
-            style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600)),
+        Text(
+          'Top Products Sold (Units)',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 12),
         SizedBox(
           height: 180,
@@ -265,7 +281,11 @@ class _DashboardTabState extends State<_DashboardTab>
                     final name = list[groupIndex]['name'] as String;
                     return BarTooltipItem(
                       '$name\n${rod.toY.toInt()} units',
-                      const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     );
                   },
                 ),
@@ -281,10 +301,18 @@ class _DashboardTabState extends State<_DashboardTab>
                         return const SizedBox.shrink();
                       }
                       final name = list[index]['name'] as String;
-                      final shortName = name.length > 8 ? '${name.substring(0, 7)}..' : name;
+                      final shortName = name.length > 8
+                          ? '${name.substring(0, 7)}..'
+                          : name;
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(shortName, style: const TextStyle(color: Colors.grey, fontSize: 8)),
+                        child: Text(
+                          shortName,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 8,
+                          ),
+                        ),
                       );
                     },
                     reservedSize: 24,
@@ -293,37 +321,45 @@ class _DashboardTabState extends State<_DashboardTab>
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 8)),
+                    getTitlesWidget: (v, _) => Text(
+                      v.toInt().toString(),
+                      style: const TextStyle(color: Colors.grey, fontSize: 8),
+                    ),
                     reservedSize: 22,
                   ),
                 ),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
-              barGroups: List.generate(
-                list.length,
-                (i) {
-                  final qty = (list[i]['quantity'] as num).toDouble();
-                  return BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: qty,
-                        color: i == 0 ? Colors.amber : (i == 1 ? Colors.blueAccent : Colors.deepOrangeAccent),
-                        width: 14,
-                        borderRadius: BorderRadius.circular(4),
-                        backDrawRodData: BackgroundBarChartRodData(
-                          show: true,
-                          toY: maxQty * 1.1,
-                          color: const Color(0xFF1E1E1E),
-                        ),
+              barGroups: List.generate(list.length, (i) {
+                final qty = (list[i]['quantity'] as num).toDouble();
+                return BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: qty,
+                      color: i == 0
+                          ? Colors.amber
+                          : (i == 1
+                                ? Colors.blueAccent
+                                : Colors.deepOrangeAccent),
+                      width: 14,
+                      borderRadius: BorderRadius.circular(4),
+                      backDrawRodData: BackgroundBarChartRodData(
+                        show: true,
+                        toY: maxQty * 1.1,
+                        color: const Color(0xFF1E1E1E),
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              }),
             ),
           ),
         ),
@@ -347,15 +383,19 @@ class _DashboardTabState extends State<_DashboardTab>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        Text('Peak Order Times (Busy Hours)',
-            style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600)),
+        Text(
+          'Peak Order Times (Busy Hours)',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text('Total orders by hour of day',
-            style: GoogleFonts.poppins(
-                color: Colors.grey, fontSize: 11)),
+        Text(
+          'Total orders by hour of day',
+          style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+        ),
         const SizedBox(height: 12),
         SizedBox(
           height: 160,
@@ -364,10 +404,8 @@ class _DashboardTabState extends State<_DashboardTab>
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) => FlLine(
-                  color: const Color(0xFF2A2A2A),
-                  strokeWidth: 1,
-                ),
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: const Color(0xFF2A2A2A), strokeWidth: 1),
               ),
               titlesData: FlTitlesData(
                 show: true,
@@ -388,15 +426,25 @@ class _DashboardTabState extends State<_DashboardTab>
                     interval: 4,
                     getTitlesWidget: (v, _) {
                       final hour = v.toInt();
-                      if (hour < 0 || hour >= 24) return const SizedBox.shrink();
+                      if (hour < 0 || hour >= 24)
+                        return const SizedBox.shrink();
                       final suffix = hour >= 12 ? 'PM' : 'AM';
-                      final disp = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                      return Text('$disp$suffix', style: const TextStyle(color: Colors.grey, fontSize: 8));
+                      final disp = hour == 0
+                          ? 12
+                          : (hour > 12 ? hour - 12 : hour);
+                      return Text(
+                        '$disp$suffix',
+                        style: const TextStyle(color: Colors.grey, fontSize: 8),
+                      );
                     },
                   ),
                 ),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [
@@ -407,8 +455,8 @@ class _DashboardTabState extends State<_DashboardTab>
                   barWidth: 2.5,
                   dotData: const FlDotData(show: false),
                   belowBarData: BarAreaData(
-                     show: true,
-                     color: Colors.deepOrange.withValues(alpha: 0.1),
+                    show: true,
+                    color: Colors.deepOrange.withValues(alpha: 0.1),
                   ),
                 ),
               ],
@@ -430,12 +478,18 @@ class _DashboardTabState extends State<_DashboardTab>
       decoration: BoxDecoration(
         color: const Color(0xFFFF1E1E).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFF1E1E).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFFFF1E1E).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF1E1E), size: 20),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFFF1E1E),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -452,10 +506,7 @@ class _DashboardTabState extends State<_DashboardTab>
                 const SizedBox(height: 4),
                 Text(
                   'The following items are marked as unavailable and hidden from customers:\n$names',
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey,
-                    fontSize: 11,
-                  ),
+                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
@@ -490,9 +541,13 @@ class _DashboardTabState extends State<_DashboardTab>
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Dashboard',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Dashboard',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           Stack(
             clipBehavior: Clip.none,
@@ -516,15 +571,20 @@ class _DashboardTabState extends State<_DashboardTab>
                     alignment: Alignment.center,
                     child: Text(
                       '$_unreadNotificationCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
           IconButton(
-              icon: const Icon(Icons.refresh, color: _red),
-              onPressed: _load),
+            icon: const Icon(Icons.refresh, color: _red),
+            onPressed: _load,
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -532,8 +592,7 @@ class _DashboardTabState extends State<_DashboardTab>
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               children: _periods.map((p) {
                 final selected = _period == p.$1;
                 return Padding(
@@ -547,12 +606,12 @@ class _DashboardTabState extends State<_DashboardTab>
                     labelStyle: TextStyle(
                       color: selected ? _red : Colors.grey,
                       fontSize: 12,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     backgroundColor: _card,
-                    side: BorderSide(
-                        color: selected ? _red : _stroke),
+                    side: BorderSide(color: selected ? _red : _stroke),
                     showCheckmark: false,
                   ),
                 );
@@ -564,345 +623,421 @@ class _DashboardTabState extends State<_DashboardTab>
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  color: _red,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: _red,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_periodLabel Overview',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    _period == 'today'
+                        ? DateFormat('EEEE, MMM d').format(DateTime.now())
+                        : 'Tap a card to view orders',
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInventoryAlertCard(),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.25,
                     children: [
-                      const SizedBox(height: 4),
-                      Text('$_periodLabel Overview',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700)),
-                      Text(
-                        _period == 'today'
-                            ? DateFormat('EEEE, MMM d').format(DateTime.now())
-                            : 'Tap a card to view orders',
-                        style: GoogleFonts.poppins(
-                            color: Colors.grey, fontSize: 12),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInventoryAlertCard(),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.25,
-                        children: [
-                          _StatCard(
-                            label: 'Total Orders',
-                            value: _fmt('total_orders'),
-                            icon: Icons.receipt_long,
-                            color: Colors.blueAccent,
-                            onTap: () => _drill(
-                              title: 'Orders — $_periodLabel',
-                              statuses: const [
-                                'pending_confirmation', 'confirmed',
-                                'preparing',
-                                'out_for_delivery', 'delivered',
-                                'cancelled', 'rejected',
-                              ],
-                            ),
-                          ),
-                          _StatCard(
-                            label: 'Needs Action',
-                            value: _fmt('pending_orders'),
-                            icon: Icons.notification_important_outlined,
-                            color: Colors.orangeAccent,
-                            subtitle: 'Live',
-                            onTap: () => _drill(
-                              title: 'Needs Action',
-                              statuses: const ['pending_confirmation'],
-                              periodScoped: false,
-                            ),
-                          ),
-                          _StatCard(
-                            label: 'In Progress',
-                            value: _fmt('in_progress'),
-                            icon: Icons.restaurant,
-                            color: Colors.amberAccent,
-                            subtitle: 'Live',
-                            onTap: () => _drill(
-                              title: 'In Progress',
-                              statuses: const [
-                                'confirmed', 'preparing'
-                              ],
-                              periodScoped: false,
-                            ),
-                          ),
-                          _StatCard(
-                            label: 'Out for Delivery',
-                            value: _fmt('active_deliveries'),
-                            icon: Icons.delivery_dining,
-                            color: Colors.purpleAccent,
-                            subtitle: 'Live',
-                            onTap: () => _drill(
-                              title: 'Out for Delivery',
-                              statuses: const ['out_for_delivery'],
-                              periodScoped: false,
-                            ),
-                          ),
-                          _StatCard(
-                            label: 'Delivered',
-                            value: _fmt('delivered_count'),
-                            icon: Icons.check_circle_outline,
-                            color: Colors.tealAccent,
-                            onTap: () => _drill(
-                              title: 'Delivered — $_periodLabel',
-                              statuses: const ['delivered'],
-                            ),
-                          ),
-                          _StatCard(
-                            label: 'Revenue',
-                            value:
-                                '₹${double.tryParse('${_data?['revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
-                            icon: Icons.currency_rupee,
-                            color: Colors.greenAccent,
-                            onTap: () => _drill(
-                              title: 'Paid Orders — $_periodLabel',
-                              statuses: const ['delivered'],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_chartData.isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        Text('30-Day Trend',
-                            style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text('Orders per day',
-                            style: GoogleFonts.poppins(
-                                color: Colors.grey, fontSize: 11)),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 160,
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                getDrawingHorizontalLine: (_) => FlLine(
-                                  color: const Color(0xFF2A2A2A),
-                                  strokeWidth: 1,
-                                ),
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 28,
-                                    getTitlesWidget: (v, _) => Text(
-                                      v.toInt().toString(),
-                                      style: const TextStyle(
-                                          color: Colors.grey, fontSize: 9),
-                                    ),
-                                  ),
-                                ),
-                                rightTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                topTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 20,
-                                    interval: (_chartData.length / 5).ceilToDouble(),
-                                    getTitlesWidget: (v, _) {
-                                      final i = v.toInt();
-                                      if (i < 0 || i >= _chartData.length) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final date = _chartData[i]['date'] as String;
-                                      return Text(date.substring(5),
-                                          style: const TextStyle(
-                                              color: Colors.grey, fontSize: 8));
-                                    },
-                                  ),
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: List.generate(
-                                    _chartData.length,
-                                    (i) => FlSpot(
-                                      i.toDouble(),
-                                      (_chartData[i]['order_count'] as num).toDouble(),
-                                    ),
-                                  ),
-                                  isCurved: true,
-                                  color: _red,
-                                  barWidth: 2,
-                                  dotData: const FlDotData(show: false),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: _red.withValues(alpha: 0.08),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                      _StatCard(
+                        label: 'Total Orders',
+                        value: _fmt('total_orders'),
+                        icon: Icons.receipt_long,
+                        color: Colors.blueAccent,
+                        onTap: () => _drill(
+                          title: 'Orders — $_periodLabel',
+                          statuses: const [
+                            'pending_confirmation',
+                            'confirmed',
+                            'preparing',
+                            'out_for_delivery',
+                            'delivered',
+                            'cancelled',
+                            'rejected',
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text('Revenue (₹)',
-                            style: GoogleFonts.poppins(
-                                color: Colors.grey, fontSize: 11)),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 160,
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                getDrawingHorizontalLine: (_) => FlLine(
-                                  color: const Color(0xFF2A2A2A),
-                                  strokeWidth: 1,
-                                ),
-                              ),
-                              titlesData: FlTitlesData(
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 40,
-                                    getTitlesWidget: (v, _) => Text(
-                                      '₹${(v / 1000).toStringAsFixed(0)}k',
-                                      style: const TextStyle(
-                                          color: Colors.grey, fontSize: 9),
-                                    ),
-                                  ),
-                                ),
-                                rightTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                topTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                bottomTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: List.generate(
-                                    _chartData.length,
-                                    (i) => FlSpot(
-                                      i.toDouble(),
-                                      (_chartData[i]['revenue'] as num).toDouble(),
-                                    ),
-                                  ),
-                                  isCurved: true,
-                                  color: Colors.greenAccent,
-                                  barWidth: 2,
-                                  dotData: const FlDotData(show: false),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: Colors.greenAccent.withValues(alpha: 0.07),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      _buildBusyHoursChart(),
-                      // Additional Metrics Section
-                      const SizedBox(height: 28),
-                      Text('Business Insights',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InsightCard(
-                              label: 'Avg Order Value',
-                              value: '₹${_data?['average_order_value'] ?? 0}',
-                              icon: Icons.auto_graph_rounded,
-                              color: Colors.blueAccent,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _InsightCard(
-                              label: 'Customer Rating',
-                              value: '${_data?['average_rating'] ?? 0} ★',
-                              icon: Icons.star_rate_rounded,
-                              color: Colors.amberAccent,
-                              subtitle: '${_data?['total_reviews'] ?? 0} reviews',
-                            ),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _InsightCard(
-                              label: 'Cancelled Orders',
-                              value: '${_data?['cancelled_count'] ?? 0}',
-                              icon: Icons.cancel_outlined,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _InsightCard(
-                              label: 'Rejected Orders',
-                              value: '${_data?['rejected_count'] ?? 0}',
-                              icon: Icons.do_not_disturb_on_outlined,
-                              color: Colors.deepOrangeAccent,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_data?['top_products'] != null && (_data!['top_products'] as List).isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        Text('Top Selling Products 🏆',
-                            style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: _card,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _stroke),
-                          ),
-                          child: Column(
-                            children: (_data!['top_products'] as List).map<Widget>((item) {
-                              final index = (_data!['top_products'] as List).indexOf(item) + 1;
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: index == 1 ? Colors.amber : (index == 2 ? Colors.grey : Colors.brown[300]),
-                                  child: Text('$index', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
-                                ),
-                                title: Text(item['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                                subtitle: Text('${item['quantity']} units sold', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                                trailing: Text('₹${(item['revenue'] as num).toStringAsFixed(0)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.bold)),
-                              );
-                            }).toList(),
-                          ),
+                      _StatCard(
+                        label: 'Needs Action',
+                        value: _fmt('pending_orders'),
+                        icon: Icons.notification_important_outlined,
+                        color: Colors.orangeAccent,
+                        subtitle: 'Live',
+                        onTap: () => _drill(
+                          title: 'Needs Action',
+                          statuses: const ['pending_confirmation'],
+                          periodScoped: false,
                         ),
-                      ],
-                      _buildTopProductsChart(),
-                      const SizedBox(height: 24),
-                      const SentimentDashboardScreen(isEmbedded: true),
-                      const SizedBox(height: 24),
+                      ),
+                      _StatCard(
+                        label: 'In Progress',
+                        value: _fmt('in_progress'),
+                        icon: Icons.restaurant,
+                        color: Colors.amberAccent,
+                        subtitle: 'Live',
+                        onTap: () => _drill(
+                          title: 'In Progress',
+                          statuses: const ['confirmed', 'preparing'],
+                          periodScoped: false,
+                        ),
+                      ),
+                      _StatCard(
+                        label: 'Out for Delivery',
+                        value: _fmt('active_deliveries'),
+                        icon: Icons.delivery_dining,
+                        color: Colors.purpleAccent,
+                        subtitle: 'Live',
+                        onTap: () => _drill(
+                          title: 'Out for Delivery',
+                          statuses: const ['out_for_delivery'],
+                          periodScoped: false,
+                        ),
+                      ),
+                      _StatCard(
+                        label: 'Delivered',
+                        value: _fmt('delivered_count'),
+                        icon: Icons.check_circle_outline,
+                        color: Colors.tealAccent,
+                        onTap: () => _drill(
+                          title: 'Delivered — $_periodLabel',
+                          statuses: const ['delivered'],
+                        ),
+                      ),
+                      _StatCard(
+                        label: 'Revenue',
+                        value:
+                            '₹${double.tryParse('${_data?['revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
+                        icon: Icons.currency_rupee,
+                        color: Colors.greenAccent,
+                        onTap: () => _drill(
+                          title: 'Paid Orders — $_periodLabel',
+                          statuses: const ['delivered'],
+                        ),
+                      ),
                     ],
                   ),
-                ),
+                  if (_chartData.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    Text(
+                      '30-Day Trend',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Orders per day',
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 160,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            getDrawingHorizontalLine: (_) => FlLine(
+                              color: const Color(0xFF2A2A2A),
+                              strokeWidth: 1,
+                            ),
+                          ),
+                          titlesData: FlTitlesData(
+                            show: true,
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 28,
+                                getTitlesWidget: (v, _) => Text(
+                                  v.toInt().toString(),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 20,
+                                interval: (_chartData.length / 5)
+                                    .ceilToDouble(),
+                                getTitlesWidget: (v, _) {
+                                  final i = v.toInt();
+                                  if (i < 0 || i >= _chartData.length) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final date = _chartData[i]['date'] as String;
+                                  return Text(
+                                    date.substring(5),
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 8,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(
+                                _chartData.length,
+                                (i) => FlSpot(
+                                  i.toDouble(),
+                                  (_chartData[i]['order_count'] as num)
+                                      .toDouble(),
+                                ),
+                              ),
+                              isCurved: true,
+                              color: _red,
+                              barWidth: 2,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: _red.withValues(alpha: 0.08),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Revenue (₹)',
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 160,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            getDrawingHorizontalLine: (_) => FlLine(
+                              color: const Color(0xFF2A2A2A),
+                              strokeWidth: 1,
+                            ),
+                          ),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (v, _) => Text(
+                                  '₹${(v / 1000).toStringAsFixed(0)}k',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(
+                                _chartData.length,
+                                (i) => FlSpot(
+                                  i.toDouble(),
+                                  (_chartData[i]['revenue'] as num).toDouble(),
+                                ),
+                              ),
+                              isCurved: true,
+                              color: Colors.greenAccent,
+                              barWidth: 2,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Colors.greenAccent.withValues(
+                                  alpha: 0.07,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  _buildBusyHoursChart(),
+                  // Additional Metrics Section
+                  const SizedBox(height: 28),
+                  Text(
+                    'Business Insights',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Avg Order Value',
+                          value: '₹${_data?['average_order_value'] ?? 0}',
+                          icon: Icons.auto_graph_rounded,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Customer Rating',
+                          value: '${_data?['average_rating'] ?? 0} ★',
+                          icon: Icons.star_rate_rounded,
+                          color: Colors.amberAccent,
+                          subtitle: '${_data?['total_reviews'] ?? 0} reviews',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Cancelled Orders',
+                          value: '${_data?['cancelled_count'] ?? 0}',
+                          icon: Icons.cancel_outlined,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Rejected Orders',
+                          value: '${_data?['rejected_count'] ?? 0}',
+                          icon: Icons.do_not_disturb_on_outlined,
+                          color: Colors.deepOrangeAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_data?['top_products'] != null &&
+                      (_data!['top_products'] as List).isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    Text(
+                      'Top Selling Products 🏆',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _stroke),
+                      ),
+                      child: Column(
+                        children: (_data!['top_products'] as List).map<Widget>((
+                          item,
+                        ) {
+                          final index =
+                              (_data!['top_products'] as List).indexOf(item) +
+                              1;
+                          return ListTile(
+                            leading: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: index == 1
+                                  ? Colors.amber
+                                  : (index == 2
+                                        ? Colors.grey
+                                        : Colors.brown[300]),
+                              child: Text(
+                                '$index',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              item['name'] ?? '',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${item['quantity']} units sold',
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
+                            trailing: Text(
+                              '₹${(item['revenue'] as num).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                  _buildTopProductsChart(),
+                  const SizedBox(height: 24),
+                  const SentimentDashboardScreen(isEmbedded: true),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -938,19 +1073,35 @@ class _InsightCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w600)),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               Icon(icon, color: color, size: 16),
             ],
           ),
           const SizedBox(height: 8),
-          Text(value, style: GoogleFonts.poppins(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
-            Text(subtitle!, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+            Text(
+              subtitle!,
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
+            ),
           ],
         ],
       ),
@@ -1006,39 +1157,52 @@ class _StatCard extends StatelessWidget {
                     ),
                     child: Icon(icon, color: color, size: 18),
                   ),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.grey, size: 14),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 14),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(value,
-                      style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700)),
-                  Row(children: [
-                    Expanded(
-                      child: Text(label,
-                          style: GoogleFonts.poppins(
-                              color: Colors.grey, fontSize: 10)),
+                  Text(
+                    value,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                     ),
-                    if (subtitle != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: Colors.greenAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey,
+                            fontSize: 10,
+                          ),
                         ),
-                        child: Text(subtitle!,
-                            style: const TextStyle(
-                                color: Colors.greenAccent,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold)),
                       ),
-                  ]),
+                      if (subtitle != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.greenAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            subtitle!,
+                            style: const TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -1064,8 +1228,7 @@ class DashboardOrdersScreen extends StatefulWidget {
   });
 
   @override
-  State<DashboardOrdersScreen> createState() =>
-      _DashboardOrdersScreenState();
+  State<DashboardOrdersScreen> createState() => _DashboardOrdersScreenState();
 }
 
 class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
@@ -1081,7 +1244,10 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final all = await _svc.getAllOrders();
       DateTime? since;
@@ -1095,9 +1261,17 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
         }
         return true;
       }).toList();
-      if (mounted) setState(() { _orders = filtered; _loading = false; });
+      if (mounted)
+        setState(() {
+          _orders = filtered;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -1107,24 +1281,34 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text(widget.title,
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          widget.title,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           if (!_loading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
                   color: _red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('${_orders.length}',
-                    style: const TextStyle(
-                        color: _red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
+                child: Text(
+                  '${_orders.length}',
+                  style: const TextStyle(
+                    color: _red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             ),
         ],
@@ -1132,32 +1316,35 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : _orders.isEmpty
-                  ? Center(
-                      child: Text('No orders',
-                          style: GoogleFonts.poppins(color: Colors.grey)))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      color: _red,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _orders.length,
-                        itemBuilder: (_, i) => _OrderCard(
-                          order: _orders[i],
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AdminOrderDetailScreen(
-                                    orderId: _orders[i].id),
-                              ),
-                            );
-                            _load();
-                          },
-                        ),
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : _orders.isEmpty
+          ? Center(
+              child: Text(
+                'No orders',
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: _red,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: _orders.length,
+                itemBuilder: (_, i) => _OrderCard(
+                  order: _orders[i],
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AdminOrderDetailScreen(orderId: _orders[i].id),
                       ),
-                    ),
+                    );
+                    _load();
+                  },
+                ),
+              ),
+            ),
     );
   }
 }
@@ -1207,7 +1394,11 @@ class _OrdersTabState extends State<_OrdersTab>
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() { _loading = true; _error = null; });
+    if (!silent)
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
     try {
       final orders = await _svc.getAllOrders();
       if (mounted) {
@@ -1216,13 +1407,19 @@ class _OrdersTabState extends State<_OrdersTab>
           _loading = false;
           if (!_firstLoadDone) {
             _firstLoadDone = true;
-            final pendingCount = _all.where((o) => o.status == 'pending_confirmation').length;
+            final pendingCount = _all
+                .where((o) => o.status == 'pending_confirmation')
+                .length;
             _filter = pendingCount == 0 ? 'all' : 'pending';
           }
         });
       }
     } catch (e) {
-      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted && !silent)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -1231,9 +1428,15 @@ class _OrdersTabState extends State<_OrdersTab>
       case 'pending':
         return _all.where((o) => o.status == 'pending_confirmation').toList();
       case 'active':
-        return _all.where((o) =>
-            ['confirmed', 'preparing', 'out_for_delivery']
-                .contains(o.status)).toList();
+        return _all
+            .where(
+              (o) => [
+                'confirmed',
+                'preparing',
+                'out_for_delivery',
+              ].contains(o.status),
+            )
+            .toList();
       case 'delivered':
         return _all.where((o) => o.status == 'delivered').toList();
       case 'rejected':
@@ -1262,8 +1465,9 @@ class _OrdersTabState extends State<_OrdersTab>
       _load(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1279,8 +1483,9 @@ class _OrdersTabState extends State<_OrdersTab>
       _load(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1288,9 +1493,7 @@ class _OrdersTabState extends State<_OrdersTab>
   Future<void> _openCreateOrderScreen() async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AdminCreateOrderScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AdminCreateOrderScreen()),
     );
     if (result == true) {
       _load();
@@ -1305,14 +1508,22 @@ class _OrdersTabState extends State<_OrdersTab>
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Orders',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Orders',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_shopping_cart, color: _red),
             onPressed: _openCreateOrderScreen,
           ),
-          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: _red),
+            onPressed: _load,
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -1335,7 +1546,9 @@ class _OrdersTabState extends State<_OrdersTab>
                     labelStyle: TextStyle(
                       color: selected ? _red : Colors.grey,
                       fontSize: 12,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     backgroundColor: _card,
                     side: BorderSide(color: selected ? _red : _stroke),
@@ -1350,38 +1563,41 @@ class _OrdersTabState extends State<_OrdersTab>
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: filtered.isEmpty
-                      ? Center(
-                          child: Text('No orders',
-                              style: GoogleFonts.poppins(color: Colors.grey)))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: filtered.length,
-                          itemBuilder: (_, i) {
-                            final order = filtered[i];
-                            return _OrderCard(
-                              order: order,
-                              showQuickActions:
-                                  order.status == 'pending_confirmation',
-                              onConfirm: () => _quickConfirm(order),
-                              onReject: () => _quickReject(order),
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AdminOrderDetailScreen(
-                                        orderId: order.id),
-                                  ),
-                                );
-                                _load();
-                              },
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No orders',
+                        style: GoogleFonts.poppins(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final order = filtered[i];
+                        return _OrderCard(
+                          order: order,
+                          showQuickActions:
+                              order.status == 'pending_confirmation',
+                          onConfirm: () => _quickConfirm(order),
+                          onReject: () => _quickReject(order),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AdminOrderDetailScreen(orderId: order.id),
+                              ),
                             );
+                            _load();
                           },
-                        ),
-                ),
+                        );
+                      },
+                    ),
+            ),
     );
   }
 
@@ -1390,9 +1606,15 @@ class _OrdersTabState extends State<_OrdersTab>
       case 'pending':
         return _all.where((o) => o.status == 'pending_confirmation').length;
       case 'active':
-        return _all.where((o) =>
-            ['confirmed', 'preparing', 'out_for_delivery']
-                .contains(o.status)).length;
+        return _all
+            .where(
+              (o) => [
+                'confirmed',
+                'preparing',
+                'out_for_delivery',
+              ].contains(o.status),
+            )
+            .length;
       case 'delivered':
         return _all.where((o) => o.status == 'delivered').length;
       case 'rejected':
@@ -1424,7 +1646,9 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   AdminOrderWebSocketService? _ws;
 
   static const _activeStatuses = [
-    'pending_confirmation', 'confirmed', 'preparing',
+    'pending_confirmation',
+    'confirmed',
+    'preparing',
     'out_for_delivery',
   ];
 
@@ -1432,7 +1656,10 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 25), (_) => _load(silent: true));
+    _timer = Timer.periodic(
+      const Duration(seconds: 25),
+      (_) => _load(silent: true),
+    );
 
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
@@ -1451,17 +1678,27 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() { _loading = true; _error = null; });
+    if (!silent)
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
     try {
       final all = await _svc.getAllOrders();
       if (mounted) {
         setState(() {
-          _orders = all.where((o) => _activeStatuses.contains(o.status)).toList();
+          _orders = all
+              .where((o) => _activeStatuses.contains(o.status))
+              .toList();
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted && !silent) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted && !silent)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -1474,24 +1711,36 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
     if (reviewed != true) return;
     if (!mounted) return;
 
-    final prepTime = await showDialog<int>(context: context, builder: (_) => _PrepTimeDialog());
+    final prepTime = await showDialog<int>(
+      context: context,
+      builder: (_) => _PrepTimeDialog(),
+    );
     if (prepTime == null) return;
     try {
       await _svc.confirmOrder(order.id, prepTime);
       _load(silent: true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _quickReject(Order order) async {
-    final reason = await showDialog<String>(context: context, builder: (_) => _RejectDialog());
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => _RejectDialog(),
+    );
     if (reason == null) return;
     try {
       await _svc.rejectOrder(order.id, reason);
       _load(silent: true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -1499,17 +1748,21 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
       _orders.where((o) => statuses.contains(o.status)).toList();
 
   Future<void> _openDetail(Order order) async {
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => AdminOrderDetailScreen(orderId: order.id)));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminOrderDetailScreen(orderId: order.id),
+      ),
+    );
     _load(silent: true);
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final pending   = _group(['pending_confirmation']);
+    final pending = _group(['pending_confirmation']);
     final inKitchen = _group(['confirmed', 'preparing']);
-    final onWay     = _group(['out_for_delivery']);
+    final onWay = _group(['out_for_delivery']);
     final total = _orders.length;
 
     return Scaffold(
@@ -1518,85 +1771,129 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
         backgroundColor: _surface,
         title: Row(
           children: [
-            Text('Active Orders',
-                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text(
+              'Active Orders',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             if (total > 0) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _red, borderRadius: BorderRadius.circular(12)),
-                child: Text('$total',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  color: _red,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$total',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: _red),
+            onPressed: _load,
+          ),
         ],
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : total == 0
-                  ? Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.grey, size: 64),
-                        const SizedBox(height: 12),
-                        Text('All caught up!',
-                            style: GoogleFonts.poppins(
-                                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text('No active orders right now.',
-                            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13)),
-                      ]),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      color: _red,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                        children: [
-                          if (pending.isNotEmpty)
-                            _Section(
-                              title: 'Needs Action',
-                              count: pending.length,
-                              color: Colors.orangeAccent,
-                              children: pending.map((o) => _OrderCard(
-                                order: o,
-                                showQuickActions: true,
-                                onConfirm: () => _quickConfirm(o),
-                                onReject: () => _quickReject(o),
-                                onTap: () => _openDetail(o),
-                              )).toList(),
-                            ),
-                          if (inKitchen.isNotEmpty)
-                            _Section(
-                              title: 'In Kitchen',
-                              count: inKitchen.length,
-                              color: Colors.amberAccent,
-                              children: inKitchen.map((o) => _OrderCard(
-                                order: o,
-                                onTap: () => _openDetail(o),
-                              )).toList(),
-                            ),
-                          if (onWay.isNotEmpty)
-                            _Section(
-                              title: 'Out for Delivery',
-                              count: onWay.length,
-                              color: Colors.blueAccent,
-                              isLive: true,
-                              children: onWay.map((o) => _OrderCard(
-                                order: o,
-                                onTap: () => _openDetail(o),
-                              )).toList(),
-                            ),
-                        ],
-                      ),
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : total == 0
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.grey,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'All caught up!',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'No active orders right now.',
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: _red,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                children: [
+                  if (pending.isNotEmpty)
+                    _Section(
+                      title: 'Needs Action',
+                      count: pending.length,
+                      color: Colors.orangeAccent,
+                      children: pending
+                          .map(
+                            (o) => _OrderCard(
+                              order: o,
+                              showQuickActions: true,
+                              onConfirm: () => _quickConfirm(o),
+                              onReject: () => _quickReject(o),
+                              onTap: () => _openDetail(o),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  if (inKitchen.isNotEmpty)
+                    _Section(
+                      title: 'In Kitchen',
+                      count: inKitchen.length,
+                      color: Colors.amberAccent,
+                      children: inKitchen
+                          .map(
+                            (o) => _OrderCard(
+                              order: o,
+                              onTap: () => _openDetail(o),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  if (onWay.isNotEmpty)
+                    _Section(
+                      title: 'Out for Delivery',
+                      count: onWay.length,
+                      color: Colors.blueAccent,
+                      isLive: true,
+                      children: onWay
+                          .map(
+                            (o) => _OrderCard(
+                              order: o,
+                              onTap: () => _openDetail(o),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -1629,48 +1926,68 @@ class _Section extends StatelessWidget {
                 width: 4,
                 height: 18,
                 decoration: BoxDecoration(
-                    color: color, borderRadius: BorderRadius.circular(2)),
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
               const SizedBox(width: 10),
-              Text(title,
-                  style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14)),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: color.withValues(alpha: 0.4))),
-                child: Text('$count',
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               if (isLive) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                      color: Colors.blueAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.blueAccent.withValues(alpha: 0.5))),
+                    color: Colors.blueAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.blueAccent.withValues(alpha: 0.5),
+                    ),
+                  ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.radio_button_checked,
-                          color: Colors.blueAccent, size: 9),
+                      Icon(
+                        Icons.radio_button_checked,
+                        color: Colors.blueAccent,
+                        size: 9,
+                      ),
                       SizedBox(width: 4),
-                      Text('LIVE',
-                          style: TextStyle(
-                              color: Colors.blueAccent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5)),
+                      Text(
+                        'LIVE',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1711,7 +2028,10 @@ class _ProductsTabState extends State<_ProductsTab>
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final results = await Future.wait([
         _svc.getProducts(),
@@ -1725,7 +2045,11 @@ class _ProductsTabState extends State<_ProductsTab>
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -1741,8 +2065,9 @@ class _ProductsTabState extends State<_ProductsTab>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _toggling.remove(p.id));
@@ -1753,10 +2078,8 @@ class _ProductsTabState extends State<_ProductsTab>
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => ProductFormScreen(
-          categories: _categories,
-          product: product,
-        ),
+        builder: (_) =>
+            ProductFormScreen(categories: _categories, product: product),
       ),
     );
     if (result == true) _load();
@@ -1767,16 +2090,23 @@ class _ProductsTabState extends State<_ProductsTab>
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('Delete Product', style: TextStyle(color: Colors.white)),
-        content: Text('Delete "${p.name}"? This cannot be undone.',
-            style: const TextStyle(color: Colors.grey)),
+        title: const Text(
+          'Delete Product',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Delete "${p.name}"? This cannot be undone.',
+          style: const TextStyle(color: Colors.grey),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -1786,8 +2116,9 @@ class _ProductsTabState extends State<_ProductsTab>
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1799,8 +2130,13 @@ class _ProductsTabState extends State<_ProductsTab>
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Products',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Products',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           TextButton.icon(
             onPressed: () => Navigator.push(
@@ -1810,10 +2146,19 @@ class _ProductsTabState extends State<_ProductsTab>
               ),
             ),
             icon: const Icon(Icons.tune, color: _red, size: 18),
-            label: const Text('Modifiers',
-                style: TextStyle(color: _red, fontSize: 12, fontWeight: FontWeight.w600)),
+            label: const Text(
+              'Modifiers',
+              style: TextStyle(
+                color: _red,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: _red),
+            onPressed: _load,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -1824,75 +2169,100 @@ class _ProductsTabState extends State<_ProductsTab>
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-                    itemCount: _products.length,
-                    itemBuilder: (_, i) {
-                      final p = _products[i];
-                      final toggling = _toggling[p.id] == true;
-                      return Card(
-                        color: _card,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: p.image.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(p.image,
-                                      width: 48, height: 48, fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stack) =>
-                                          const Icon(Icons.fastfood,
-                                              color: Colors.grey)),
-                                )
-                              : Container(
-                                  width: 48, height: 48,
-                                  decoration: BoxDecoration(
-                                    color: _red.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.fastfood, color: _red, size: 24),
-                                ),
-                          title: Text(p.name,
-                              style: TextStyle(
-                                  color: p.isAvailable ? Colors.white : Colors.grey,
-                                  fontWeight: FontWeight.w600)),
-                          subtitle: Text(
-                              '${p.categoryName} • ₹${p.price.toStringAsFixed(0)}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined,
-                                    color: Colors.grey, size: 20),
-                                onPressed: () => _openForm(product: p),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    color: Colors.redAccent, size: 20),
-                                onPressed: () => _deleteProduct(p),
-                              ),
-                              toggling
-                                  ? const SizedBox(
-                                      width: 36, height: 36,
-                                      child: Center(
-                                        child: HdkPreloader(width: 20, height: 20),
-                                      ),
-                                    )
-                                  : Switch(
-                                      value: p.isAvailable,
-                                      onChanged: (_) => _toggle(p),
-                                      activeThumbColor: _red,
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                itemCount: _products.length,
+                itemBuilder: (_, i) {
+                  final p = _products[i];
+                  final toggling = _toggling[p.id] == true;
+                  return Card(
+                    color: _card,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: p.image.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                p.image,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stack) =>
+                                    const Icon(
+                                      Icons.fastfood,
+                                      color: Colors.grey,
                                     ),
-                            ],
-                          ),
+                              ),
+                            )
+                          : Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: _red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.fastfood,
+                                color: _red,
+                                size: 24,
+                              ),
+                            ),
+                      title: Text(
+                        p.name,
+                        style: TextStyle(
+                          color: p.isAvailable ? Colors.white : Colors.grey,
+                          fontWeight: FontWeight.w600,
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                      subtitle: Text(
+                        '${p.categoryName} • ₹${p.price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            onPressed: () => _openForm(product: p),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                              size: 20,
+                            ),
+                            onPressed: () => _deleteProduct(p),
+                          ),
+                          toggling
+                              ? const SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: Center(
+                                    child: HdkPreloader(width: 20, height: 20),
+                                  ),
+                                )
+                              : Switch(
+                                  value: p.isAvailable,
+                                  onChanged: (_) => _toggle(p),
+                                  activeThumbColor: _red,
+                                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -1903,10 +2273,12 @@ class DeliveryStaffManagementScreen extends StatefulWidget {
   const DeliveryStaffManagementScreen({super.key});
 
   @override
-  State<DeliveryStaffManagementScreen> createState() => _DeliveryStaffManagementScreenState();
+  State<DeliveryStaffManagementScreen> createState() =>
+      _DeliveryStaffManagementScreenState();
 }
 
-class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementScreen> {
+class _DeliveryStaffManagementScreenState
+    extends State<DeliveryStaffManagementScreen> {
   final DeliveryStaffService _svc = DeliveryStaffService();
   List<DeliveryStaff> _staff = [];
   bool _loading = true;
@@ -1919,12 +2291,23 @@ class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementS
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final list = await _svc.getDeliveryStaff();
-      if (mounted) setState(() { _staff = list; _loading = false; });
+      if (mounted)
+        setState(() {
+          _staff = list;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -1934,8 +2317,9 @@ class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementS
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1954,10 +2338,18 @@ class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementS
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Delivery Staff',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Delivery Staff',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh, color: _red), onPressed: _load),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: _red),
+            onPressed: _load,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -1968,83 +2360,106 @@ class _DeliveryStaffManagementScreenState extends State<DeliveryStaffManagementS
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : _staff.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.delivery_dining,
-                              color: Colors.grey, size: 64),
-                          const SizedBox(height: 12),
-                          Text('No delivery staff yet',
-                              style: GoogleFonts.poppins(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: _addStaff,
-                            icon: const Icon(Icons.person_add, color: _red),
-                            label: const Text('Add Staff',
-                                style: TextStyle(color: _red)),
-                          ),
-                        ],
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : _staff.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.delivery_dining,
+                    color: Colors.grey,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No delivery staff yet',
+                    style: GoogleFonts.poppins(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _addStaff,
+                    icon: const Icon(Icons.person_add, color: _red),
+                    label: const Text(
+                      'Add Staff',
+                      style: TextStyle(color: _red),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                itemCount: _staff.length,
+                itemBuilder: (_, i) {
+                  final s = _staff[i];
+                  return Card(
+                    color: _card,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: s.isDefaultDelivery
+                            ? _red
+                            : Colors.grey[800],
+                        child: Text(
+                          (s.name.isNotEmpty ? s.name : '?')
+                              .substring(0, 1)
+                              .toUpperCase(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-                        itemCount: _staff.length,
-                        itemBuilder: (_, i) {
-                          final s = _staff[i];
-                          return Card(
-                            color: _card,
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    s.isDefaultDelivery ? _red : Colors.grey[800],
-                                child: Text(
-                                  (s.name.isNotEmpty ? s.name : '?')
-                                      .substring(0, 1)
-                                      .toUpperCase(),
-                                  style: const TextStyle(color: Colors.white),
+                      title: Row(
+                        children: [
+                          Text(
+                            s.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (s.isDefaultDelivery) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _red,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'DEFAULT',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              title: Row(children: [
-                                Text(s.name,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600)),
-                                if (s.isDefaultDelivery) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                        color: _red,
-                                        borderRadius: BorderRadius.circular(4)),
-                                    child: const Text('DEFAULT',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ]),
-                              subtitle: Text(s.phoneNumber,
-                                  style: const TextStyle(color: Colors.grey)),
-                              trailing: s.isDefaultDelivery
-                                  ? null
-                                  : TextButton(
-                                      onPressed: () => _setDefault(s.id),
-                                      child: const Text('Set Default',
-                                          style: TextStyle(color: _red)),
-                                    ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
+                      subtitle: Text(
+                        s.phoneNumber,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      trailing: s.isDefaultDelivery
+                          ? null
+                          : TextButton(
+                              onPressed: () => _setDefault(s.id),
+                              child: const Text(
+                                'Set Default',
+                                style: TextStyle(color: _red),
+                              ),
+                            ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -2071,7 +2486,11 @@ class _ProfileTabState extends State<_ProfileTab> {
   Future<void> _load() async {
     try {
       final data = await OrderService().getMe();
-      if (mounted) setState(() { _profile = data; _loading = false; });
+      if (mounted)
+        setState(() {
+          _profile = data;
+          _loading = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -2093,8 +2512,13 @@ class _ProfileTabState extends State<_ProfileTab> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Profile',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Profile',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
@@ -2110,44 +2534,63 @@ class _ProfileTabState extends State<_ProfileTab> {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: _stroke),
                     ),
-                    child: Row(children: [
-                      Container(
-                        width: 56, height: 56,
-                        decoration: BoxDecoration(
-                          color: _red, borderRadius: BorderRadius.circular(16)),
-                        child: const Icon(Icons.admin_panel_settings,
-                            size: 28, color: Colors.white),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_profile?['name'] ?? 'Admin',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(_profile?['phone_number'] ?? '',
-                                style: const TextStyle(color: Colors.grey)),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                  color: _red,
-                                  borderRadius: BorderRadius.circular(4)),
-                              child: const Text('ADMIN',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                          ],
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: _red,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.admin_panel_settings,
+                            size: 28,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ]),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _profile?['name'] ?? 'Admin',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _profile?['phone_number'] ?? '',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _red,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'ADMIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   ElevatedButton.icon(
@@ -2185,13 +2628,19 @@ class _OrderCard extends StatelessWidget {
 
   Color _statusColor(String s) {
     switch (s) {
-      case 'pending_confirmation': return Colors.orange;
+      case 'pending_confirmation':
+        return Colors.orange;
       case 'confirmed':
-      case 'preparing': return Colors.blue;
-      case 'out_for_delivery': return Colors.indigo;
-      case 'delivered': return Colors.green;
-      case 'rejected': return Colors.red;
-      default: return Colors.grey;
+      case 'preparing':
+        return Colors.blue;
+      case 'out_for_delivery':
+        return Colors.indigo;
+      case 'delivered':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -2208,103 +2657,154 @@ class _OrderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('#${order.orderNumber}',
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '#${order.orderNumber}',
                           style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
-                      const SizedBox(height: 2),
-                      if (order.customerName.isNotEmpty)
-                        Row(children: [
-                          const Icon(Icons.person_outline,
-                              size: 12, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(order.customerName,
-                              style: const TextStyle(
-                                  color: Colors.grey, fontSize: 12)),
-                        ]),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        if (order.customerName.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                order.customerName,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        Text(
+                          order.createdAt != null
+                              ? DateFormat(
+                                  'MMM d, h:mm a',
+                                ).format(order.createdAt!.toLocal())
+                              : '',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Text(
-                        order.createdAt != null
-                            ? DateFormat('MMM d, h:mm a').format(order.createdAt!.toLocal())
-                            : '',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        '₹${order.totalAmount.toStringAsFixed(0)}',
+                        style: GoogleFonts.poppins(
+                          color: _red,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
                       ),
+                      if (order.customerPhone.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => launchUrl(
+                            Uri.parse('tel:${order.customerPhone}'),
+                          ),
+                          child: const Icon(
+                            Icons.call_rounded,
+                            color: Colors.greenAccent,
+                            size: 18,
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey,
+                          size: 18,
+                        ),
                     ],
                   ),
-                ),
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('₹${order.totalAmount.toStringAsFixed(0)}',
-                      style: GoogleFonts.poppins(
-                          color: _red, fontWeight: FontWeight.w700, fontSize: 16)),
-                  if (order.customerPhone.isNotEmpty)
-                    GestureDetector(
-                      onTap: () => launchUrl(
-                          Uri.parse('tel:${order.customerPhone}')),
-                      child: const Icon(Icons.call_rounded,
-                          color: Colors.greenAccent, size: 18),
-                    )
-                  else
-                    const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
-                ]),
-              ]),
+                ],
+              ),
               const SizedBox(height: 8),
-              Row(children: [
-                _badge(
-                  order.status.replaceAll('_', ' ').toUpperCase(),
-                  _statusColor(order.status),
-                ),
-                if (order.paymentMethod == 'online') ...[
-                  const SizedBox(width: 6),
+              Row(
+                children: [
                   _badge(
-                    order.paymentStatus.toUpperCase(),
-                    order.paymentStatus == 'paid' ? Colors.green : Colors.amber,
+                    order.status.replaceAll('_', ' ').toUpperCase(),
+                    _statusColor(order.status),
                   ),
+                  if (order.paymentMethod == 'online') ...[
+                    const SizedBox(width: 6),
+                    _badge(
+                      order.paymentStatus.toUpperCase(),
+                      order.paymentStatus == 'paid'
+                          ? Colors.green
+                          : Colors.amber,
+                    ),
+                  ],
+                  if (order.paymentMethod == 'cod') ...[
+                    const SizedBox(width: 6),
+                    _badge('COD', Colors.grey),
+                  ],
+                  if (order.estimatedDeliveryTime != null &&
+                      DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
+                      ![
+                        'delivered',
+                        'cancelled',
+                        'rejected',
+                      ].contains(order.status)) ...[
+                    const SizedBox(width: 6),
+                    _badge('⚠ LATE', Colors.redAccent),
+                  ],
                 ],
-                if (order.paymentMethod == 'cod') ...[
-                  const SizedBox(width: 6),
-                  _badge('COD', Colors.grey),
-                ],
-                if (order.estimatedDeliveryTime != null &&
-                    DateTime.now().isAfter(order.estimatedDeliveryTime!) &&
-                    !['delivered', 'cancelled', 'rejected'].contains(order.status)) ...[
-                  const SizedBox(width: 6),
-                  _badge('⚠ LATE', Colors.redAccent),
-                ],
-              ]),
+              ),
               if (showQuickActions) ...[
                 const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onReject,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.redAccent,
-                        side: const BorderSide(color: Colors.redAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        minimumSize: Size.zero,
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onReject,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          minimumSize: Size.zero,
+                        ),
+                        child: const Text(
+                          'Reject',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ),
-                      child: const Text('Reject', style: TextStyle(fontSize: 13)),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onConfirm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        minimumSize: Size.zero,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: onConfirm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          minimumSize: Size.zero,
+                        ),
+                        child: const Text(
+                          'Confirm',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ),
-                      child: const Text('Confirm', style: TextStyle(fontSize: 13)),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
               ],
             ],
           ),
@@ -2314,16 +2814,17 @@ class _OrderCard extends StatelessWidget {
   }
 
   Widget _badge(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color, width: 0.5),
-        ),
-        child: Text(text,
-            style:
-                TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: color, width: 0.5),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+    ),
+  );
 }
 
 class _PendingOrderReviewDialog extends StatefulWidget {
@@ -2350,8 +2851,9 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -2375,8 +2877,8 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
   Widget build(BuildContext context) {
     final order = _order;
     final hasDiscount = order.discountAmount > 0;
-    final priceChanged = order.originalTotal != null &&
-        order.originalTotal != order.totalAmount;
+    final priceChanged =
+        order.originalTotal != null && order.originalTotal != order.totalAmount;
 
     return Dialog(
       backgroundColor: _card,
@@ -2391,8 +2893,7 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.receipt_long_rounded,
-                      color: _red, size: 22),
+                  const Icon(Icons.receipt_long_rounded, color: _red, size: 22),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -2408,9 +2909,7 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                     const SizedBox(
                       width: 18,
                       height: 18,
-                      child: Center(
-                        child: HdkPreloader(width: 18, height: 18),
-                      ),
+                      child: Center(child: HdkPreloader(width: 18, height: 18)),
                     ),
                 ],
               ),
@@ -2434,7 +2933,9 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
               if (order.createdAt != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('MMM d, h:mm a').format(order.createdAt!.toLocal()),
+                  DateFormat(
+                    'MMM d, h:mm a',
+                  ).format(order.createdAt!.toLocal()),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
@@ -2463,15 +2964,15 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                                         child: Text(
                                           '${item.quantity}x ${item.productName}',
                                           style: const TextStyle(
-                                              color: Colors.white),
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                       Text(
-                                        'Rs ${(
-                                          item.price * item.quantity
-                                        ).toStringAsFixed(0)}',
+                                        'Rs ${(item.price * item.quantity).toStringAsFixed(0)}',
                                         style: const TextStyle(
-                                            color: Colors.grey),
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -2504,8 +3005,7 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                                     'Rs ${order.originalTotal!.toStringAsFixed(0)}',
                                     style: const TextStyle(
                                       color: Colors.grey,
-                                      decoration:
-                                          TextDecoration.lineThrough,
+                                      decoration: TextDecoration.lineThrough,
                                     ),
                                   ),
                                 ],
@@ -2536,8 +3036,7 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                               const SizedBox(height: 8),
                             ],
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
                                   'Final Total',
@@ -2614,8 +3113,9 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed:
-                          _loading ? null : () => Navigator.pop(context, false),
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(color: Colors.grey),
@@ -2625,8 +3125,9 @@ class _PendingOrderReviewDialogState extends State<_PendingOrderReviewDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed:
-                          _loading ? null : () => Navigator.pop(context, true),
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _red,
                         minimumSize: const Size.fromHeight(46),
@@ -2662,28 +3163,44 @@ class _PrepTimeDialogState extends State<_PrepTimeDialog> {
     return AlertDialog(
       backgroundColor: _card,
       title: const Text('Confirm Order', style: TextStyle(color: Colors.white)),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('Estimated prep time (minutes):',
-            style: TextStyle(color: Colors.grey)),
-        const SizedBox(height: 12),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          IconButton(
-            icon: const Icon(Icons.remove, color: Colors.white),
-            onPressed: () { if (_mins > 5) setState(() => _mins -= 5); },
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Estimated prep time (minutes):',
+            style: TextStyle(color: Colors.grey),
           ),
-          Text('$_mins min',
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => setState(() => _mins += 5),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove, color: Colors.white),
+                onPressed: () {
+                  if (_mins > 5) setState(() => _mins -= 5);
+                },
+              ),
+              Text(
+                '$_mins min',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add, color: Colors.white),
+                onPressed: () => setState(() => _mins += 5),
+              ),
+            ],
           ),
-        ]),
-      ]),
+        ],
+      ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, _mins),
           style: ElevatedButton.styleFrom(backgroundColor: _red),
@@ -2724,8 +3241,9 @@ class _RejectDialogState extends State<_RejectDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -2781,10 +3299,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     _name = TextEditingController(text: p?.name ?? '');
     _description = TextEditingController(text: p?.description ?? '');
     _price = TextEditingController(
-        text: p != null ? p.price.toStringAsFixed(2) : '');
+      text: p != null ? p.price.toStringAsFixed(2) : '',
+    );
     _image = TextEditingController(text: p?.image ?? '');
-    _prepTime = TextEditingController(
-        text: '${p?.preparationTime ?? 15}');
+    _prepTime = TextEditingController(text: '${p?.preparationTime ?? 15}');
     _categoryId = p?.categoryId;
     _isAvailable = p?.isAvailable ?? true;
     _isFeatured = p?.isFeatured ?? false;
@@ -2817,8 +3335,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _card,
-        title: const Text('New Category',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'New Category',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: TextFormField(
           controller: ctrl,
           autofocus: true,
@@ -2850,8 +3370,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             style: ElevatedButton.styleFrom(backgroundColor: _red),
-            child: const Text('Create',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Create',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -2875,8 +3400,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _creatingCategory = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -2905,8 +3431,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
       }
     }
   }
@@ -2917,29 +3444,51 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       useRootNavigator: true,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: const Icon(Icons.camera_alt, color: _red),
-            title: const Text('Camera', style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library, color: _red),
-            title: const Text('Gallery', style: TextStyle(color: Colors.white)),
-            onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
-          ),
-          if (_pickedImageFile != null || _image.text.isNotEmpty)
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             ListTile(
-              leading: const Icon(Icons.clear, color: Colors.grey),
-              title: const Text('Remove image', style: TextStyle(color: Colors.grey)),
+              leading: const Icon(Icons.camera_alt, color: _red),
+              title: const Text(
+                'Camera',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
-                setState(() { _pickedImageFile = null; _image.clear(); });
                 Navigator.pop(context);
+                _pickImage(ImageSource.camera);
               },
             ),
-        ]),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: _red),
+              title: const Text(
+                'Gallery',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_pickedImageFile != null || _image.text.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.clear, color: Colors.grey),
+                title: const Text(
+                  'Remove image',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                onTap: () {
+                  setState(() {
+                    _pickedImageFile = null;
+                    _image.clear();
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2969,18 +3518,25 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
       // Upload image file if one was picked
       if (_pickedImageFile != null) {
-        setState(() { _uploadingImage = true; });
+        setState(() {
+          _uploadingImage = true;
+        });
         await _svc.uploadImage(saved.id, _pickedImageFile!);
       }
 
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      if (mounted) setState(() { _saving = false; _uploadingImage = false; });
+      if (mounted)
+        setState(() {
+          _saving = false;
+          _uploadingImage = false;
+        });
     }
   }
 
@@ -2991,8 +3547,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text(isEdit ? 'Edit Product' : 'Add Product',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          isEdit ? 'Edit Product' : 'Add Product',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           _saving || _uploadingImage
               ? Padding(
@@ -3001,16 +3562,21 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Center(
-                        child: HdkPreloader(width: 20, height: 20),
-                      ),
+                      const Center(child: HdkPreloader(width: 20, height: 20)),
                       if (_uploadingImage)
-                        const Text('Uploading...', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                        const Text(
+                          'Uploading...',
+                          style: TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
                     ],
-                  ))
+                  ),
+                )
               : TextButton(
                   onPressed: _save,
-                  child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(color: _red, fontWeight: FontWeight.bold),
+                  ),
                 ),
         ],
       ),
@@ -3023,13 +3589,20 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             const SizedBox(height: 12),
             _field('Description', _description, maxLines: 3),
             const SizedBox(height: 12),
-            _field('Price (₹)', _price,
-                required: true,
-                keyboardType: TextInputType.numberWithOptions(decimal: true)),
+            _field(
+              'Price (₹)',
+              _price,
+              required: true,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+            ),
             const SizedBox(height: 12),
             Text(
               'Product Image',
-              style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             if (_pickedImageFile != null || _image.text.trim().isNotEmpty) ...[
@@ -3054,9 +3627,14 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -3064,40 +3642,53 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               ),
               const SizedBox(height: 12),
             ],
-            Row(children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _image,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDec(_pickedImageFile != null ? 'Picked from device (will upload)' : 'Image URL (optional)'),
-                  readOnly: _pickedImageFile != null,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 54,
-                child: OutlinedButton.icon(
-                  onPressed: _showImageSourceDialog,
-                  icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                  label: const Text('Upload'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _red,
-                    side: const BorderSide(color: _red),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _image,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDec(
+                      _pickedImageFile != null
+                          ? 'Picked from device (will upload)'
+                          : 'Image URL (optional)',
+                    ),
+                    readOnly: _pickedImageFile != null,
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
-              ),
-            ]),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: _showImageSourceDialog,
+                    icon: const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 18,
+                    ),
+                    label: const Text('Upload'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _red,
+                      side: const BorderSide(color: _red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (_uploadingImage)
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: LinearProgressIndicator(color: _red),
               ),
             const SizedBox(height: 16),
-            _field('Prep Time (mins)', _prepTime,
-                keyboardType: TextInputType.number),
+            _field(
+              'Prep Time (mins)',
+              _prepTime,
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: 16),
             // Category selector + inline create button
             Row(
@@ -3110,8 +3701,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     dropdownColor: _card,
                     style: const TextStyle(color: Colors.white),
                     items: _categories
-                        .map((c) => DropdownMenuItem(
-                            value: c.id, child: Text(c.name)))
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _categoryId = v),
                     validator: (v) => v == null ? 'Select a category' : null,
@@ -3145,17 +3740,25 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            Row(children: [
-              Expanded(
-                child: _toggle('Available', _isAvailable,
-                    (v) => setState(() => _isAvailable = v)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _toggle('Featured', _isFeatured,
-                    (v) => setState(() => _isFeatured = v)),
-              ),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  child: _toggle(
+                    'Available',
+                    _isAvailable,
+                    (v) => setState(() => _isAvailable = v),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _toggle(
+                    'Featured',
+                    _isFeatured,
+                    (v) => setState(() => _isFeatured = v),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             _toggle(
               'Add-on (Coke / Juice / Extra)',
@@ -3164,21 +3767,24 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             ),
             const SizedBox(height: 24),
             // ── Modifier Groups Section ──
-            Text('Modifier Groups',
-                style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              'Modifier Groups',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Assign customization options (Size, Spice, etc.) to this product.',
-                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11)),
+            Text(
+              'Assign customization options (Size, Spice, etc.) to this product.',
+              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+            ),
             const SizedBox(height: 10),
             if (_loadingModifiers)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: HdkPreloader(width: 20, height: 20),
-                ),
+                child: Center(child: HdkPreloader(width: 20, height: 20)),
               )
             else if (_allModifierGroups.isEmpty)
               Container(
@@ -3188,16 +3794,25 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _stroke),
                 ),
-                child: Row(children: [
-                  const Icon(Icons.info_outline, color: Colors.grey, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'No modifier groups created yet. Go to Products → Modifiers to create some.',
-                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.grey,
+                      size: 18,
                     ),
-                  ),
-                ]),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No modifier groups created yet. Go to Products → Modifiers to create some.',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               )
             else
               Wrap(
@@ -3222,12 +3837,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     labelStyle: TextStyle(
                       color: selected ? _red : Colors.grey[400],
                       fontSize: 13,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     backgroundColor: _card,
-                    side: BorderSide(
-                      color: selected ? _red : _stroke,
-                    ),
+                    side: BorderSide(color: selected ? _red : _stroke),
                     avatar: selected
                         ? null
                         : Icon(Icons.add, color: Colors.grey[600], size: 16),
@@ -3240,10 +3855,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     );
   }
 
-  Widget _field(String label, TextEditingController ctrl,
-      {bool required = false,
-      int maxLines = 1,
-      TextInputType? keyboardType}) {
+  Widget _field(
+    String label,
+    TextEditingController ctrl, {
+    bool required = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
     return TextFormField(
       controller: ctrl,
       maxLines: maxLines,
@@ -3264,31 +3882,33 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: _stroke),
         ),
-        child: Row(children: [
-          Text(label, style: const TextStyle(color: Colors.white)),
-          const Spacer(),
-          Switch(value: value, onChanged: onChanged, activeThumbColor: _red),
-        ]),
+        child: Row(
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white)),
+            const Spacer(),
+            Switch(value: value, onChanged: onChanged, activeThumbColor: _red),
+          ],
+        ),
       );
 
   InputDecoration _inputDec(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: _card,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _stroke),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _stroke),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _red),
-        ),
-      );
+    labelText: label,
+    labelStyle: const TextStyle(color: Colors.grey),
+    filled: true,
+    fillColor: _card,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _stroke),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _stroke),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _red),
+    ),
+  );
 }
 
 // ─── Create delivery staff screen ─────────────────────────────────────────────
@@ -3301,8 +3921,7 @@ class CreateDeliveryStaffScreen extends StatefulWidget {
       _CreateDeliveryStaffScreenState();
 }
 
-class _CreateDeliveryStaffScreenState
-    extends State<CreateDeliveryStaffScreen> {
+class _CreateDeliveryStaffScreenState extends State<CreateDeliveryStaffScreen> {
   final _formKey = GlobalKey<FormState>();
   final _svc = DeliveryStaffService();
   final _phone = TextEditingController();
@@ -3329,14 +3948,16 @@ class _CreateDeliveryStaffScreenState
         password: _password.text,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Delivery staff created')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Delivery staff created')));
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -3349,8 +3970,13 @@ class _CreateDeliveryStaffScreenState
       backgroundColor: _surface,
       appBar: AppBar(
         backgroundColor: _surface,
-        title: Text('Add Delivery Staff',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Add Delivery Staff',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -3379,8 +4005,9 @@ class _CreateDeliveryStaffScreenState
               decoration: _inputDec('Password').copyWith(
                 suffixIcon: IconButton(
                   icon: Icon(
-                      _obscure ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey),
+                    _obscure ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -3398,11 +4025,14 @@ class _CreateDeliveryStaffScreenState
                 minimumSize: const Size.fromHeight(52),
               ),
               child: _saving
-                  ? const Center(
-                      child: HdkPreloader(width: 20, height: 20),
-                    )
-                  : const Text('Create Account',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ? const Center(child: HdkPreloader(width: 20, height: 20))
+                  : const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -3410,32 +4040,35 @@ class _CreateDeliveryStaffScreenState
     );
   }
 
-  Widget _field(String label, TextEditingController ctrl, {bool required = false}) =>
-      TextFormField(
-        controller: ctrl,
-        style: const TextStyle(color: Colors.white),
-        decoration: _inputDec(label),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-      );
+  Widget _field(
+    String label,
+    TextEditingController ctrl, {
+    bool required = false,
+  }) => TextFormField(
+    controller: ctrl,
+    style: const TextStyle(color: Colors.white),
+    decoration: _inputDec(label),
+    validator: required
+        ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+        : null,
+  );
 
   InputDecoration _inputDec(String label) => InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: _card,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _stroke),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _stroke),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _red),
-        ),
-      );
+    labelText: label,
+    labelStyle: const TextStyle(color: Colors.grey),
+    filled: true,
+    fillColor: _card,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _stroke),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _stroke),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: _red),
+    ),
+  );
 }

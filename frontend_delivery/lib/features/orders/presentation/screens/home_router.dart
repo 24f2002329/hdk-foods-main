@@ -56,10 +56,7 @@ class _DeliveryHome extends StatefulWidget {
 class _DeliveryHomeState extends State<_DeliveryHome> {
   int _index = 0;
 
-  static const _tabs = [
-    DeliveryOrdersScreen(),
-    DeliveryProfileScreen(),
-  ];
+  static const _tabs = [DeliveryOrdersScreen(), DeliveryProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -72,13 +69,15 @@ class _DeliveryHomeState extends State<_DeliveryHome> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.delivery_dining_outlined),
-              selectedIcon: Icon(Icons.delivery_dining, color: _red),
-              label: 'Deliveries'),
+            icon: Icon(Icons.delivery_dining_outlined),
+            selectedIcon: Icon(Icons.delivery_dining, color: _red),
+            label: 'Deliveries',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: _red),
-              label: 'Profile'),
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person, color: _red),
+            label: 'Profile',
+          ),
         ],
       ),
     );

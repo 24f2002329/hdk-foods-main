@@ -103,12 +103,15 @@ class _NameCollectionScreenState extends State<NameCollectionScreen> {
                     autofocus: true,
                     textCapitalization: TextCapitalization.words,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                     decoration: InputDecoration(
-                      prefixIcon:
-                          const Icon(Icons.person_outline, color: _brandRed),
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        color: _brandRed,
+                      ),
                       labelText: 'Your name',
                       labelStyle: const TextStyle(color: _mutedText),
                       filled: true,
@@ -123,13 +126,14 @@ class _NameCollectionScreenState extends State<NameCollectionScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide:
-                            const BorderSide(color: _brandRed, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: _brandRed,
+                          width: 1.5,
+                        ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide:
-                            const BorderSide(color: Colors.redAccent),
+                        borderSide: const BorderSide(color: Colors.redAccent),
                       ),
                     ),
                     validator: (v) {
@@ -158,12 +162,16 @@ class _NameCollectionScreenState extends State<NameCollectionScreen> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text(
                             'Continue',
                             style: TextStyle(
-                                fontWeight: FontWeight.w900, fontSize: 16),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
                           ),
                   ),
                 ],

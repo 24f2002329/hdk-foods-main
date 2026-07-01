@@ -58,8 +58,7 @@ class OrderWebSocketService extends _ReconnectingWebSocket {
   Future<Uri?> buildUri() async {
     final token = await TokenStorage.getAccessToken();
     if (token == null) return null;
-    return Uri.parse(
-        '${ApiConfig.wsBaseUrl}/ws/orders/$orderId/?token=$token');
+    return Uri.parse('${ApiConfig.wsBaseUrl}/ws/orders/$orderId/?token=$token');
   }
 }
 
@@ -69,7 +68,6 @@ class AdminOrderWebSocketService extends _ReconnectingWebSocket {
   Future<Uri?> buildUri() async {
     final token = await TokenStorage.getAccessToken();
     if (token == null) return null;
-    return Uri.parse(
-        '${ApiConfig.wsBaseUrl}/ws/delivery/orders/?token=$token');
+    return Uri.parse('${ApiConfig.wsBaseUrl}/ws/delivery/orders/?token=$token');
   }
 }

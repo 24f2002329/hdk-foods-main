@@ -9,10 +9,10 @@ class Category {
   Category({required this.id, required this.name, this.image = ''});
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'],
-        name: json['name'] ?? '',
-        image: json['image'] ?? '',
-      );
+    id: json['id'],
+    name: json['name'] ?? '',
+    image: json['image'] ?? '',
+  );
 }
 
 class Product {
@@ -97,22 +97,21 @@ class Product {
     String? categoryName,
     double? rating,
     List<ModifierGroup>? modifierGroups,
-  }) =>
-      Product(
-        id: id,
-        categoryId: categoryId ?? this.categoryId,
-        categoryName: categoryName ?? this.categoryName,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        price: price ?? this.price,
-        strikePrice: strikePrice,
-        promoTag: promoTag,
-        image: image ?? this.image,
-        isAvailable: isAvailable ?? this.isAvailable,
-        isFeatured: isFeatured ?? this.isFeatured,
-        isAddon: isAddon ?? this.isAddon,
-        preparationTime: preparationTime ?? this.preparationTime,
-        rating: rating ?? this.rating,
-        modifierGroups: modifierGroups ?? this.modifierGroups,
-      );
+  }) => Product(
+    id: id,
+    categoryId: categoryId ?? this.categoryId,
+    categoryName: categoryName ?? this.categoryName,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    price: price ?? this.price,
+    strikePrice: strikePrice,
+    promoTag: promoTag,
+    image: image ?? this.image,
+    isAvailable: isAvailable ?? this.isAvailable,
+    isFeatured: isFeatured ?? this.isFeatured,
+    isAddon: isAddon ?? this.isAddon,
+    preparationTime: preparationTime ?? this.preparationTime,
+    rating: rating ?? this.rating,
+    modifierGroups: modifierGroups ?? this.modifierGroups,
+  );
 }

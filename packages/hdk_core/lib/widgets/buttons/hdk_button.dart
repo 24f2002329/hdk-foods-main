@@ -52,7 +52,7 @@ class HdkButton extends StatelessWidget {
         Text(
           label,
           style: AppTypography.buttonText.copyWith(
-            color: isOutlined 
+            color: isOutlined
                 ? (isDisabled ? AppColors.mutedText : AppColors.primary)
                 : Colors.white,
           ),
@@ -96,9 +96,7 @@ class HdkButton extends StatelessWidget {
           backgroundColor: AppColors.primary,
           disabledBackgroundColor: AppColors.border,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.mdBorderRadius,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.mdBorderRadius),
           elevation: 0,
         ),
         child: content,

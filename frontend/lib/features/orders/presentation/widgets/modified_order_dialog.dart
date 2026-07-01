@@ -27,19 +27,24 @@ class ModifiedOrderDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: const [
-              Icon(Icons.info_outline_rounded,
-                  color: Colors.orangeAccent, size: 22),
-              SizedBox(width: 8),
-              Text(
-                'Order Updated',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            Row(
+              children: const [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.orangeAccent,
+                  size: 22,
                 ),
-              ),
-            ]),
+                SizedBox(width: 8),
+                Text(
+                  'Order Updated',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
             const Text(
               'The kitchen modified your order.\nReview the changes below.',

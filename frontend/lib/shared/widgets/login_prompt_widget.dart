@@ -66,7 +66,8 @@ class LoginPromptWidget extends StatelessWidget {
                 backgroundColor: _brandRed,
                 minimumSize: const Size(200, 50),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ],
@@ -86,28 +87,33 @@ class GuestCartBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: _panel,
-      child: Row(children: [
-        const Icon(Icons.info_outline, color: _mutedText, size: 16),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'Login to place your order',
-            style: TextStyle(color: _mutedText, fontSize: 13),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: _mutedText, size: 16),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Login to place your order',
+              style: TextStyle(color: _mutedText, fontSize: 13),
+            ),
           ),
-        ),
-        TextButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: _brandRed,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+            ),
+            child: const Text(
+              'Login',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
-          style: TextButton.styleFrom(
-            foregroundColor: _brandRed,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            minimumSize: Size.zero,
-          ),
-          child: const Text('Login', style: TextStyle(fontWeight: FontWeight.w800)),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }

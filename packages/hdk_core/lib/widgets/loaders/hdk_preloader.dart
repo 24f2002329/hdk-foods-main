@@ -25,11 +25,7 @@ class HdkPreloader extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Center(
-        child: HdkPreloader(
-          key: key,
-          width: size,
-          height: size,
-        ),
+        child: HdkPreloader(key: key, width: size, height: size),
       ),
     );
   }
@@ -42,10 +38,7 @@ class HdkPreloader extends StatelessWidget {
       asset: 'assets/animations/preloader.json',
       width: width,
       height: height,
-      fallback: CircularProgressIndicator(
-        color: brandRed,
-        strokeWidth: 3,
-      ),
+      fallback: CircularProgressIndicator(color: brandRed, strokeWidth: 3),
     );
   }
 }

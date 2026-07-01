@@ -14,10 +14,7 @@ class AuthService {
     final response = await http.post(
       Uri.parse('$_baseUrl/staff-login/'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'phone_number': phoneNumber,
-        'password': password,
-      }),
+      body: jsonEncode({'phone_number': phoneNumber, 'password': password}),
     );
 
     if (response.statusCode == 200) {

@@ -20,8 +20,12 @@ class CartProvider extends ChangeNotifier {
   int get itemCount =>
       _items.values.fold(0, (total, item) => total + item.quantity);
 
-  double get totalAmount =>
-      _items.values.fold(0, (total, item) => total + ((item.product.price + item.customizationPrice) * item.quantity));
+  double get totalAmount => _items.values.fold(
+    0,
+    (total, item) =>
+        total +
+        ((item.product.price + item.customizationPrice) * item.quantity),
+  );
 
   bool contains(Product product) =>
       _items.values.any((item) => item.product.id == product.id);
@@ -45,26 +49,32 @@ class CartProvider extends ChangeNotifier {
     if (finalModifiers.isEmpty) {
       // Legacy conversion
       if (size != null) {
-        finalModifiers.add(SelectedModifier(
-          groupName: "Size",
-          optionName: size,
-          price: customizationPrice,
-        ));
+        finalModifiers.add(
+          SelectedModifier(
+            groupName: "Size",
+            optionName: size,
+            price: customizationPrice,
+          ),
+        );
       }
       if (spiceLevel != null) {
-        finalModifiers.add(SelectedModifier(
-          groupName: "Spice Level",
-          optionName: spiceLevel,
-          price: 0.0,
-        ));
+        finalModifiers.add(
+          SelectedModifier(
+            groupName: "Spice Level",
+            optionName: spiceLevel,
+            price: 0.0,
+          ),
+        );
       }
       for (final cust in customizations) {
         final parts = cust.split(": ");
-        finalModifiers.add(SelectedModifier(
-          groupName: parts.length > 1 ? parts[0] : "Extra",
-          optionName: parts.length > 1 ? parts[1] : cust,
-          price: 0.0,
-        ));
+        finalModifiers.add(
+          SelectedModifier(
+            groupName: parts.length > 1 ? parts[0] : "Extra",
+            optionName: parts.length > 1 ? parts[1] : cust,
+            price: 0.0,
+          ),
+        );
       }
     }
 
@@ -108,7 +118,9 @@ class CartProvider extends ChangeNotifier {
   }
 
   void decreaseQuantity(Product product) {
-    final matching = _items.values.where((item) => item.product.id == product.id).toList();
+    final matching = _items.values
+        .where((item) => item.product.id == product.id)
+        .toList();
     if (matching.isEmpty) return;
     decreaseQuantityForCartId(matching.last.cartId);
   }

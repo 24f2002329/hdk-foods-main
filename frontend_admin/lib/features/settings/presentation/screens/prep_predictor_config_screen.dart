@@ -12,7 +12,8 @@ class PrepPredictorConfigScreen extends StatefulWidget {
   const PrepPredictorConfigScreen({super.key});
 
   @override
-  State<PrepPredictorConfigScreen> createState() => _PrepPredictorConfigScreenState();
+  State<PrepPredictorConfigScreen> createState() =>
+      _PrepPredictorConfigScreenState();
 }
 
 class _PrepPredictorConfigScreenState extends State<PrepPredictorConfigScreen> {
@@ -80,7 +81,11 @@ class _PrepPredictorConfigScreenState extends State<PrepPredictorConfigScreen> {
 
     if (qMult == null || rBonus == null || oBoost == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid numeric values for multiplier, bonus, and boost.')),
+        const SnackBar(
+          content: Text(
+            'Please enter valid numeric values for multiplier, bonus, and boost.',
+          ),
+        ),
       );
       return;
     }
@@ -102,9 +107,9 @@ class _PrepPredictorConfigScreenState extends State<PrepPredictorConfigScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -120,155 +125,173 @@ class _PrepPredictorConfigScreenState extends State<PrepPredictorConfigScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           'Smart Prep Time Predictor',
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
         ),
         actions: [
           _saving
               ? const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: HdkPreloader(width: 20, height: 20),
-                  ),
+                  child: Center(child: HdkPreloader(width: 20, height: 20)),
                 )
               : TextButton(
                   onPressed: _save,
-                  child: const Text('Save', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(color: _red, fontWeight: FontWeight.bold),
+                  ),
                 ),
         ],
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _load,
+                    child: const Text('Retry', style: TextStyle(color: _red)),
+                  ),
+                ],
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _red.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.grey), textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      TextButton(onPressed: _load, child: const Text('Retry', style: TextStyle(color: _red))),
+                      const Icon(Icons.info_outline, color: _red, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Define the predictive algorithm multipliers to dynamically compute preparation times based on kitchen backlog and peak rush hours.',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16),
+                ),
+                const SizedBox(height: 24),
+                _sectionHeader('Core Modifiers'),
+                _inputField(
+                  'Queue Multiplier (Minutes added per active order)',
+                  _queueMultiplier,
+                  hint: 'e.g. 2.0',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _inputField(
+                  'Rush Hour Bonus Minutes',
+                  _rushHourBonus,
+                  hint: 'e.g. 5',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                _inputField(
+                  'Manual Override / Boost Minutes (Add/Subtract globally)',
+                  _overrideBoost,
+                  hint: 'e.g. 10 or -5',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    signed: true,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _sectionHeader('Peak Hours Definition'),
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _red.withValues(alpha: 0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, color: _red, size: 24),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Define the predictive algorithm multipliers to dynamically compute preparation times based on kitchen backlog and peak rush hours.',
-                              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
-                            ),
-                          ),
-                        ],
+                    Expanded(
+                      child: _inputField(
+                        'Peak Start Time',
+                        _peakStartTime,
+                        hint: 'e.g. 18:00:00',
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    _sectionHeader('Core Modifiers'),
-                    _inputField(
-                      'Queue Multiplier (Minutes added per active order)',
-                      _queueMultiplier,
-                      hint: 'e.g. 2.0',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _inputField(
+                        'Peak End Time',
+                        _peakEndTime,
+                        hint: 'e.g. 22:00:00',
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    _inputField(
-                      'Rush Hour Bonus Minutes',
-                      _rushHourBonus,
-                      hint: 'e.g. 5',
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    _inputField(
-                      'Manual Override / Boost Minutes (Add/Subtract globally)',
-                      _overrideBoost,
-                      hint: 'e.g. 10 or -5',
-                      keyboardType: const TextInputType.numberWithOptions(signed: true),
-                    ),
-                    const SizedBox(height: 24),
-                    _sectionHeader('Peak Hours Definition'),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _inputField(
-                            'Peak Start Time',
-                            _peakStartTime,
-                            hint: 'e.g. 18:00:00',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _inputField(
-                            'Peak End Time',
-                            _peakEndTime,
-                            hint: 'e.g. 22:00:00',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _inputField(
-                      'Peak Weekdays (0=Monday, 6=Sunday. Comma-separated)',
-                      _peakWeekdays,
-                      hint: 'e.g. 4,5,6',
-                    ),
-                    const SizedBox(height: 32),
                   ],
                 ),
+                const SizedBox(height: 16),
+                _inputField(
+                  'Peak Weekdays (0=Monday, 6=Sunday. Comma-separated)',
+                  _peakWeekdays,
+                  hint: 'e.g. 4,5,6',
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
     );
   }
 
   Widget _sectionHeader(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(
-          title,
-          style: GoogleFonts.poppins(
-            color: Colors.grey,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      title,
+      style: GoogleFonts.poppins(
+        color: Colors.grey,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
+      ),
+    ),
+  );
 
   Widget _inputField(
     String label,
     TextEditingController ctrl, {
     String hint = '',
     TextInputType? keyboardType,
-  }) =>
-      TextFormField(
-        controller: ctrl,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-          filled: true,
-          fillColor: _card,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _stroke),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _stroke),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _red),
-          ),
-        ),
-      );
+  }) => TextFormField(
+    controller: ctrl,
+    keyboardType: keyboardType,
+    style: const TextStyle(color: Colors.white),
+    decoration: InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+      hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+      filled: true,
+      fillColor: _card,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _stroke),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _stroke),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _red),
+      ),
+    ),
+  );
 }

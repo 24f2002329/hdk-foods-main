@@ -158,131 +158,161 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
         iconTheme: const IconThemeData(color: _textPrimary),
         title: Text(
           'Customer Reviews',
-          style: GoogleFonts.poppins(color: _textPrimary, fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(
+            color: _textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _fetch)
-              : _reviews.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.rate_review_outlined, color: Colors.grey[800], size: 64),
-                          const SizedBox(height: 16),
-                          Text('No reviews yet',
-                              style: GoogleFonts.poppins(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(height: 6),
-                          const Text('Customer reviews will appear here once submitted.',
-                              style: TextStyle(color: _textSecondary, fontSize: 13)),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: _red,
-                      onRefresh: _fetch,
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: _reviews.length + (_hasMore ? 1 : 0),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        itemBuilder: (context, index) {
-                          if (index == _reviews.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: HdkPreloader(width: 50, height: 50)),
-                            );
-                          }
+          ? ErrorRetryWidget(error: _error!, onRetry: _fetch)
+          : _reviews.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.rate_review_outlined,
+                    color: Colors.grey[800],
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No reviews yet',
+                    style: GoogleFonts.poppins(
+                      color: _textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Customer reviews will appear here once submitted.',
+                    style: TextStyle(color: _textSecondary, fontSize: 13),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: _red,
+              onRefresh: _fetch,
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: _reviews.length + (_hasMore ? 1 : 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                itemBuilder: (context, index) {
+                  if (index == _reviews.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: HdkPreloader(width: 50, height: 50)),
+                    );
+                  }
 
-                          final item = _reviews[index];
-                          return Card(
-                            color: _card,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: const BorderSide(color: _stroke),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item.customerName,
-                                              style: GoogleFonts.poppins(
-                                                color: _textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            if (item.customerPhone.isNotEmpty) ...[
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                item.customerPhone,
-                                                style: const TextStyle(color: _textSecondary, fontSize: 11),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'Order #${item.orderNumber}',
-                                            style: GoogleFonts.poppins(
-                                              color: _red,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            DateFormat('MMM d, yyyy').format(item.createdAt.toLocal()),
-                                            style: const TextStyle(color: _textSecondary, fontSize: 10),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: List.generate(5, (starIdx) {
-                                      final isFilled = starIdx < item.rating;
-                                      return Icon(
-                                        isFilled ? Icons.star_rounded : Icons.star_border_rounded,
-                                        color: isFilled ? Colors.amber : Colors.grey[800],
-                                        size: 18,
-                                      );
-                                    }),
-                                  ),
-                                  if (item.comment.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 10),
+                  final item = _reviews[index];
+                  return Card(
+                    color: _card,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: _stroke),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      item.comment,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                        height: 1.4,
+                                      item.customerName,
+                                      style: GoogleFonts.poppins(
+                                        color: _textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
                                       ),
                                     ),
+                                    if (item.customerPhone.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.customerPhone,
+                                        style: const TextStyle(
+                                          color: _textSecondary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                   ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Order #${item.orderNumber}',
+                                    style: GoogleFonts.poppins(
+                                      color: _red,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat(
+                                      'MMM d, yyyy',
+                                    ).format(item.createdAt.toLocal()),
+                                    style: const TextStyle(
+                                      color: _textSecondary,
+                                      fontSize: 10,
+                                    ),
+                                  ),
                                 ],
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: List.generate(5, (starIdx) {
+                              final isFilled = starIdx < item.rating;
+                              return Icon(
+                                isFilled
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: isFilled
+                                    ? Colors.amber
+                                    : Colors.grey[800],
+                                size: 18,
+                              );
+                            }),
+                          ),
+                          if (item.comment.trim().isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              item.comment,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

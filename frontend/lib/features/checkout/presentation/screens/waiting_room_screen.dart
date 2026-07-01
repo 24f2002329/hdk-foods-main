@@ -93,7 +93,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
               builder: (_) => OrderRejectedScreen(
                 orderNumber: order.orderNumber,
                 reason: order.cancellationReason,
-                isOnlinePaid: order.paymentMethod == 'online' &&
+                isOnlinePaid:
+                    order.paymentMethod == 'online' &&
                     order.paymentStatus == 'paid',
               ),
             ),
@@ -135,9 +136,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       } catch (e) {
         _navigated = false;
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$e')));
         }
         return;
       }
@@ -205,7 +206,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   }
 
   Future<void> _callRestaurant() async {
-    final Uri phoneUri = Uri(scheme: 'tel', path: '+919999999999'); // Replace with actual restaurant number
+    final Uri phoneUri = Uri(
+      scheme: 'tel',
+      path: '+919999999999',
+    ); // Replace with actual restaurant number
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
     } else {
@@ -222,7 +226,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('Waiting for Confirmation', style: TextStyle(fontWeight: FontWeight.w900, color: _deepText)),
+        title: const Text(
+          'Waiting for Confirmation',
+          style: TextStyle(fontWeight: FontWeight.w900, color: _deepText),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false, // Prevent going back while waiting
@@ -252,10 +259,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Order #${widget.orderNumber}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 48),
                 if (_secondsRemaining > 0) ...[
@@ -286,7 +290,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                   child: LottieOr(
                     asset: 'assets/animations/confirming_order.json',
                     height: 140,
-                    fallback: CircularProgressIndicator(color: Colors.orangeAccent),
+                    fallback: CircularProgressIndicator(
+                      color: Colors.orangeAccent,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -303,7 +309,10 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                     icon: const Icon(Icons.phone),
                     label: const Text(
                       'Call Restaurant',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orangeAccent,

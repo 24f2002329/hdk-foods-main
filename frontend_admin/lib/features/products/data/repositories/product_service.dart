@@ -19,9 +19,13 @@ class ProductService {
   }
 
   Future<Category> createCategory(String name) async {
-    final response = await ApiClient().post('$_base/categories/', {'name': name});
+    final response = await ApiClient().post('$_base/categories/', {
+      'name': name,
+    });
     if (response.statusCode == 201) {
-      return Category.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      return Category.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     }
     throw Exception('Failed to create category: ${response.body}');
   }
@@ -44,7 +48,10 @@ class ProductService {
   }
 
   Future<Product> toggleAvailability(int productId) async {
-    final response = await ApiClient().patch('$_base/products/$productId/toggle/', {});
+    final response = await ApiClient().patch(
+      '$_base/products/$productId/toggle/',
+      {},
+    );
     if (response.statusCode == 200) {
       return Product.fromJson(jsonDecode(response.body));
     }
@@ -60,7 +67,10 @@ class ProductService {
   }
 
   Future<Product> updateProduct(int id, Map<String, dynamic> data) async {
-    final response = await ApiClient().patch('$_base/products/$id/update/', data);
+    final response = await ApiClient().patch(
+      '$_base/products/$id/update/',
+      data,
+    );
     if (response.statusCode == 200) {
       return Product.fromJson(jsonDecode(response.body));
     }
@@ -130,8 +140,14 @@ class ProductService {
     throw Exception('Failed to create modifier group: ${response.body}');
   }
 
-  Future<ModifierGroup> updateModifierGroup(int id, Map<String, dynamic> data) async {
-    final response = await ApiClient().patch('$_base/modifiers/groups/$id/', data);
+  Future<ModifierGroup> updateModifierGroup(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await ApiClient().patch(
+      '$_base/modifiers/groups/$id/',
+      data,
+    );
     if (response.statusCode == 200) {
       return ModifierGroup.fromJson(jsonDecode(response.body));
     }
@@ -153,8 +169,14 @@ class ProductService {
     throw Exception('Failed to create modifier option: ${response.body}');
   }
 
-  Future<ModifierOption> updateModifierOption(int id, Map<String, dynamic> data) async {
-    final response = await ApiClient().patch('$_base/modifiers/options/$id/', data);
+  Future<ModifierOption> updateModifierOption(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await ApiClient().patch(
+      '$_base/modifiers/options/$id/',
+      data,
+    );
     if (response.statusCode == 200) {
       return ModifierOption.fromJson(jsonDecode(response.body));
     }

@@ -134,9 +134,9 @@ class _OtpScreenState extends State<OtpScreen> {
     _otpController.clear();
     _startResendTimer();
     _listenForOtpSms();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("OTP resent successfully")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("OTP resent successfully")));
   }
 
   Future<void> _verifyOtp() async {
@@ -229,10 +229,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
               ),
               const SizedBox(height: 48),
-              _PinInput(
-                controller: _otpController,
-                onCompleted: _verifyOtp,
-              ),
+              _PinInput(controller: _otpController, onCompleted: _verifyOtp),
               const SizedBox(height: 40),
               FilledButton(
                 onPressed: canVerify ? _verifyOtp : null,
@@ -305,8 +302,9 @@ class _PinInputState extends State<_PinInput> {
   void initState() {
     super.initState();
     _focusNode.addListener(() => setState(() {}));
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _focusNode.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
   }
 
   @override
@@ -343,8 +341,8 @@ class _PinInputState extends State<_PinInput> {
                       color: isCurrent
                           ? _brandRed
                           : (filled
-                              ? _brandRed.withValues(alpha: 0.45)
-                              : _stroke),
+                                ? _brandRed.withValues(alpha: 0.45)
+                                : _stroke),
                       width: isCurrent ? 2.0 : 1.5,
                     ),
                   ),

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 class GooglePlacesService {
   GooglePlacesService({http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   static const String _apiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
   static const String _geocodeBaseUrl =
@@ -96,14 +96,20 @@ class ResolvedPlace {
         ? byType('locality')
         : byType('administrative_area_level_3');
     final pincode = byType('postal_code');
-    final street = [route, sublocality, neighborhood]
-        .where((p) => p.trim().isNotEmpty)
-        .join(', ');
+    final street = [
+      route,
+      sublocality,
+      neighborhood,
+    ].where((p) => p.trim().isNotEmpty).join(', ');
 
-    final lat = _toDouble(locationMap?['lat'],
-        fallback: fallbackLocation.latitude);
-    final lng = _toDouble(locationMap?['lng'],
-        fallback: fallbackLocation.longitude);
+    final lat = _toDouble(
+      locationMap?['lat'],
+      fallback: fallbackLocation.latitude,
+    );
+    final lng = _toDouble(
+      locationMap?['lng'],
+      fallback: fallbackLocation.longitude,
+    );
 
     return ResolvedPlace(
       formattedAddress: json['formatted_address']?.toString() ?? '',

@@ -38,23 +38,26 @@ class NotificationService {
           .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
           .toList();
       final count = (data['unread_count'] as num?)?.toInt() ?? 0;
-      return {
-        'notifications': list,
-        'unread_count': count,
-      };
+      return {'notifications': list, 'unread_count': count};
     }
     throw Exception('Failed to load notifications');
   }
 
   Future<void> markAllAsRead() async {
-    final response = await ApiClient().post('$_baseUrl/config/notifications/', {});
+    final response = await ApiClient().post(
+      '$_baseUrl/config/notifications/',
+      {},
+    );
     if (response.statusCode != 200) {
       throw Exception('Failed to mark all notifications as read');
     }
   }
 
   Future<void> markAsRead(int id) async {
-    final response = await ApiClient().post('$_baseUrl/config/notifications/$id/read/', {});
+    final response = await ApiClient().post(
+      '$_baseUrl/config/notifications/$id/read/',
+      {},
+    );
     if (response.statusCode != 200) {
       throw Exception('Failed to mark notification as read');
     }

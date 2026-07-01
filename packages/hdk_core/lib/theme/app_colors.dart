@@ -11,7 +11,7 @@ class AppColors {
   static const Color border = Color(0xFF2A2A2A);
   static const Color mutedText = Color(0xFFB8B8B8);
   static const Color hintText = Color(0xFF8F8F8F);
-  
+
   // Semantic status colors
   static const Color success = Color(0xFF25D366);
   static const Color warning = Color(0xFFFF8A00);

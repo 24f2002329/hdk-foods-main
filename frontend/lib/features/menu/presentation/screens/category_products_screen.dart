@@ -45,7 +45,8 @@ class CategoryProductsScreen extends StatelessWidget {
             : ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 96),
                 itemCount: products.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final product = products[index];
                   final quantity = cart.quantityFor(product);

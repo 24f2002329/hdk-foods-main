@@ -64,12 +64,12 @@ class OrderService {
 
   Future<List<Map<String, dynamic>>> getActiveCoupons() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/coupons/active/'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/coupons/active/'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final list = jsonDecode(response.body) as List;
         return list.map((e) => e as Map<String, dynamic>).toList();
@@ -158,9 +158,7 @@ class OrderService {
 
   /// Confirms a Cashfree payment. The backend fetches the order status from
   /// Cashfree server-to-server, so no client-side signature is needed.
-  Future<Order> verifyPayment({
-    required int orderId,
-  }) async {
+  Future<Order> verifyPayment({required int orderId}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/$orderId/verify-payment/'),
       headers: await _headers(),
@@ -206,11 +204,7 @@ class OrderService {
     final response = await http.post(
       Uri.parse('$baseUrl/$orderId/review/'),
       headers: await _headers(),
-      body: jsonEncode({
-        'rating': rating,
-        'comment': comment,
-        'items': items,
-      }),
+      body: jsonEncode({'rating': rating, 'comment': comment, 'items': items}),
     );
     if (response.statusCode != 201) {
       throw Exception('Failed to submit review: ${response.body}');
@@ -229,7 +223,9 @@ class OrderService {
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
-    throw Exception(jsonDecode(response.body)['detail'] ?? 'Failed to request cancellation');
+    throw Exception(
+      jsonDecode(response.body)['detail'] ?? 'Failed to request cancellation',
+    );
   }
 
   Future<List<Map<String, dynamic>>> getOrderMessages(int orderId) async {
@@ -244,7 +240,10 @@ class OrderService {
     throw Exception('Failed to load chat messages');
   }
 
-  Future<Map<String, dynamic>> sendOrderMessage(int orderId, String message) async {
+  Future<Map<String, dynamic>> sendOrderMessage(
+    int orderId,
+    String message,
+  ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/$orderId/messages/'),
       headers: await _headers(),

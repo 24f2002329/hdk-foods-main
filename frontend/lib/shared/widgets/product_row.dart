@@ -78,10 +78,14 @@ class _ProductRowState extends State<ProductRow> {
                           child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: _brandRed,
+                            ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => const _ProductImageFallback(),
+                        errorWidget: (context, url, error) =>
+                            const _ProductImageFallback(),
                       ),
               ),
             ),
@@ -146,8 +150,9 @@ class _ProductRowState extends State<ProductRow> {
                             style: FilledButton.styleFrom(
                               backgroundColor: _brandRed,
                               foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),

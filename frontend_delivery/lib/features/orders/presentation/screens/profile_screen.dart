@@ -29,7 +29,11 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
   Future<void> _load() async {
     try {
       final user = await AuthService().me();
-      if (mounted) setState(() { _user = user; _loading = false; });
+      if (mounted)
+        setState(() {
+          _user = user;
+          _loading = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -40,8 +44,10 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: _panel,
-        title: const Text('Logout',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
         content: const Text(
           'Are you sure you want to log out?',
           style: TextStyle(color: Colors.grey),
@@ -73,8 +79,10 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
 
   String _roleLabel(String? role) {
     switch (role) {
-      case 'delivery': return 'Delivery';
-      default: return role ?? '—';
+      case 'delivery':
+        return 'Delivery';
+      default:
+        return role ?? '—';
     }
   }
 
@@ -83,8 +91,10 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('Profile',
-            style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: _red),
@@ -114,8 +124,11 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                           color: _red,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.person,
-                            color: Colors.white, size: 28),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -125,9 +138,10 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                             Text(
                               _user?['name'] ?? 'Delivery',
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -137,7 +151,9 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                             const SizedBox(height: 4),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: _red.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
@@ -145,9 +161,10 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                               child: Text(
                                 _roleLabel(_user?['role']),
                                 style: const TextStyle(
-                                    color: _red,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
+                                  color: _red,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],

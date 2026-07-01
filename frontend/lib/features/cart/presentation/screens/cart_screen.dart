@@ -83,14 +83,23 @@ class _CartScreenState extends State<CartScreen> {
                   if (isClosed)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: _brandRed.withValues(alpha: 0.1),
-                        border: const Border(bottom: BorderSide(color: _brandRed, width: 1.5)),
+                        border: const Border(
+                          bottom: BorderSide(color: _brandRed, width: 1.5),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: _brandRed, size: 20),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: _brandRed,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -191,18 +200,21 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (item.size != null || item.spiceLevel != null || item.customizations.isNotEmpty || (item.notes != null && item.notes!.isNotEmpty)) ...[
+                  if (item.size != null ||
+                      item.spiceLevel != null ||
+                      item.customizations.isNotEmpty ||
+                      (item.notes != null && item.notes!.isNotEmpty)) ...[
                     Text(
                       [
                         if (item.size != null) "Size: ${item.size}",
-                        if (item.spiceLevel != null) "Spice: ${item.spiceLevel}",
-                        if (item.customizations.isNotEmpty) "Add-ons: ${item.customizations.join(', ')}",
-                        if (item.notes != null && item.notes!.isNotEmpty) "Note: ${item.notes}",
+                        if (item.spiceLevel != null)
+                          "Spice: ${item.spiceLevel}",
+                        if (item.customizations.isNotEmpty)
+                          "Add-ons: ${item.customizations.join(', ')}",
+                        if (item.notes != null && item.notes!.isNotEmpty)
+                          "Note: ${item.notes}",
                       ].join(' | '),
-                      style: const TextStyle(
-                        color: _mutedText,
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: _mutedText, fontSize: 11),
                     ),
                     const SizedBox(height: 6),
                   ],
@@ -223,7 +235,10 @@ class _CartItemTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(color: const Color(0xFF262626)),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -237,7 +252,11 @@ class _CartItemTile extends StatelessWidget {
                                   color: Color(0xFF1F1F1F),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.remove_rounded, color: _brandRed, size: 14),
+                                child: const Icon(
+                                  Icons.remove_rounded,
+                                  color: _brandRed,
+                                  size: 14,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -260,7 +279,11 @@ class _CartItemTile extends StatelessWidget {
                                   color: Color(0xFF1F1F1F),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.add_rounded, color: _brandRed, size: 14),
+                                child: const Icon(
+                                  Icons.add_rounded,
+                                  color: _brandRed,
+                                  size: 14,
+                                ),
                               ),
                             ),
                           ],
@@ -383,8 +406,11 @@ class _AddOnTile extends StatelessWidget {
                       height: 40,
                       child: ColoredBox(
                         color: _panelAlt,
-                        child: Icon(Icons.local_drink_rounded,
-                            color: _brandRed, size: 20),
+                        child: Icon(
+                          Icons.local_drink_rounded,
+                          color: _brandRed,
+                          size: 20,
+                        ),
                       ),
                     )
                   : Image.network(
@@ -397,8 +423,11 @@ class _AddOnTile extends StatelessWidget {
                         height: 40,
                         child: ColoredBox(
                           color: _panelAlt,
-                          child: Icon(Icons.local_drink_rounded,
-                              color: _brandRed, size: 20),
+                          child: Icon(
+                            Icons.local_drink_rounded,
+                            color: _brandRed,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -463,10 +492,7 @@ class _CartSummary extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: _mutedText, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(color: _mutedText, fontSize: 13)),
         Text(
           value,
           style: TextStyle(
@@ -488,11 +514,7 @@ class _CartSummary extends StatelessWidget {
         color: Color(0xFF0F0F0F),
         border: Border(top: BorderSide(color: Color(0xFF1E1E1E))),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            blurRadius: 16,
-            offset: Offset(0, -6),
-          ),
+          BoxShadow(color: Colors.black, blurRadius: 16, offset: Offset(0, -6)),
         ],
       ),
       child: Column(

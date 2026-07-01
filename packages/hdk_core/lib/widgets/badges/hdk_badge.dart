@@ -3,13 +3,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_typography.dart';
 
-enum HdkBadgeType {
-  primary,
-  success,
-  warning,
-  error,
-  neutral,
-}
+enum HdkBadgeType { primary, success, warning, error, neutral }
 
 class HdkBadge extends StatelessWidget {
   final String label;

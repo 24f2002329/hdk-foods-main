@@ -39,7 +39,8 @@ class FlyToCart {
 
     final screen = MediaQuery.of(sourceContext).size;
     // Prefer the registered cart target; fall back to bottom-center.
-    final targetRect = _rectFor(targetKey.currentContext) ??
+    final targetRect =
+        _rectFor(targetKey.currentContext) ??
         Rect.fromCenter(
           center: Offset(screen.width / 2, screen.height - 48),
           width: 48,

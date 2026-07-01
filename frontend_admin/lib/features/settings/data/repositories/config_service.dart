@@ -10,13 +10,15 @@ class AdminConfigService {
 
   Future<Map<String, dynamic>> getConfig() async {
     final response = await ApiClient().get('$_base/config/');
-    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200)
+      return jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception('Failed to load config');
   }
 
   Future<void> updateConfig(Map<String, dynamic> data) async {
     final response = await ApiClient().patch('$_base/config/', data);
-    if (response.statusCode != 200) throw Exception('Failed to update: ${response.body}');
+    if (response.statusCode != 200)
+      throw Exception('Failed to update: ${response.body}');
   }
 
   Future<List<dynamic>> getBanners() async {
@@ -27,12 +29,16 @@ class AdminConfigService {
 
   Future<Map<String, dynamic>> createBanner(Map<String, dynamic> data) async {
     final response = await ApiClient().post('$_base/config/banners/', data);
-    if (response.statusCode == 201) return jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 201)
+      return jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception('Failed to create banner: ${response.body}');
   }
 
   Future<void> updateBanner(int id, Map<String, dynamic> data) async {
-    final response = await ApiClient().patch('$_base/config/banners/$id/', data);
+    final response = await ApiClient().patch(
+      '$_base/config/banners/$id/',
+      data,
+    );
     if (response.statusCode != 200) throw Exception('Failed to update banner');
   }
 
@@ -42,17 +48,20 @@ class AdminConfigService {
   }
 
   Future<int> broadcastNotification(String title, String body) async {
-    final response = await ApiClient().post(
-      '$_base/config/notify-all/',
-      {'title': title, 'body': body},
-    );
+    final response = await ApiClient().post('$_base/config/notify-all/', {
+      'title': title,
+      'body': body,
+    });
     if (response.statusCode == 200) {
       return (jsonDecode(response.body)['sent'] as num?)?.toInt() ?? 0;
     }
     throw Exception('Failed to send notification: ${response.body}');
   }
 
-  Future<Map<String, dynamic>> uploadBannerImage(int bannerId, File imageFile) async {
+  Future<Map<String, dynamic>> uploadBannerImage(
+    int bannerId,
+    File imageFile,
+  ) async {
     final token = await TokenStorage.getAccessToken();
     if (token == null) throw Exception('Not logged in');
 
@@ -92,12 +101,17 @@ class AdminConfigService {
 
   Future<Map<String, dynamic>> getPrepConfig() async {
     final response = await ApiClient().get('$_base/orders/admin/prep-config/');
-    if (response.statusCode == 200) return jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200)
+      return jsonDecode(response.body) as Map<String, dynamic>;
     throw Exception('Failed to load prep config');
   }
 
   Future<void> updatePrepConfig(Map<String, dynamic> data) async {
-    final response = await ApiClient().patch('$_base/orders/admin/prep-config/', data);
-    if (response.statusCode != 200) throw Exception('Failed to update prep config: ${response.body}');
+    final response = await ApiClient().patch(
+      '$_base/orders/admin/prep-config/',
+      data,
+    );
+    if (response.statusCode != 200)
+      throw Exception('Failed to update prep config: ${response.body}');
   }
 }

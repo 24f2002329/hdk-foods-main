@@ -76,8 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Sign in to manage orders',
-                  style: GoogleFonts.poppins(
-                      color: Colors.grey, fontSize: 14),
+                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
                 ),
                 const SizedBox(height: 48),
                 TextFormField(
@@ -86,8 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
-                    prefixIcon:
-                        Icon(Icons.phone, color: Color(0xFFFF1E1E)),
+                    prefixIcon: Icon(Icons.phone, color: Color(0xFFFF1E1E)),
                   ),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Required' : null,
@@ -99,16 +97,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscure,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock,
-                        color: Color(0xFFFF1E1E)),
+                    prefixIcon: const Icon(
+                      Icons.lock,
+                      color: Color(0xFFFF1E1E),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                          _obscure
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey),
-                      onPressed: () =>
-                          setState(() => _obscure = !_obscure),
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
                   validator: (v) =>
@@ -122,10 +120,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : const Text('Sign In',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                 ),
               ],
             ),

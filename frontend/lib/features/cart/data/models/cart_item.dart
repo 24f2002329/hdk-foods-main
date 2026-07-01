@@ -12,12 +12,13 @@ class SelectedModifier {
   });
 
   Map<String, dynamic> toJson() => {
-        'group': groupName,
-        'option': optionName,
-        'price': price,
-      };
+    'group': groupName,
+    'option': optionName,
+    'price': price,
+  };
 
-  factory SelectedModifier.fromJson(Map<String, dynamic> json) => SelectedModifier(
+  factory SelectedModifier.fromJson(Map<String, dynamic> json) =>
+      SelectedModifier(
         groupName: json['group'] ?? '',
         optionName: json['option'] ?? '',
         price: (json['price'] as num?)?.toDouble() ?? 0.0,
@@ -94,30 +95,29 @@ class CartItem {
     int? quantity,
     List<SelectedModifier>? selectedModifiers,
     String? notes,
-  }) =>
-      CartItem(
-        product: product ?? this.product,
-        quantity: quantity ?? this.quantity,
-        selectedModifiers: selectedModifiers ?? this.selectedModifiers,
-        notes: notes ?? this.notes,
-      );
+  }) => CartItem(
+    product: product ?? this.product,
+    quantity: quantity ?? this.quantity,
+    selectedModifiers: selectedModifiers ?? this.selectedModifiers,
+    notes: notes ?? this.notes,
+  );
 
   Map<String, dynamic> toJson() => {
-        'productId': product.id,
-        'name': product.name,
-        'description': product.description,
-        'image': product.image,
-        'price': product.price,
-        'isFeatured': product.isFeatured,
-        'isAddon': product.isAddon,
-        'preparationTime': product.preparationTime,
-        'categoryId': product.categoryId,
-        'rating': product.rating,
-        'isAvailable': product.isAvailable,
-        'quantity': quantity,
-        'selectedModifiers': selectedModifiers.map((m) => m.toJson()).toList(),
-        'notes': notes,
-      };
+    'productId': product.id,
+    'name': product.name,
+    'description': product.description,
+    'image': product.image,
+    'price': product.price,
+    'isFeatured': product.isFeatured,
+    'isAddon': product.isAddon,
+    'preparationTime': product.preparationTime,
+    'categoryId': product.categoryId,
+    'rating': product.rating,
+    'isAvailable': product.isAvailable,
+    'quantity': quantity,
+    'selectedModifiers': selectedModifiers.map((m) => m.toJson()).toList(),
+    'notes': notes,
+  };
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
     final rawModifiers = json['selectedModifiers'] as List? ?? [];
@@ -128,28 +128,34 @@ class CartItem {
     // Support legacy format migration if present
     if (modifiers.isEmpty) {
       if (json['size'] != null) {
-        modifiers.add(SelectedModifier(
-          groupName: "Size",
-          optionName: json['size'],
-          price: (json['customizationPrice'] as num?)?.toDouble() ?? 0.0,
-        ));
+        modifiers.add(
+          SelectedModifier(
+            groupName: "Size",
+            optionName: json['size'],
+            price: (json['customizationPrice'] as num?)?.toDouble() ?? 0.0,
+          ),
+        );
       }
       if (json['spiceLevel'] != null) {
-        modifiers.add(SelectedModifier(
-          groupName: "Spice Level",
-          optionName: json['spiceLevel'],
-          price: 0.0,
-        ));
+        modifiers.add(
+          SelectedModifier(
+            groupName: "Spice Level",
+            optionName: json['spiceLevel'],
+            price: 0.0,
+          ),
+        );
       }
       if (json['customizations'] != null) {
         final legacyCusts = List<String>.from(json['customizations']);
         for (final c in legacyCusts) {
           final parts = c.split(": ");
-          modifiers.add(SelectedModifier(
-            groupName: parts.length > 1 ? parts[0] : "Extra",
-            optionName: parts.length > 1 ? parts[1] : c,
-            price: 0.0,
-          ));
+          modifiers.add(
+            SelectedModifier(
+              groupName: parts.length > 1 ? parts[0] : "Extra",
+              optionName: parts.length > 1 ? parts[1] : c,
+              price: 0.0,
+            ),
+          );
         }
       }
     }

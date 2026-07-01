@@ -123,9 +123,7 @@ class _AddressScreenState extends State<AddressScreen> {
         future: _addressesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: HdkPreloader(),
-            );
+            return const Center(child: HdkPreloader());
           }
 
           if (snapshot.hasError) {
@@ -206,147 +204,153 @@ class _AddressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         onTap: onTap,
         child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: selectionMode
-              ? (address.isDefault ? _brandOrange : _stroke)
-              : (address.isDefault ? _brandOrange : _stroke),
-          width: selectionMode ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.36),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: _panelAlt,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(_iconForLabel(address.label), color: _brandOrange),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _panel,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selectionMode
+                  ? (address.isDefault ? _brandOrange : _stroke)
+                  : (address.isDefault ? _brandOrange : _stroke),
+              width: selectionMode ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.36),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _panelAlt,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      _iconForLabel(address.label),
+                      color: _brandOrange,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          address.label,
-                          style: const TextStyle(
-                            color: _deepText,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        if (address.isDefault) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _brandOrange,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Text(
-                              'Default',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
+                        Row(
+                          children: [
+                            Text(
+                              address.label,
+                              style: const TextStyle(
+                                color: _deepText,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
+                            if (address.isDefault) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _brandOrange,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'Default',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          address.lineOne,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _mutedText,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      address.lineOne,
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'default') {
+                        onMakeDefault?.call();
+                      } else if (value == 'delete') {
+                        onDelete();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      if (onMakeDefault != null)
+                        const PopupMenuItem(
+                          value: 'default',
+                          child: Text('Make default'),
+                        ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                address.lineTwo,
+                style: const TextStyle(
+                  color: _deepText,
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.my_location_rounded,
+                    size: 15,
+                    color: _mutedText,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      '${address.latitude.toStringAsFixed(5)}, '
+                      '${address.longitude.toStringAsFixed(5)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _mutedText,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    onEdit();
-                  } else if (value == 'default') {
-                    onMakeDefault?.call();
-                  } else if (value == 'delete') {
-                    onDelete();
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  if (onMakeDefault != null)
-                    const PopupMenuItem(
-                      value: 'default',
-                      child: Text('Make default'),
-                    ),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            address.lineTwo,
-            style: const TextStyle(
-              color: _deepText,
-              fontSize: 14,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(
-                Icons.my_location_rounded,
-                size: 15,
-                color: _mutedText,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  '${address.latitude.toStringAsFixed(5)}, '
-                  '${address.longitude.toStringAsFixed(5)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _mutedText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
         ),
       ),
     );

@@ -47,7 +47,10 @@ class CategoryCard extends StatelessWidget {
                         child: SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _brandRed,
+                          ),
                         ),
                       ),
                       errorWidget: (context, url, error) => const ColoredBox(

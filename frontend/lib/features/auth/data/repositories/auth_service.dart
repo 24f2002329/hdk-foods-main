@@ -45,8 +45,9 @@ class AuthService {
         smsCode: otp,
       );
 
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
 
       final firebaseToken = await userCredential.user!.getIdToken();
 

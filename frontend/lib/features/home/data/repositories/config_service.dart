@@ -29,17 +29,21 @@ class SiteConfig {
   });
 
   factory SiteConfig.fromJson(Map<String, dynamic> json) => SiteConfig(
-        announcement: json['announcement'] ?? '',
-        isStoreOpen: json['is_store_open'] ?? true,
-        storeOpenTime: json['store_open_time'] ?? '08:00:00',
-        storeCloseTime: json['store_close_time'] ?? '22:00:00',
-        storeClosedMsg: json['store_closed_msg'] ?? "We're closed right now.",
-        showRatings: json['show_ratings'] ?? true,
-        loyaltyCoinsPercentage: json['loyalty_coins_percentage'] ?? 10,
-        kitchenName: json['kitchen_name'] ?? 'HDK Foods Kitchen',
-        kitchenLat: double.tryParse(json['kitchen_latitude']?.toString() ?? '') ?? 25.861067,
-        kitchenLng: double.tryParse(json['kitchen_longitude']?.toString() ?? '') ?? 73.749343,
-      );
+    announcement: json['announcement'] ?? '',
+    isStoreOpen: json['is_store_open'] ?? true,
+    storeOpenTime: json['store_open_time'] ?? '08:00:00',
+    storeCloseTime: json['store_close_time'] ?? '22:00:00',
+    storeClosedMsg: json['store_closed_msg'] ?? "We're closed right now.",
+    showRatings: json['show_ratings'] ?? true,
+    loyaltyCoinsPercentage: json['loyalty_coins_percentage'] ?? 10,
+    kitchenName: json['kitchen_name'] ?? 'HDK Foods Kitchen',
+    kitchenLat:
+        double.tryParse(json['kitchen_latitude']?.toString() ?? '') ??
+        25.861067,
+    kitchenLng:
+        double.tryParse(json['kitchen_longitude']?.toString() ?? '') ??
+        73.749343,
+  );
 
   bool get isCurrentlyOpen {
     if (!isStoreOpen) return false;
@@ -81,8 +85,13 @@ class SiteConfig {
 
   DateTime _parseTime(String t, DateTime ref) {
     final parts = t.split(':');
-    return DateTime(ref.year, ref.month, ref.day,
-        int.parse(parts[0]), int.parse(parts[1]));
+    return DateTime(
+      ref.year,
+      ref.month,
+      ref.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
   }
 }
 
@@ -102,12 +111,12 @@ class AppBanner {
   });
 
   factory AppBanner.fromJson(Map<String, dynamic> json) => AppBanner(
-        id: json['id'],
-        imageUrl: json['image_url'] ?? '',
-        title: json['title'] ?? '',
-        subtitle: json['subtitle'] ?? '',
-        linkAction: json['link_action'] ?? '',
-      );
+    id: json['id'],
+    imageUrl: json['image_url'] ?? '',
+    title: json['title'] ?? '',
+    subtitle: json['subtitle'] ?? '',
+    linkAction: json['link_action'] ?? '',
+  );
 }
 
 class ConfigService {

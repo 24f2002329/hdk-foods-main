@@ -32,7 +32,8 @@ class ProductCard extends StatefulWidget {
   State<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends State<ProductCard> with SingleTickerProviderStateMixin {
+class _ProductCardState extends State<ProductCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _bounceCtrl;
   late Animation<double> _scale;
   final GlobalKey _imageKey = GlobalKey();
@@ -47,10 +48,13 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _bounceCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 150));
-    _scale = Tween<double>(begin: 1.0, end: 0.8)
-        .chain(CurveTween(curve: Curves.easeInOut))
-        .animate(_bounceCtrl);
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.8,
+    ).chain(CurveTween(curve: Curves.easeInOut)).animate(_bounceCtrl);
   }
 
   @override
@@ -101,10 +105,14 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                           child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: _brandRed),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: _brandRed,
+                            ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => const _ProductImageFallback(),
+                        errorWidget: (context, url, error) =>
+                            const _ProductImageFallback(),
                       ),
               ),
               Positioned(

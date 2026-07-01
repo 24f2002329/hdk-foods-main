@@ -39,7 +39,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     // Poll every 12 s as a guaranteed fallback (covers the window before
     // the WebSocket / FCM listener kicks in after assignment).
     _timer = Timer.periodic(
-        const Duration(seconds: 12), (_) => _load(silent: true));
+      const Duration(seconds: 12),
+      (_) => _load(silent: true),
+    );
 
     // WebSocket — real-time when daphne backend is live.
     _ws = AdminOrderWebSocketService();
@@ -71,9 +73,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     if (o.address?.latitude == null || o.address?.longitude == null) return;
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => DeliveryNavigationScreen(order: o),
-      ),
+      MaterialPageRoute(builder: (_) => DeliveryNavigationScreen(order: o)),
     );
     _load();
   }
@@ -93,7 +93,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         barrierDismissible: true,
         builder: (ctx) => AlertDialog(
           backgroundColor: _panel,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -136,7 +138,13 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Dismiss', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Dismiss',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -144,10 +152,18 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _red,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('View Order', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'View Order',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -209,9 +225,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   Future<void> _openNotifications() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const NotificationScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
     );
     _load(silent: true);
   }
@@ -221,8 +235,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('My Deliveries',
-            style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'My Deliveries',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         actions: [
           Stack(
             clipBehavior: Clip.none,
@@ -246,42 +262,58 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                     alignment: Alignment.center,
                     child: Text(
                       '$_unreadNotificationCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load)
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
           : _error != null
-              ? ErrorRetryWidget(error: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: _orders.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const LottieOr(
-                                asset: 'assets/animations/preloader.json',
-                                width: 150,
-                                height: 150,
-                                fallback: Icon(Icons.delivery_dining_outlined, size: 64, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text('No deliveries assigned',
-                                  style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              const Text('You will be notified when a new order is assigned.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-                            ],
+          ? ErrorRetryWidget(error: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _orders.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const LottieOr(
+                            asset: 'assets/animations/preloader.json',
+                            width: 150,
+                            height: 150,
+                            fallback: Icon(
+                              Icons.delivery_dining_outlined,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
                           ),
-                        )
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No deliveries assigned',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'You will be notified when a new order is assigned.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _orders.length,
@@ -294,7 +326,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => OrderDetailScreen(
-                                    order: o, role: 'delivery'),
+                                  order: o,
+                                  role: 'delivery',
+                                ),
                               ),
                             );
                             _load();
@@ -318,87 +352,105 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('#${o.orderNumber}',
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16)),
+                                    Text(
+                                      '#${o.orderNumber}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: (isDelivered
-                                                ? Colors.greenAccent
-                                                : Colors.blueAccent)
-                                            .withValues(alpha: 0.15),
-                                        borderRadius:
-                                            BorderRadius.circular(10),
+                                        color:
+                                            (isDelivered
+                                                    ? Colors.greenAccent
+                                                    : Colors.blueAccent)
+                                                .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
                                         isDelivered
                                             ? 'Delivered'
                                             : 'Out for Delivery',
                                         style: TextStyle(
-                                            color: isDelivered
-                                                ? Colors.greenAccent
-                                                : Colors.blueAccent,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold),
+                                          color: isDelivered
+                                              ? Colors.greenAccent
+                                              : Colors.blueAccent,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-                                ...o.items.map((item) => Text(
-                                      '${item.quantity}× ${item.productName}',
-                                      style: const TextStyle(
-                                          color: Colors.grey),
-                                    )),
+                                ...o.items.map(
+                                  (item) => Text(
+                                    '${item.quantity}× ${item.productName}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ),
                                 if (o.customerName.isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      const Icon(Icons.person_outline,
-                                          size: 13, color: Colors.grey),
+                                      const Icon(
+                                        Icons.person_outline,
+                                        size: 13,
+                                        color: Colors.grey,
+                                      ),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
                                           o.customerName,
                                           style: const TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 12),
+                                            color: Colors.grey,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ),
                                       if (o.customerPhone.isNotEmpty)
                                         GestureDetector(
-                                          onTap: () => launchUrl(Uri.parse(
-                                              'tel:${o.customerPhone}')),
+                                          onTap: () => launchUrl(
+                                            Uri.parse('tel:${o.customerPhone}'),
+                                          ),
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 3),
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: Colors.greenAccent
                                                   .withValues(alpha: 0.12),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                               border: Border.all(
-                                                  color: Colors.greenAccent
-                                                      .withValues(alpha: 0.4)),
+                                                color: Colors.greenAccent
+                                                    .withValues(alpha: 0.4),
+                                              ),
                                             ),
                                             child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.call_rounded,
-                                                    color: Colors.greenAccent,
-                                                    size: 12),
+                                                Icon(
+                                                  Icons.call_rounded,
+                                                  color: Colors.greenAccent,
+                                                  size: 12,
+                                                ),
                                                 SizedBox(width: 3),
-                                                Text('Call',
-                                                    style: TextStyle(
-                                                        color:
-                                                            Colors.greenAccent,
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w600)),
+                                                Text(
+                                                  'Call',
+                                                  style: TextStyle(
+                                                    color: Colors.greenAccent,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -412,17 +464,22 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                        '₹${o.totalAmount.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold)),
+                                      '₹${o.totalAmount.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     Text(
                                       o.createdAt != null
-                                          ? DateFormat('hh:mm a').format(
-                                              o.createdAt!.toLocal())
+                                          ? DateFormat(
+                                              'hh:mm a',
+                                            ).format(o.createdAt!.toLocal())
                                           : '',
                                       style: const TextStyle(
-                                          color: Colors.grey, fontSize: 12),
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -431,19 +488,22 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                   const SizedBox(height: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.orangeAccent
-                                          .withValues(alpha: 0.15),
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      color: Colors.orangeAccent.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Text(
                                       '⚠ Collect Cash on Delivery',
                                       style: TextStyle(
-                                          color: Colors.orangeAccent,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold),
+                                        color: Colors.orangeAccent,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -454,21 +514,27 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            Colors.blueAccent,
+                                        backgroundColor: Colors.blueAccent,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 10),
+                                          vertical: 10,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
                                       ),
-                                      icon: const Icon(Icons.navigation,
-                                          size: 18),
-                                      label: const Text('Navigate',
-                                          style: TextStyle(
-                                              fontWeight:
-                                                  FontWeight.bold)),
+                                      icon: const Icon(
+                                        Icons.navigation,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        'Navigate',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       onPressed: () => _navigate(o),
                                     ),
                                   ),

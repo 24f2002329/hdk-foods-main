@@ -63,7 +63,8 @@ class _MenuScreenState extends State<MenuScreen> {
   // Filter States
   bool _onlyAvailable = false;
   bool _onlyBestsellers = false;
-  String _sortOption = 'none'; // 'none', 'price_asc', 'price_desc', 'rating_desc'
+  String _sortOption =
+      'none'; // 'none', 'price_asc', 'price_desc', 'rating_desc'
 
   // Bonus Wishlist/Favorites
   Set<int> _favoriteProductIds = {};
@@ -82,7 +83,9 @@ class _MenuScreenState extends State<MenuScreen> {
       if (widget.initialProductId != null) {
         Product? product;
         try {
-          product = data.products.firstWhere((p) => p.id == widget.initialProductId);
+          product = data.products.firstWhere(
+            (p) => p.id == widget.initialProductId,
+          );
         } catch (_) {}
         if (product != null) {
           if (product.categoryId != null) {
@@ -242,11 +245,18 @@ class _MenuScreenState extends State<MenuScreen> {
       dataFuture.then((data) {
         final catIndex = data.categories.indexWhere((c) => c.id == categoryId);
         if (catIndex != -1) {
-          int offset = 1 + (_showBestsellersSection ? 1 : 0) + 1 + (_showNewArrivalsSection ? 1 : 0);
+          int offset =
+              1 +
+              (_showBestsellersSection ? 1 : 0) +
+              1 +
+              (_showNewArrivalsSection ? 1 : 0);
           final targetIndex = catIndex + offset;
           final double targetOffset = targetIndex * 100.0 - 100.0;
           _categoryScrollController.animateTo(
-            targetOffset.clamp(0.0, _categoryScrollController.position.maxScrollExtent),
+            targetOffset.clamp(
+              0.0,
+              _categoryScrollController.position.maxScrollExtent,
+            ),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
@@ -257,7 +267,10 @@ class _MenuScreenState extends State<MenuScreen> {
 
     final double targetOffset = index * 100.0 - 100.0;
     _categoryScrollController.animateTo(
-      targetOffset.clamp(0.0, _categoryScrollController.position.maxScrollExtent),
+      targetOffset.clamp(
+        0.0,
+        _categoryScrollController.position.maxScrollExtent,
+      ),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
@@ -274,7 +287,11 @@ class _MenuScreenState extends State<MenuScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            Widget buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
+            Widget buildFilterChip(
+              String label,
+              bool isSelected,
+              VoidCallback onTap,
+            ) {
               return ChoiceChip(
                 label: Text(label),
                 selected: isSelected,
@@ -288,9 +305,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: isSelected ? _brandRed : _stroke,
-                  ),
+                  side: BorderSide(color: isSelected ? _brandRed : _stroke),
                 ),
               );
             }
@@ -323,7 +338,10 @@ class _MenuScreenState extends State<MenuScreen> {
                         },
                         child: const Text(
                           'Clear All',
-                          style: TextStyle(color: _brandRed, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: _brandRed,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -332,7 +350,11 @@ class _MenuScreenState extends State<MenuScreen> {
                   const SizedBox(height: 20),
                   const Text(
                     'Filter Options',
-                    style: TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: _textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -340,7 +362,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     runSpacing: 8,
                     children: [
                       buildFilterChip('🔥 Bestsellers', _onlyBestsellers, () {
-                        setModalState(() => _onlyBestsellers = !_onlyBestsellers);
+                        setModalState(
+                          () => _onlyBestsellers = !_onlyBestsellers,
+                        );
                         setState(() {});
                       }),
                       buildFilterChip('✅ Available Only', _onlyAvailable, () {
@@ -352,31 +376,62 @@ class _MenuScreenState extends State<MenuScreen> {
                   const SizedBox(height: 20),
                   const Text(
                     'Sort By Price & Rating',
-                    style: TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: _textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      buildFilterChip('Price: Low → High', _sortOption == 'price_asc', () {
-                        setModalState(() => _sortOption = _sortOption == 'price_asc' ? 'none' : 'price_asc');
-                        setState(() {});
-                      }),
-                      buildFilterChip('Price: High → Low', _sortOption == 'price_desc', () {
-                        setModalState(() => _sortOption = _sortOption == 'price_desc' ? 'none' : 'price_desc');
-                        setState(() {});
-                      }),
-                      buildFilterChip('Rating ⭐ (High → Low)', _sortOption == 'rating_desc', () {
-                        setModalState(() => _sortOption = _sortOption == 'rating_desc' ? 'none' : 'rating_desc');
-                        setState(() {});
-                      }),
+                      buildFilterChip(
+                        'Price: Low → High',
+                        _sortOption == 'price_asc',
+                        () {
+                          setModalState(
+                            () => _sortOption = _sortOption == 'price_asc'
+                                ? 'none'
+                                : 'price_asc',
+                          );
+                          setState(() {});
+                        },
+                      ),
+                      buildFilterChip(
+                        'Price: High → Low',
+                        _sortOption == 'price_desc',
+                        () {
+                          setModalState(
+                            () => _sortOption = _sortOption == 'price_desc'
+                                ? 'none'
+                                : 'price_desc',
+                          );
+                          setState(() {});
+                        },
+                      ),
+                      buildFilterChip(
+                        'Rating ⭐ (High → Low)',
+                        _sortOption == 'rating_desc',
+                        () {
+                          setModalState(
+                            () => _sortOption = _sortOption == 'rating_desc'
+                                ? 'none'
+                                : 'rating_desc',
+                          );
+                          setState(() {});
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Apply Filters',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -396,7 +451,11 @@ class _MenuScreenState extends State<MenuScreen> {
     }
     // Apply Bestsellers Filter
     if (_onlyBestsellers) {
-      result = result.where((p) => p.isFeatured || p.promoTag.toLowerCase().contains('best')).toList();
+      result = result
+          .where(
+            (p) => p.isFeatured || p.promoTag.toLowerCase().contains('best'),
+          )
+          .toList();
     }
     // Apply sorting
     if (_sortOption == 'price_asc') {
@@ -432,7 +491,11 @@ class _MenuScreenState extends State<MenuScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => Navigator.maybePop(context),
         ),
         titleSpacing: 0,
@@ -447,7 +510,11 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+            icon: const Icon(
+              Icons.search_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
             onPressed: () {
               _searchFocusNode.requestFocus();
             },
@@ -456,11 +523,16 @@ class _MenuScreenState extends State<MenuScreen> {
             clipBehavior: Clip.none,
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 24),
+                icon: const Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Colors.white,
+                  size: 24,
+                ),
                 onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  );
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
                 },
               ),
               if (cart.itemCount > 0)
@@ -530,10 +602,22 @@ class _MenuScreenState extends State<MenuScreen> {
 
               // Filter dynamic sections
               final bestsellersList = _applyFiltersAndSort(
-                data.products.where((p) => p.isFeatured || p.promoTag.toLowerCase().contains('best')).toList(),
+                data.products
+                    .where(
+                      (p) =>
+                          p.isFeatured ||
+                          p.promoTag.toLowerCase().contains('best'),
+                    )
+                    .toList(),
               );
               final newArrivalsList = _applyFiltersAndSort(
-                data.products.where((p) => p.promoTag.toLowerCase().contains('new') || p.promoTag.toLowerCase().contains('latest')).toList(),
+                data.products
+                    .where(
+                      (p) =>
+                          p.promoTag.toLowerCase().contains('new') ||
+                          p.promoTag.toLowerCase().contains('latest'),
+                    )
+                    .toList(),
               );
 
               _showBestsellersSection = bestsellersList.isNotEmpty;
@@ -561,7 +645,11 @@ class _MenuScreenState extends State<MenuScreen> {
                               controller: _searchController,
                               focusNode: _searchFocusNode,
                               onChanged: _onSearchChanged,
-                              style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                              style: const TextStyle(
+                                color: _textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Search dishes, pizzas, boba...',
                                 hintStyle: const TextStyle(
@@ -569,14 +657,21 @@ class _MenuScreenState extends State<MenuScreen> {
                                   fontSize: 14,
                                   fontWeight: FontWeight.normal,
                                 ),
-                                prefixIcon: const Icon(Icons.search_rounded, color: _textSecondary),
+                                prefixIcon: const Icon(
+                                  Icons.search_rounded,
+                                  color: _textSecondary,
+                                ),
                                 suffixIcon: _searchController.text.isNotEmpty
                                     ? IconButton(
                                         onPressed: () {
                                           _searchController.clear();
                                           setState(() => _query = '');
                                         },
-                                        icon: const Icon(Icons.close_rounded, color: _textSecondary, size: 20),
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          color: _textSecondary,
+                                          size: 20,
+                                        ),
                                       )
                                     : null,
                                 filled: true,
@@ -584,7 +679,9 @@ class _MenuScreenState extends State<MenuScreen> {
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -600,7 +697,10 @@ class _MenuScreenState extends State<MenuScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: _stroke),
                             ),
-                            child: const Icon(Icons.tune_rounded, color: _brandRed),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              color: _brandRed,
+                            ),
                           ),
                         ),
                       ],
@@ -616,13 +716,18 @@ class _MenuScreenState extends State<MenuScreen> {
                     height: 48,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       children: [
                         _QuickFilterChip(
                           label: '🔥 Bestsellers',
                           isSelected: _onlyBestsellers,
                           onTap: () {
-                            setState(() => _onlyBestsellers = !_onlyBestsellers);
+                            setState(
+                              () => _onlyBestsellers = !_onlyBestsellers,
+                            );
                           },
                         ),
                         const SizedBox(width: 8),
@@ -631,14 +736,17 @@ class _MenuScreenState extends State<MenuScreen> {
                           isSelected: _sortOption == 'rating_desc',
                           onTap: () {
                             setState(() {
-                              _sortOption = _sortOption == 'rating_desc' ? 'none' : 'rating_desc';
+                              _sortOption = _sortOption == 'rating_desc'
+                                  ? 'none'
+                                  : 'rating_desc';
                             });
                           },
                         ),
                         const SizedBox(width: 8),
                         _QuickFilterChip(
                           label: '⏳ Fast Prep',
-                          isSelected: _onlyAvailable, // Maps to showing only active products
+                          isSelected:
+                              _onlyAvailable, // Maps to showing only active products
                           onTap: () {
                             setState(() => _onlyAvailable = !_onlyAvailable);
                           },
@@ -662,7 +770,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         controller: _categoryScrollController,
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                        itemCount: 1 +
+                        itemCount:
+                            1 +
                             (_showBestsellersSection ? 1 : 0) +
                             (_showNewArrivalsSection ? 1 : 0) +
                             1 +
@@ -681,17 +790,23 @@ class _MenuScreenState extends State<MenuScreen> {
                             if (_showBestsellersSection && shiftIndex == 0) {
                               catId = -1;
                               label = "🔥 Bestsellers";
-                            } else if (shiftIndex == (_showBestsellersSection ? 1 : 0)) {
+                            } else if (shiftIndex ==
+                                (_showBestsellersSection ? 1 : 0)) {
                               catId = -4;
                               label = "❤️ Favorites";
                             } else if (_showNewArrivalsSection &&
-                                shiftIndex == (_showBestsellersSection ? 1 : 0) + 1) {
+                                shiftIndex ==
+                                    (_showBestsellersSection ? 1 : 0) + 1) {
                               catId = -2;
                               label = "✨ New";
                             } else {
-                              int dynamicTabsCount = (_showBestsellersSection ? 1 : 0) + 1 + (_showNewArrivalsSection ? 1 : 0);
+                              int dynamicTabsCount =
+                                  (_showBestsellersSection ? 1 : 0) +
+                                  1 +
+                                  (_showNewArrivalsSection ? 1 : 0);
                               int shift = dynamicTabsCount;
-                              final category = data.categories[shiftIndex - shift];
+                              final category =
+                                  data.categories[shiftIndex - shift];
                               catId = category.id;
                               label = category.name;
                             }
@@ -703,7 +818,9 @@ class _MenuScreenState extends State<MenuScreen> {
                             onTap: () => _selectCategoryTab(catId),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 250),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isSelected ? _brandRed : _panel,
@@ -715,7 +832,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               child: Text(
                                 label,
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : _textPrimary,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : _textPrimary,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                 ),
@@ -762,15 +881,24 @@ class _MenuScreenState extends State<MenuScreen> {
                             height: 104,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               itemCount: recentProducts.length,
-                              separatorBuilder: (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final p = recentProducts[index];
                                 return GestureDetector(
                                   onTap: () {
                                     _recordRecentlyViewed(p.id);
-                                    _showProductDetails(context, p, cart, siteConfig, heroTag: 'recent_product_${p.id}');
+                                    _showProductDetails(
+                                      context,
+                                      p,
+                                      cart,
+                                      siteConfig,
+                                      heroTag: 'recent_product_${p.id}',
+                                    );
                                   },
                                   child: Container(
                                     width: 240,
@@ -783,33 +911,46 @@ class _MenuScreenState extends State<MenuScreen> {
                                     child: Row(
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: CachedNetworkImage(
                                             imageUrl: p.image,
                                             width: 56,
                                             height: 56,
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => Shimmer.fromColors(
-                                              baseColor: _panel,
-                                              highlightColor: _stroke,
-                                              child: Container(color: Colors.white),
-                                            ),
+                                            placeholder: (context, url) =>
+                                                Shimmer.fromColors(
+                                                  baseColor: _panel,
+                                                  highlightColor: _stroke,
+                                                  child: Container(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                             errorWidget: (_, _, _) => Container(
                                               color: _stroke,
-                                              child: const Icon(Icons.restaurant_rounded, color: _textSecondary),
+                                              child: const Icon(
+                                                Icons.restaurant_rounded,
+                                                color: _textSecondary,
+                                              ),
                                             ),
                                           ),
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Text(
                                                 p.name,
                                                 style: const TextStyle(
-                                                    color: _textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                                  color: _textPrimary,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
@@ -817,7 +958,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                               Text(
                                                 '₹${p.price.toStringAsFixed(0)}',
                                                 style: const TextStyle(
-                                                    color: _brandRed, fontSize: 13, fontWeight: FontWeight.w800),
+                                                  color: _brandRed,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -842,9 +986,11 @@ class _MenuScreenState extends State<MenuScreen> {
                 final queryStr = _query.trim().toLowerCase();
                 final searchMatches = _applyFiltersAndSort(
                   data.products
-                      .where((p) =>
-                          p.name.toLowerCase().contains(queryStr) ||
-                          p.description.toLowerCase().contains(queryStr))
+                      .where(
+                        (p) =>
+                            p.name.toLowerCase().contains(queryStr) ||
+                            p.description.toLowerCase().contains(queryStr),
+                      )
                       .toList(),
                 );
 
@@ -853,7 +999,10 @@ class _MenuScreenState extends State<MenuScreen> {
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 80,
+                        ),
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -893,33 +1042,47 @@ class _MenuScreenState extends State<MenuScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = searchMatches[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _PremiumFoodCard(
-                                product: product,
-                                isFavorite: _favoriteProductIds.contains(product.id),
-                                onFavoriteTapped: () => _toggleFavorite(product.id),
-                                cartQuantity: cart.quantityFor(product),
-                                isStoreClosed: isStoreClosed,
-                                heroTag: 'search_product_${product.id}',
-                                onAddPressed: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'search_product_${product.id}');
-                                },
-                                onIncreasePressed: () => cart.increaseQuantity(product),
-                                onDecreasePressed: () => cart.decreaseQuantity(product),
-                                onTap: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'search_product_${product.id}');
-                                },
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final product = searchMatches[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _PremiumFoodCard(
+                              product: product,
+                              isFavorite: _favoriteProductIds.contains(
+                                product.id,
                               ),
-                            );
-                          },
-                          childCount: searchMatches.length,
-                        ),
+                              onFavoriteTapped: () =>
+                                  _toggleFavorite(product.id),
+                              cartQuantity: cart.quantityFor(product),
+                              isStoreClosed: isStoreClosed,
+                              heroTag: 'search_product_${product.id}',
+                              onAddPressed: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'search_product_${product.id}',
+                                );
+                              },
+                              onIncreasePressed: () =>
+                                  cart.increaseQuantity(product),
+                              onDecreasePressed: () =>
+                                  cart.decreaseQuantity(product),
+                              onTap: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'search_product_${product.id}',
+                                );
+                              },
+                            ),
+                          );
+                        }, childCount: searchMatches.length),
                       ),
                     ),
                   );
@@ -927,7 +1090,8 @@ class _MenuScreenState extends State<MenuScreen> {
               } else {
                 // Browse Mode: Vertical Stack of Category Sections
                 // 1. Dynamic Section: Bestsellers
-                if (_showBestsellersSection && (_selectedCategoryId == -3 || _selectedCategoryId == -1)) {
+                if (_showBestsellersSection &&
+                    (_selectedCategoryId == -3 || _selectedCategoryId == -1)) {
                   slivers.add(
                     SliverToBoxAdapter(
                       key: _bestsellersKey,
@@ -938,40 +1102,55 @@ class _MenuScreenState extends State<MenuScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = bestsellersList[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _PremiumFoodCard(
-                                product: product,
-                                isFavorite: _favoriteProductIds.contains(product.id),
-                                onFavoriteTapped: () => _toggleFavorite(product.id),
-                                cartQuantity: cart.quantityFor(product),
-                                isStoreClosed: isStoreClosed,
-                                heroTag: 'bestseller_product_${product.id}',
-                                onAddPressed: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'bestseller_product_${product.id}');
-                                },
-                                onIncreasePressed: () => cart.increaseQuantity(product),
-                                onDecreasePressed: () => cart.decreaseQuantity(product),
-                                onTap: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'bestseller_product_${product.id}');
-                                },
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final product = bestsellersList[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _PremiumFoodCard(
+                              product: product,
+                              isFavorite: _favoriteProductIds.contains(
+                                product.id,
                               ),
-                            );
-                          },
-                          childCount: bestsellersList.length,
-                        ),
+                              onFavoriteTapped: () =>
+                                  _toggleFavorite(product.id),
+                              cartQuantity: cart.quantityFor(product),
+                              isStoreClosed: isStoreClosed,
+                              heroTag: 'bestseller_product_${product.id}',
+                              onAddPressed: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'bestseller_product_${product.id}',
+                                );
+                              },
+                              onIncreasePressed: () =>
+                                  cart.increaseQuantity(product),
+                              onDecreasePressed: () =>
+                                  cart.decreaseQuantity(product),
+                              onTap: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'bestseller_product_${product.id}',
+                                );
+                              },
+                            ),
+                          );
+                        }, childCount: bestsellersList.length),
                       ),
                     ),
                   );
                 }
 
                 // 2. Dynamic Section: New Arrivals
-                if (_showNewArrivalsSection && (_selectedCategoryId == -3 || _selectedCategoryId == -2)) {
+                if (_showNewArrivalsSection &&
+                    (_selectedCategoryId == -3 || _selectedCategoryId == -2)) {
                   slivers.add(
                     SliverToBoxAdapter(
                       key: _newArrivalsKey,
@@ -982,33 +1161,47 @@ class _MenuScreenState extends State<MenuScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = newArrivalsList[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _PremiumFoodCard(
-                                product: product,
-                                isFavorite: _favoriteProductIds.contains(product.id),
-                                onFavoriteTapped: () => _toggleFavorite(product.id),
-                                cartQuantity: cart.quantityFor(product),
-                                isStoreClosed: isStoreClosed,
-                                heroTag: 'newarrival_product_${product.id}',
-                                onAddPressed: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'newarrival_product_${product.id}');
-                                },
-                                onIncreasePressed: () => cart.increaseQuantity(product),
-                                onDecreasePressed: () => cart.decreaseQuantity(product),
-                                onTap: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'newarrival_product_${product.id}');
-                                },
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final product = newArrivalsList[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _PremiumFoodCard(
+                              product: product,
+                              isFavorite: _favoriteProductIds.contains(
+                                product.id,
                               ),
-                            );
-                          },
-                          childCount: newArrivalsList.length,
-                        ),
+                              onFavoriteTapped: () =>
+                                  _toggleFavorite(product.id),
+                              cartQuantity: cart.quantityFor(product),
+                              isStoreClosed: isStoreClosed,
+                              heroTag: 'newarrival_product_${product.id}',
+                              onAddPressed: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'newarrival_product_${product.id}',
+                                );
+                              },
+                              onIncreasePressed: () =>
+                                  cart.increaseQuantity(product),
+                              onDecreasePressed: () =>
+                                  cart.decreaseQuantity(product),
+                              onTap: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag: 'newarrival_product_${product.id}',
+                                );
+                              },
+                            ),
+                          );
+                        }, childCount: newArrivalsList.length),
                       ),
                     ),
                   );
@@ -1031,22 +1224,36 @@ class _MenuScreenState extends State<MenuScreen> {
                   if (favoriteProducts.isEmpty) {
                     slivers.add(
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 48,
+                        ),
                         sliver: SliverToBoxAdapter(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.favorite_border_rounded, color: _textSecondary, size: 48),
+                              const Icon(
+                                Icons.favorite_border_rounded,
+                                color: _textSecondary,
+                                size: 48,
+                              ),
                               const SizedBox(height: 12),
                               const Text(
                                 'No favorites yet',
-                                style: TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                                style: TextStyle(
+                                  color: _textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               const Text(
                                 'Tap the heart icon on any food item to save it here!',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: _textSecondary, fontSize: 12),
+                                style: TextStyle(
+                                  color: _textSecondary,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -1058,33 +1265,48 @@ class _MenuScreenState extends State<MenuScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final product = favoriteProducts[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _PremiumFoodCard(
-                                  product: product,
-                                  isFavorite: true,
-                                  onFavoriteTapped: () => _toggleFavorite(product.id),
-                                  cartQuantity: cart.quantityFor(product),
-                                  isStoreClosed: isStoreClosed,
-                                  heroTag: 'favorite_product_${product.id}',
-                                  onAddPressed: () {
-                                    _recordRecentlyViewed(product.id);
-                                    _showProductDetails(context, product, cart, siteConfig, heroTag: 'favorite_product_${product.id}');
-                                  },
-                                  onIncreasePressed: () => cart.increaseQuantity(product),
-                                  onDecreasePressed: () => cart.decreaseQuantity(product),
-                                  onTap: () {
-                                    _recordRecentlyViewed(product.id);
-                                    _showProductDetails(context, product, cart, siteConfig, heroTag: 'favorite_product_${product.id}');
-                                  },
-                                ),
-                              );
-                            },
-                            childCount: favoriteProducts.length,
-                          ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final product = favoriteProducts[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _PremiumFoodCard(
+                                product: product,
+                                isFavorite: true,
+                                onFavoriteTapped: () =>
+                                    _toggleFavorite(product.id),
+                                cartQuantity: cart.quantityFor(product),
+                                isStoreClosed: isStoreClosed,
+                                heroTag: 'favorite_product_${product.id}',
+                                onAddPressed: () {
+                                  _recordRecentlyViewed(product.id);
+                                  _showProductDetails(
+                                    context,
+                                    product,
+                                    cart,
+                                    siteConfig,
+                                    heroTag: 'favorite_product_${product.id}',
+                                  );
+                                },
+                                onIncreasePressed: () =>
+                                    cart.increaseQuantity(product),
+                                onDecreasePressed: () =>
+                                    cart.decreaseQuantity(product),
+                                onTap: () {
+                                  _recordRecentlyViewed(product.id);
+                                  _showProductDetails(
+                                    context,
+                                    product,
+                                    cart,
+                                    siteConfig,
+                                    heroTag: 'favorite_product_${product.id}',
+                                  );
+                                },
+                              ),
+                            );
+                          }, childCount: favoriteProducts.length),
                         ),
                       ),
                     );
@@ -1093,11 +1315,16 @@ class _MenuScreenState extends State<MenuScreen> {
 
                 // 3. Category Lists from backend
                 for (final category in data.categories) {
-                  if (_selectedCategoryId != -3 && _selectedCategoryId != category.id) {
+                  if (_selectedCategoryId != -3 &&
+                      _selectedCategoryId != category.id) {
                     continue;
                   }
-                  final catKey = _sectionKeys.putIfAbsent(category.id, () => GlobalKey());
-                  final rawProducts = data.productsByCategory[category.id] ?? [];
+                  final catKey = _sectionKeys.putIfAbsent(
+                    category.id,
+                    () => GlobalKey(),
+                  );
+                  final rawProducts =
+                      data.productsByCategory[category.id] ?? [];
                   final products = _applyFiltersAndSort(rawProducts);
 
                   if (products.isEmpty) continue;
@@ -1113,33 +1340,50 @@ class _MenuScreenState extends State<MenuScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = products[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _PremiumFoodCard(
-                                product: product,
-                                isFavorite: _favoriteProductIds.contains(product.id),
-                                onFavoriteTapped: () => _toggleFavorite(product.id),
-                                cartQuantity: cart.quantityFor(product),
-                                isStoreClosed: isStoreClosed,
-                                heroTag: 'category_${category.id}_product_${product.id}',
-                                onAddPressed: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'category_${category.id}_product_${product.id}');
-                                },
-                                onIncreasePressed: () => cart.increaseQuantity(product),
-                                onDecreasePressed: () => cart.decreaseQuantity(product),
-                                onTap: () {
-                                  _recordRecentlyViewed(product.id);
-                                  _showProductDetails(context, product, cart, siteConfig, heroTag: 'category_${category.id}_product_${product.id}');
-                                },
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final product = products[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _PremiumFoodCard(
+                              product: product,
+                              isFavorite: _favoriteProductIds.contains(
+                                product.id,
                               ),
-                            );
-                          },
-                          childCount: products.length,
-                        ),
+                              onFavoriteTapped: () =>
+                                  _toggleFavorite(product.id),
+                              cartQuantity: cart.quantityFor(product),
+                              isStoreClosed: isStoreClosed,
+                              heroTag:
+                                  'category_${category.id}_product_${product.id}',
+                              onAddPressed: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag:
+                                      'category_${category.id}_product_${product.id}',
+                                );
+                              },
+                              onIncreasePressed: () =>
+                                  cart.increaseQuantity(product),
+                              onDecreasePressed: () =>
+                                  cart.decreaseQuantity(product),
+                              onTap: () {
+                                _recordRecentlyViewed(product.id);
+                                _showProductDetails(
+                                  context,
+                                  product,
+                                  cart,
+                                  siteConfig,
+                                  heroTag:
+                                      'category_${category.id}_product_${product.id}',
+                                );
+                              },
+                            ),
+                          );
+                        }, childCount: products.length),
                       ),
                     ),
                   );
@@ -1147,9 +1391,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
                 // Spacer at bottom to avoid overlapping with bottom bar
                 slivers.add(
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 120),
-                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 );
               }
 
@@ -1168,7 +1410,10 @@ class _MenuScreenState extends State<MenuScreen> {
         child: cart.itemCount > 0
             ? Container(
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: _brandRed,
                   borderRadius: BorderRadius.circular(16),
@@ -1210,7 +1455,10 @@ class _MenuScreenState extends State<MenuScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: _brandRed,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
                         minimumSize: Size.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1244,7 +1492,13 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // Phase 6 & 7: Modal details with custom sizes, spice levels, and add-ons
-  void _showProductDetails(BuildContext context, Product product, CartProvider cart, SiteConfig config, {required String heroTag}) {
+  void _showProductDetails(
+    BuildContext context,
+    Product product,
+    CartProvider cart,
+    SiteConfig config, {
+    required String heroTag,
+  }) {
     double basePrice = product.price;
 
     final Map<int, List<ModifierOption>> selectedModifiersMap = {};
@@ -1316,7 +1570,11 @@ class _MenuScreenState extends State<MenuScreen> {
                                 fit: BoxFit.cover,
                                 errorWidget: (_, _, _) => Container(
                                   color: _stroke,
-                                  child: const Icon(Icons.restaurant_rounded, size: 64, color: _textSecondary),
+                                  child: const Icon(
+                                    Icons.restaurant_rounded,
+                                    size: 64,
+                                    color: _textSecondary,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1327,18 +1585,29 @@ class _MenuScreenState extends State<MenuScreen> {
                             children: [
                               if (product.isFeatured) ...[
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: _gold.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.star_rounded, color: _gold, size: 14),
+                                      Icon(
+                                        Icons.star_rounded,
+                                        color: _gold,
+                                        size: 14,
+                                      ),
                                       SizedBox(width: 4),
                                       Text(
                                         'Today\'s Special',
-                                        style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                          color: _gold,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1347,14 +1616,21 @@ class _MenuScreenState extends State<MenuScreen> {
                               ],
                               if (product.promoTag.isNotEmpty)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: _brandRed.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     product.promoTag,
-                                    style: const TextStyle(color: _brandRed, fontSize: 11, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      color: _brandRed,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                             ],
@@ -1363,37 +1639,65 @@ class _MenuScreenState extends State<MenuScreen> {
 
                           Text(
                             product.name,
-                            style: const TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
+                            style: const TextStyle(
+                              color: _textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                           const SizedBox(height: 8),
 
                           Row(
                             children: [
-                              const Icon(Icons.star_rounded, color: _gold, size: 18),
+                              const Icon(
+                                Icons.star_rounded,
+                                color: _gold,
+                                size: 18,
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                product.rating > 0 ? product.rating.toStringAsFixed(1) : '4.5',
-                                style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                                product.rating > 0
+                                    ? product.rating.toStringAsFixed(1)
+                                    : '4.5',
+                                style: const TextStyle(
+                                  color: _textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(width: 12),
-                              const Icon(Icons.timer_outlined, color: _textSecondary, size: 18),
+                              const Icon(
+                                Icons.timer_outlined,
+                                color: _textSecondary,
+                                size: 18,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${product.preparationTime} mins prep',
-                                style: const TextStyle(color: _textSecondary, fontSize: 13),
+                                style: const TextStyle(
+                                  color: _textSecondary,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
 
                           Text(
-                            product.description.isNotEmpty ? product.description : 'No description available.',
-                            style: const TextStyle(color: _textSecondary, fontSize: 14, height: 1.5),
+                            product.description.isNotEmpty
+                                ? product.description
+                                : 'No description available.',
+                            style: const TextStyle(
+                              color: _textSecondary,
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
                           ),
                           const SizedBox(height: 24),
 
                           ...product.modifierGroups.map((group) {
-                            if (group.options.isEmpty) return const SizedBox.shrink();
+                            if (group.options.isEmpty)
+                              return const SizedBox.shrink();
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1425,13 +1729,19 @@ class _MenuScreenState extends State<MenuScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     group.description,
-                                    style: const TextStyle(color: _textSecondary, fontSize: 12),
+                                    style: const TextStyle(
+                                      color: _textSecondary,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                                 const SizedBox(height: 10),
                                 if (group.isSingleSelect)
                                   ...group.options.map((option) {
-                                    final isSelected = selectedModifiersMap[group.id]?.contains(option) ?? false;
+                                    final isSelected =
+                                        selectedModifiersMap[group.id]
+                                            ?.contains(option) ??
+                                        false;
                                     return Column(
                                       children: [
                                         _buildModifierOptionTile(
@@ -1441,7 +1751,9 @@ class _MenuScreenState extends State<MenuScreen> {
                                           isSingleSelect: true,
                                           onTap: () {
                                             setModalState(() {
-                                              selectedModifiersMap[group.id] = [option];
+                                              selectedModifiersMap[group.id] = [
+                                                option,
+                                              ];
                                             });
                                           },
                                         ),
@@ -1451,7 +1763,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                   })
                                 else
                                   ...group.options.map((option) {
-                                    final isSelected = selectedModifiersMap[group.id]?.contains(option) ?? false;
+                                    final isSelected =
+                                        selectedModifiersMap[group.id]
+                                            ?.contains(option) ??
+                                        false;
                                     return Column(
                                       children: [
                                         _buildModifierOptionTile(
@@ -1461,26 +1776,35 @@ class _MenuScreenState extends State<MenuScreen> {
                                           isSingleSelect: false,
                                           onTap: () {
                                             setModalState(() {
-                                              final current = List<ModifierOption>.from(
-                                                selectedModifiersMap[group.id] ?? [],
-                                              );
+                                              final current =
+                                                  List<ModifierOption>.from(
+                                                    selectedModifiersMap[group
+                                                            .id] ??
+                                                        [],
+                                                  );
                                               if (isSelected) {
                                                 current.remove(option);
                                               } else {
-                                                if (current.length < group.maxSelection) {
+                                                if (current.length <
+                                                    group.maxSelection) {
                                                   current.add(option);
                                                 } else {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     SnackBar(
                                                       content: Text(
                                                         'Maximum ${group.maxSelection} selection allowed for ${group.name}',
                                                       ),
-                                                      duration: const Duration(seconds: 1),
+                                                      duration: const Duration(
+                                                        seconds: 1,
+                                                      ),
                                                     ),
                                                   );
                                                 }
                                               }
-                                              selectedModifiersMap[group.id] = current;
+                                              selectedModifiersMap[group.id] =
+                                                  current;
                                             });
                                           },
                                         ),
@@ -1495,12 +1819,19 @@ class _MenuScreenState extends State<MenuScreen> {
 
                           const Text(
                             'Any special instructions? (Optional)',
-                            style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: _textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           TextField(
                             maxLines: 2,
-                            style: const TextStyle(color: _textPrimary, fontSize: 14),
+                            style: const TextStyle(
+                              color: _textPrimary,
+                              fontSize: 14,
+                            ),
                             onChanged: (val) => notes = val,
                             decoration: InputDecoration(
                               hintText: 'E.g. No onions, extra spicy, etc.',
@@ -1517,7 +1848,11 @@ class _MenuScreenState extends State<MenuScreen> {
                           if (_addonsList.isNotEmpty) ...[
                             const Text(
                               'People also ordered with this',
-                              style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: _textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
@@ -1525,7 +1860,8 @@ class _MenuScreenState extends State<MenuScreen> {
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: _addonsList.length,
-                                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 12),
                                 itemBuilder: (context, idx) {
                                   final addonItem = _addonsList[idx];
                                   return Container(
@@ -1537,10 +1873,13 @@ class _MenuScreenState extends State<MenuScreen> {
                                       border: Border.all(color: _stroke),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: CachedNetworkImage(
                                             imageUrl: addonItem.image,
                                             height: 70,
@@ -1548,7 +1887,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                             fit: BoxFit.cover,
                                             errorWidget: (_, _, _) => Container(
                                               color: _stroke,
-                                              child: const Icon(Icons.local_drink_rounded, color: _textSecondary),
+                                              child: const Icon(
+                                                Icons.local_drink_rounded,
+                                                color: _textSecondary,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -1556,33 +1898,49 @@ class _MenuScreenState extends State<MenuScreen> {
                                         Text(
                                           addonItem.name,
                                           style: const TextStyle(
-                                              color: _textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                                            color: _textPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 2),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
                                               '₹${addonItem.price.toStringAsFixed(0)}',
                                               style: const TextStyle(
-                                                  color: _brandRed, fontSize: 12, fontWeight: FontWeight.w800),
+                                                color: _brandRed,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                              ),
                                             ),
                                             GestureDetector(
                                               onTap: () {
-                                                FlyToCart.run(sourceContext: context, imageUrl: addonItem.image);
+                                                FlyToCart.run(
+                                                  sourceContext: context,
+                                                  imageUrl: addonItem.image,
+                                                );
                                                 cart.addProduct(addonItem);
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.all(4),
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
                                                 decoration: const BoxDecoration(
                                                   color: _brandRed,
                                                   shape: BoxShape.circle,
                                                 ),
-                                                child: const Icon(Icons.add, color: Colors.white, size: 14),
+                                                child: const Icon(
+                                                  Icons.add,
+                                                  color: Colors.white,
+                                                  size: 14,
+                                                ),
                                               ),
-                                            )
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -1598,10 +1956,17 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
 
                     Container(
-                      padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + MediaQuery.of(context).padding.bottom),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        16,
+                        20,
+                        16 + MediaQuery.of(context).padding.bottom,
+                      ),
                       decoration: BoxDecoration(
                         color: _panel,
-                        border: const Border(top: BorderSide(color: _stroke, width: 1.5)),
+                        border: const Border(
+                          top: BorderSide(color: _stroke, width: 1.5),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1612,7 +1977,10 @@ class _MenuScreenState extends State<MenuScreen> {
                               children: [
                                 const Text(
                                   'Total Price',
-                                  style: TextStyle(color: _textSecondary, fontSize: 12),
+                                  style: TextStyle(
+                                    color: _textSecondary,
+                                    fontSize: 12,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -1633,15 +2001,26 @@ class _MenuScreenState extends State<MenuScreen> {
                                 backgroundColor: _brandRed,
                                 disabledBackgroundColor: _panelLight,
                                 minimumSize: const Size.fromHeight(52),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                              onPressed: (!product.isAvailable || config.isCurrentlyOpen == false)
+                              onPressed:
+                                  (!product.isAvailable ||
+                                      config.isCurrentlyOpen == false)
                                   ? null
                                   : () {
-                                      for (final group in product.modifierGroups) {
-                                        final selections = selectedModifiersMap[group.id] ?? [];
-                                        if (group.required && selections.length < group.minSelection) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                      for (final group
+                                          in product.modifierGroups) {
+                                        final selections =
+                                            selectedModifiersMap[group.id] ??
+                                            [];
+                                        if (group.required &&
+                                            selections.length <
+                                                group.minSelection) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 'Please select at least ${group.minSelection} option for "${group.name}"',
@@ -1653,24 +2032,35 @@ class _MenuScreenState extends State<MenuScreen> {
                                         }
                                       }
 
-                                      final List<SelectedModifier> selectedModifiers = [];
-                                      for (final group in product.modifierGroups) {
-                                        final selections = selectedModifiersMap[group.id] ?? [];
+                                      final List<SelectedModifier>
+                                      selectedModifiers = [];
+                                      for (final group
+                                          in product.modifierGroups) {
+                                        final selections =
+                                            selectedModifiersMap[group.id] ??
+                                            [];
                                         for (final opt in selections) {
-                                          selectedModifiers.add(SelectedModifier(
-                                            groupName: group.name,
-                                            optionName: opt.name,
-                                            price: opt.extraPrice,
-                                          ));
+                                          selectedModifiers.add(
+                                            SelectedModifier(
+                                              groupName: group.name,
+                                              optionName: opt.name,
+                                              price: opt.extraPrice,
+                                            ),
+                                          );
                                         }
                                       }
 
-                                      FlyToCart.run(sourceContext: context, imageUrl: product.image);
+                                      FlyToCart.run(
+                                        sourceContext: context,
+                                        imageUrl: product.image,
+                                      );
                                       cart.addProduct(
                                         product,
                                         quantity: 1,
                                         selectedModifiers: selectedModifiers,
-                                        notes: notes.trim().isNotEmpty ? notes.trim() : null,
+                                        notes: notes.trim().isNotEmpty
+                                            ? notes.trim()
+                                            : null,
                                       );
 
                                       Navigator.pop(context);
@@ -1678,9 +2068,14 @@ class _MenuScreenState extends State<MenuScreen> {
                               child: Text(
                                 !product.isAvailable
                                     ? 'Out of Stock'
-                                    : (config.isCurrentlyOpen == false ? 'Kitchen Closed' : 'Add to Cart'),
+                                    : (config.isCurrentlyOpen == false
+                                          ? 'Kitchen Closed'
+                                          : 'Add to Cart'),
                                 style: const TextStyle(
-                                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
                           ),
@@ -1721,8 +2116,12 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             Icon(
               isSingleSelect
-                  ? (isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded)
-                  : (isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded),
+                  ? (isSelected
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded)
+                  : (isSelected
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded),
               color: isSelected ? _brandRed : _textSecondary,
               size: 20,
             ),
@@ -1749,10 +2148,7 @@ class _MenuScreenState extends State<MenuScreen> {
             else
               const Text(
                 '+₹0',
-                style: TextStyle(
-                  color: _textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: _textSecondary, fontSize: 12),
               ),
           ],
         ),
@@ -1775,7 +2171,11 @@ class _StickyCategoryBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return child;
   }
 
@@ -1829,9 +2229,7 @@ class _QuickFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? _brandRed : _panel,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? _brandRed : _stroke,
-          ),
+          border: Border.all(color: isSelected ? _brandRed : _stroke),
         ),
         alignment: Alignment.center,
         child: Text(
@@ -1875,13 +2273,15 @@ class _PremiumFoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasDiscount = product.strikePrice != null && product.strikePrice! > product.price;
+    final hasDiscount =
+        product.strikePrice != null && product.strikePrice! > product.price;
     final discountPercent = hasDiscount
-        ? (((product.strikePrice! - product.price) / product.strikePrice!) * 100).round()
+        ? (((product.strikePrice! - product.price) / product.strikePrice!) *
+                  100)
+              .round()
         : 0;
 
     final isOutOfStock = !product.isAvailable;
-
 
     return GestureDetector(
       onTap: onTap,
@@ -1907,13 +2307,26 @@ class _PremiumFoodCard extends StatelessWidget {
                       Row(
                         children: [
                           if (product.isFeatured) ...[
-                            const Icon(Icons.star_rounded, color: _gold, size: 16),
+                            const Icon(
+                              Icons.star_rounded,
+                              color: _gold,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
-                            const Text('Chef\'s Choice',
-                                style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const Text(
+                              'Chef\'s Choice',
+                              style: TextStyle(
+                                color: _gold,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ] else if (product.promoTag.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: _brandRed.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
@@ -1921,7 +2334,10 @@ class _PremiumFoodCard extends StatelessWidget {
                               child: Text(
                                 product.promoTag,
                                 style: const TextStyle(
-                                    color: _brandRed, fontSize: 10, fontWeight: FontWeight.bold),
+                                  color: _brandRed,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                         ],
@@ -1947,15 +2363,28 @@ class _PremiumFoodCard extends StatelessWidget {
                         const Icon(Icons.star_rounded, color: _gold, size: 14),
                         const SizedBox(width: 2),
                         Text(
-                          product.rating > 0 ? product.rating.toStringAsFixed(1) : '4.5',
-                          style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                          product.rating > 0
+                              ? product.rating.toStringAsFixed(1)
+                              : '4.5',
+                          style: const TextStyle(
+                            color: _textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(width: 12),
-                        const Icon(Icons.timer_outlined, color: _textSecondary, size: 14),
+                        const Icon(
+                          Icons.timer_outlined,
+                          color: _textSecondary,
+                          size: 14,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           '${product.preparationTime} mins',
-                          style: const TextStyle(color: _textSecondary, fontSize: 11),
+                          style: const TextStyle(
+                            color: _textSecondary,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -1963,7 +2392,9 @@ class _PremiumFoodCard extends StatelessWidget {
 
                     // Description
                     Text(
-                      product.description.isNotEmpty ? product.description : 'Premium tasty dish.',
+                      product.description.isNotEmpty
+                          ? product.description
+                          : 'Premium tasty dish.',
                       style: const TextStyle(
                         color: _textSecondary,
                         fontSize: 12,
@@ -2031,7 +2462,11 @@ class _PremiumFoodCard extends StatelessWidget {
                           ),
                           errorWidget: (_, _, _) => Container(
                             color: _stroke,
-                            child: const Icon(Icons.restaurant_rounded, color: _textSecondary, size: 28),
+                            child: const Icon(
+                              Icons.restaurant_rounded,
+                              color: _textSecondary,
+                              size: 28,
+                            ),
                           ),
                         ),
                       ),
@@ -2051,7 +2486,9 @@ class _PremiumFoodCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          isFavorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
                           color: isFavorite ? _brandRed : Colors.white,
                           size: 16,
                         ),
@@ -2065,7 +2502,10 @@ class _PremiumFoodCard extends StatelessWidget {
                       left: 4,
                       top: 4,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: _brandRed,
                           borderRadius: BorderRadius.circular(6),
@@ -2103,54 +2543,66 @@ class _PremiumFoodCard extends StatelessWidget {
                           ? const Center(
                               child: Text(
                                 'OUT',
-                                style: TextStyle(color: _textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: _textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             )
                           : cartQuantity > 0
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: onDecreasePressed,
-                                          child: Container(
-                                            width: 26,
-                                            alignment: Alignment.center,
-                                            child: const Icon(Icons.remove_rounded, color: _brandRed, size: 16),
-                                          ),
-                                        ),
-                                        Text(
-                                          '$cartQuantity',
-                                          style: const TextStyle(
-                                            color: _brandRed,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: onIncreasePressed,
-                                          child: Container(
-                                            width: 26,
-                                            alignment: Alignment.center,
-                                            child: const Icon(Icons.add_rounded, color: _brandRed, size: 16),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : InkWell(
-                                      onTap: onAddPressed,
-                                      borderRadius: BorderRadius.circular(9),
-                                      child: const Center(
-                                        child: Text(
-                                          'ADD',
-                                          style: TextStyle(
-                                            color: _brandRed,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                GestureDetector(
+                                  onTap: onDecreasePressed,
+                                  child: Container(
+                                    width: 26,
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.remove_rounded,
+                                      color: _brandRed,
+                                      size: 16,
                                     ),
+                                  ),
+                                ),
+                                Text(
+                                  '$cartQuantity',
+                                  style: const TextStyle(
+                                    color: _brandRed,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: onIncreasePressed,
+                                  child: Container(
+                                    width: 26,
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      Icons.add_rounded,
+                                      color: _brandRed,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : InkWell(
+                              onTap: onAddPressed,
+                              borderRadius: BorderRadius.circular(9),
+                              child: const Center(
+                                child: Text(
+                                  'ADD',
+                                  style: TextStyle(
+                                    color: _brandRed,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -2162,8 +2614,6 @@ class _PremiumFoodCard extends StatelessWidget {
     );
   }
 }
-
-
 
 // ── SHIMMER SKELETON LOADER ──────────────────────────────────────────────────
 class _ShimmerLoader extends StatelessWidget {
@@ -2274,8 +2724,6 @@ class _MenuData {
   });
 }
 
-
-
 // ── EMPTY STATE WIDGET ───────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final String message;
@@ -2290,11 +2738,19 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.restaurant_rounded, color: _textSecondary, size: 64),
+            const Icon(
+              Icons.restaurant_rounded,
+              color: _textSecondary,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(color: _textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: _textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -2324,7 +2780,8 @@ class _MenuKitchenStatusCard extends StatefulWidget {
   State<_MenuKitchenStatusCard> createState() => _MenuKitchenStatusCardState();
 }
 
-class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard> with SingleTickerProviderStateMixin {
+class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   Timer? _timer;
@@ -2337,7 +2794,10 @@ class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard> with Sin
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 3.0, end: 8.0).animate(_pulseController);
+    _pulseAnimation = Tween<double>(
+      begin: 3.0,
+      end: 8.0,
+    ).animate(_pulseController);
     _startTimer();
   }
 
@@ -2385,22 +2845,29 @@ class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard> with Sin
       final closedMsg = cfg.storeClosedMsg.isNotEmpty
           ? cfg.storeClosedMsg
           : 'We are currently closed for orders. Opens at $openTime.';
-      items.add(_StatusItem(
-        text: 'Kitchen Closed • $closedMsg',
-        icon: Icons.storefront_rounded,
-        color: _brandRed,
-      ));
+      items.add(
+        _StatusItem(
+          text: 'Kitchen Closed • $closedMsg',
+          icon: Icons.storefront_rounded,
+          color: _brandRed,
+        ),
+      );
     }
 
     // 2. Announcement Items (split by '|')
     if (cfg.announcement.isNotEmpty) {
-      final parts = cfg.announcement.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty);
+      final parts = cfg.announcement
+          .split('|')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty);
       for (final part in parts) {
-        items.add(_StatusItem(
-          text: part,
-          icon: Icons.campaign_rounded,
-          color: Colors.amberAccent,
-        ));
+        items.add(
+          _StatusItem(
+            text: part,
+            icon: Icons.campaign_rounded,
+            color: Colors.amberAccent,
+          ),
+        );
       }
     }
 
@@ -2461,7 +2928,7 @@ class _MenuKitchenStatusCardState extends State<_MenuKitchenStatusCard> with Sin
                             color: color.withValues(alpha: 0.6),
                             blurRadius: _pulseAnimation.value,
                             spreadRadius: _pulseAnimation.value / 3,
-                          )
+                          ),
                         ],
                       ),
                     );

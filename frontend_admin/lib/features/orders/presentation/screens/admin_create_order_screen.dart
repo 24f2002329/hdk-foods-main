@@ -25,7 +25,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
   // Form Fields
   final _phoneCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  
+
   // Split Address Fields
   final _houseCtrl = TextEditingController();
   final _streetCtrl = TextEditingController();
@@ -72,11 +72,14 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
             _nameCtrl.text = res['name'] ?? '';
           }
           final addrs = res['addresses'] as List<dynamic>;
-          _savedAddresses = addrs.map((e) => Map<String, dynamic>.from(e)).toList();
-          
+          _savedAddresses = addrs
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+
           final def = _savedAddresses.firstWhere(
             (e) => e['is_default'] == true,
-            orElse: () => _savedAddresses.isNotEmpty ? _savedAddresses.first : {},
+            orElse: () =>
+                _savedAddresses.isNotEmpty ? _savedAddresses.first : {},
           );
           if (def.isNotEmpty) {
             _selectedAddressId = def['id'] as int;
@@ -96,7 +99,10 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
 
   void _onAddressFieldChanged() {
     if (_selectedAddressId != null) {
-      final selected = _savedAddresses.firstWhere((e) => e['id'] == _selectedAddressId, orElse: () => {});
+      final selected = _savedAddresses.firstWhere(
+        (e) => e['id'] == _selectedAddressId,
+        orElse: () => {},
+      );
       if (selected.isEmpty ||
           _houseCtrl.text != selected['house'] ||
           _streetCtrl.text != selected['street'] ||
@@ -158,7 +164,9 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one item to the order.')),
+        const SnackBar(
+          content: Text('Please add at least one item to the order.'),
+        ),
       );
       return;
     }
@@ -202,11 +210,15 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
       'customer_name': _nameCtrl.text.trim(),
       'delivery_type': _deliveryType,
       'address_id': _deliveryType == 'delivery' ? _selectedAddressId : null,
-      'house': _deliveryType == 'delivery' ? _houseCtrl.text.trim() : 'Store Pickup',
+      'house': _deliveryType == 'delivery'
+          ? _houseCtrl.text.trim()
+          : 'Store Pickup',
       'street': _deliveryType == 'delivery' ? _streetCtrl.text.trim() : '',
       'landmark': _deliveryType == 'delivery' ? _landmarkCtrl.text.trim() : '',
       'city': _deliveryType == 'delivery' ? _cityCtrl.text.trim() : 'Palghar',
-      'pincode': _deliveryType == 'delivery' ? _pincodeCtrl.text.trim() : '307001',
+      'pincode': _deliveryType == 'delivery'
+          ? _pincodeCtrl.text.trim()
+          : '307001',
       'items': itemsPayload,
       'payment_method': _paymentMethod,
       'delivery_notes': noteParts.join(' | '),
@@ -224,9 +236,9 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create order: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to create order: $e')));
       }
     }
   }
@@ -238,8 +250,13 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
       appBar: AppBar(
         backgroundColor: _surface,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text('Create Order',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Create Order',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -259,14 +276,22 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           controller: _phoneCtrl,
                           keyboardType: TextInputType.phone,
                           style: const TextStyle(color: Colors.white),
-                          validator: (v) => v == null || v.isEmpty ? 'Phone number is required' : null,
-                          decoration: _inputDec('Phone Number *', 'e.g. 9876543210'),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Phone number is required'
+                              : null,
+                          decoration: _inputDec(
+                            'Phone Number *',
+                            'e.g. 9876543210',
+                          ),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: _nameCtrl,
                           style: const TextStyle(color: Colors.white),
-                          decoration: _inputDec('Customer Name (Optional)', 'e.g. Rahul Sharma'),
+                          decoration: _inputDec(
+                            'Customer Name (Optional)',
+                            'e.g. Rahul Sharma',
+                          ),
                         ),
                       ],
                     ),
@@ -285,8 +310,14 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           style: const TextStyle(color: Colors.white),
                           decoration: _inputDec('Delivery Type'),
                           items: const [
-                            DropdownMenuItem(value: 'delivery', child: Text('Home Delivery')),
-                            DropdownMenuItem(value: 'pickup', child: Text('Store Pickup')),
+                            DropdownMenuItem(
+                              value: 'delivery',
+                              child: Text('Home Delivery'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'pickup',
+                              child: Text('Store Pickup'),
+                            ),
                           ],
                           onChanged: (v) => setState(() {
                             if (v != null) _deliveryType = v;
@@ -301,17 +332,26 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                 children: const [
                                   HdkPreloader(width: 20, height: 20),
                                   SizedBox(width: 10),
-                                  Text('Loading customer addresses…', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                  Text(
+                                    'Loading customer addresses…',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ] else if (_savedAddresses.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                             DropdownButtonFormField<int?>(
+                            DropdownButtonFormField<int?>(
                               isExpanded: true,
                               value: _selectedAddressId,
                               dropdownColor: _card,
-                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
                               decoration: _inputDec('Select Saved Address'),
                               items: [
                                 ..._savedAddresses.map((addr) {
@@ -326,7 +366,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                     if (street.isNotEmpty) street,
                                     if (landmark.isNotEmpty) landmark,
                                     if (city.isNotEmpty) city,
-                                    if (pincode.isNotEmpty) pincode
+                                    if (pincode.isNotEmpty) pincode,
                                   ].join(', ');
                                   return DropdownMenuItem<int?>(
                                     value: addr['id'] as int?,
@@ -344,10 +384,13 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                               onChanged: (v) => setState(() {
                                 _selectedAddressId = v;
                                 if (v != null) {
-                                  final selected = _savedAddresses.firstWhere((e) => e['id'] == v);
+                                  final selected = _savedAddresses.firstWhere(
+                                    (e) => e['id'] == v,
+                                  );
                                   _houseCtrl.text = selected['house'] ?? '';
                                   _streetCtrl.text = selected['street'] ?? '';
-                                  _landmarkCtrl.text = selected['landmark'] ?? '';
+                                  _landmarkCtrl.text =
+                                      selected['landmark'] ?? '';
                                   _cityCtrl.text = selected['city'] ?? '';
                                   _pincodeCtrl.text = selected['pincode'] ?? '';
                                 } else {
@@ -364,24 +407,35 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           TextFormField(
                             controller: _houseCtrl,
                             style: const TextStyle(color: Colors.white),
-                            decoration: _inputDec('House No / Flat No (Optional)', 'e.g. H.No 12 / Flat 302'),
+                            decoration: _inputDec(
+                              'House No / Flat No (Optional)',
+                              'e.g. H.No 12 / Flat 302',
+                            ),
                             onChanged: (_) => _onAddressFieldChanged(),
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _streetCtrl,
                             style: const TextStyle(color: Colors.white),
-                            validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
+                            validator: (v) =>
+                                _deliveryType == 'delivery' &&
+                                    (v == null || v.isEmpty)
                                 ? 'Street / Area is required'
                                 : null,
-                            decoration: _inputDec('Street / Area *', 'e.g. Sector 15 / Gandhi Nagar'),
+                            decoration: _inputDec(
+                              'Street / Area *',
+                              'e.g. Sector 15 / Gandhi Nagar',
+                            ),
                             onChanged: (_) => _onAddressFieldChanged(),
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _landmarkCtrl,
                             style: const TextStyle(color: Colors.white),
-                            decoration: _inputDec('Landmark (Optional)', 'e.g. Near Shiv Temple'),
+                            decoration: _inputDec(
+                              'Landmark (Optional)',
+                              'e.g. Near Shiv Temple',
+                            ),
                             onChanged: (_) => _onAddressFieldChanged(),
                           ),
                           const SizedBox(height: 12),
@@ -391,10 +445,15 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                 child: TextFormField(
                                   controller: _cityCtrl,
                                   style: const TextStyle(color: Colors.white),
-                                  validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
+                                  validator: (v) =>
+                                      _deliveryType == 'delivery' &&
+                                          (v == null || v.isEmpty)
                                       ? 'City is required'
                                       : null,
-                                  decoration: _inputDec('City *', 'e.g. Palghar'),
+                                  decoration: _inputDec(
+                                    'City *',
+                                    'e.g. Palghar',
+                                  ),
                                   onChanged: (_) => _onAddressFieldChanged(),
                                 ),
                               ),
@@ -404,10 +463,15 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                   controller: _pincodeCtrl,
                                   keyboardType: TextInputType.number,
                                   style: const TextStyle(color: Colors.white),
-                                  validator: (v) => _deliveryType == 'delivery' && (v == null || v.isEmpty)
+                                  validator: (v) =>
+                                      _deliveryType == 'delivery' &&
+                                          (v == null || v.isEmpty)
                                       ? 'Pincode is required'
                                       : null,
-                                  decoration: _inputDec('Pincode *', 'e.g. 307001'),
+                                  decoration: _inputDec(
+                                    'Pincode *',
+                                    'e.g. 307001',
+                                  ),
                                   onChanged: (_) => _onAddressFieldChanged(),
                                 ),
                               ),
@@ -421,8 +485,14 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           style: const TextStyle(color: Colors.white),
                           decoration: _inputDec('Payment Method'),
                           items: const [
-                            DropdownMenuItem(value: 'cod', child: Text('Cash on Delivery (COD)')),
-                            DropdownMenuItem(value: 'prepaid', child: Text('Prepaid / Paid Online')),
+                            DropdownMenuItem(
+                              value: 'cod',
+                              child: Text('Cash on Delivery (COD)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'prepaid',
+                              child: Text('Prepaid / Paid Online'),
+                            ),
                           ],
                           onChanged: (v) => setState(() {
                             if (v != null) _paymentMethod = v;
@@ -432,14 +502,20 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                         TextFormField(
                           controller: _couponCtrl,
                           style: const TextStyle(color: Colors.white),
-                          decoration: _inputDec('Coupon Code (Optional)', 'e.g. FREE50'),
+                          decoration: _inputDec(
+                            'Coupon Code (Optional)',
+                            'e.g. FREE50',
+                          ),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: _notesCtrl,
                           maxLines: 2,
                           style: const TextStyle(color: Colors.white),
-                          decoration: _inputDec('Special Delivery Notes (Optional)', 'e.g. Leave at door'),
+                          decoration: _inputDec(
+                            'Special Delivery Notes (Optional)',
+                            'e.g. Leave at door',
+                          ),
                         ),
                       ],
                     ),
@@ -457,10 +533,20 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                             _sectionHeader('Order Items'),
                             TextButton.icon(
                               onPressed: _pickItems,
-                              icon: const Icon(Icons.add, color: _red, size: 18),
+                              icon: const Icon(
+                                Icons.add,
+                                color: _red,
+                                size: 18,
+                              ),
                               label: Text(
-                                _selectedItems.isEmpty ? 'Add Items' : 'Edit Items',
-                                style: const TextStyle(color: _red, fontWeight: FontWeight.bold, fontSize: 13),
+                                _selectedItems.isEmpty
+                                    ? 'Add Items'
+                                    : 'Edit Items',
+                                style: const TextStyle(
+                                  color: _red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
@@ -474,15 +560,25 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                               decoration: BoxDecoration(
                                 color: _panel,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: _stroke, style: BorderStyle.solid),
+                                border: Border.all(
+                                  color: _stroke,
+                                  style: BorderStyle.solid,
+                                ),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.shopping_bag_outlined, color: Colors.grey[600], size: 36),
+                                  Icon(
+                                    Icons.shopping_bag_outlined,
+                                    color: Colors.grey[600],
+                                    size: 36,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'No items added. Tap here to add.',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -492,7 +588,9 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                           ..._selectedItems.entries.map((entry) {
                             final p = entry.value['product'] as Product;
                             final qty = entry.value['quantity'] as int;
-                            final selections = entry.value['selections'] as List<Map<String, dynamic>>;
+                            final selections =
+                                entry.value['selections']
+                                    as List<Map<String, dynamic>>;
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -506,22 +604,46 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                        Text(
+                                          p.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
                                         const SizedBox(height: 2),
-                                        Text('₹${p.price.toStringAsFixed(0)} each', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                        Text(
+                                          '₹${p.price.toStringAsFixed(0)} each',
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                         if (selections.isNotEmpty) ...[
                                           const SizedBox(height: 4),
                                           Wrap(
                                             spacing: 6,
                                             children: selections.map((s) {
                                               return Chip(
-                                                label: Text('${s['group']}: ${s['option']}', style: const TextStyle(fontSize: 10, color: Colors.white)),
+                                                label: Text(
+                                                  '${s['group']}: ${s['option']}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                                 backgroundColor: _card,
                                                 padding: EdgeInsets.zero,
-                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                side: const BorderSide(color: _stroke),
+                                                materialTapTargetSize:
+                                                    MaterialTapTargetSize
+                                                        .shrinkWrap,
+                                                side: const BorderSide(
+                                                  color: _stroke,
+                                                ),
                                               );
                                             }).toList(),
                                           ),
@@ -529,7 +651,14 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                                       ],
                                     ),
                                   ),
-                                  Text('${qty}x', style: const TextStyle(color: _red, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  Text(
+                                    '${qty}x',
+                                    style: const TextStyle(
+                                      color: _red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ],
                               ),
                             );
@@ -556,27 +685,44 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Total Price:', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          const Text(
+                            'Total Price:',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             '₹${_subtotal.toStringAsFixed(2)}',
-                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: _saving
-                          ? const Center(child: HdkPreloader(width: 40, height: 40))
+                          ? const Center(
+                              child: HdkPreloader(width: 40, height: 40),
+                            )
                           : ElevatedButton(
                               onPressed: _submit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _red,
                                 minimumSize: const Size(double.infinity, 48),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              child: const Text('Place Order',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              child: const Text(
+                                'Place Order',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
                     ),
                   ],
@@ -602,22 +748,38 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
   }
 
   Widget _sectionHeader(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(title,
-            style: GoogleFonts.poppins(
-                color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.8)),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      title,
+      style: GoogleFonts.poppins(
+        color: Colors.grey,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
+      ),
+    ),
+  );
 
-  InputDecoration _inputDec(String label, [String hint = '']) => InputDecoration(
+  InputDecoration _inputDec(String label, [String hint = '']) =>
+      InputDecoration(
         labelText: label,
         hintText: hint,
         labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 11),
         filled: true,
         fillColor: _panel,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _red)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _stroke),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _red),
+        ),
       );
 }
 
@@ -646,7 +808,9 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
     super.initState();
     // Clone initial selections
     _tempSelections = Map<int, Map<String, dynamic>>.from(
-      widget.initialSelections.map((key, val) => MapEntry(key, Map<String, dynamic>.from(val))),
+      widget.initialSelections.map(
+        (key, val) => MapEntry(key, Map<String, dynamic>.from(val)),
+      ),
     );
     _loadProducts();
     _searchCtrl.addListener(_filterProducts);
@@ -671,9 +835,9 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load products: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load products: $e')));
       }
     }
   }
@@ -706,11 +870,15 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
     if (product.modifierGroups.isEmpty) return;
 
     final Map<int, List<ModifierOption>> tempSelections = {};
-    
+
     if (_tempSelections.containsKey(product.id)) {
-      final currentSels = _tempSelections[product.id]!['selections'] as List<Map<String, dynamic>>;
+      final currentSels =
+          _tempSelections[product.id]!['selections']
+              as List<Map<String, dynamic>>;
       for (final group in product.modifierGroups) {
-        final groupSels = currentSels.where((s) => s['group'] == group.name).toList();
+        final groupSels = currentSels
+            .where((s) => s['group'] == group.name)
+            .toList();
         final selectedOpts = <ModifierOption>[];
         for (final gs in groupSels) {
           final matchOpt = group.options.firstWhere(
@@ -736,8 +904,14 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
           builder: (dialogCtx, setDialogState) {
             return AlertDialog(
               backgroundColor: _panel,
-              title: Text('Customize ${product.name}',
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              title: Text(
+                'Customize ${product.name}',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -754,27 +928,60 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Row(
                             children: [
-                              Text(group.name,
-                                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                              Text(
+                                group.name,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
                               if (group.required)
-                                const Text(' *', style: TextStyle(color: _red, fontWeight: FontWeight.bold)),
+                                const Text(
+                                  ' *',
+                                  style: TextStyle(
+                                    color: _red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
                         if (group.description.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6.0),
-                            child: Text(group.description,
-                                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                            child: Text(
+                              group.description,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
                         ...group.options.map((opt) {
                           final isSelected = selectedList.contains(opt);
                           if (group.isSingleSelect) {
                             return RadioListTile<ModifierOption>(
                               value: opt,
-                              groupValue: selectedList.isNotEmpty ? selectedList.first : null,
-                              title: Text(opt.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                              subtitle: opt.extraPrice > 0 ? Text('+₹${opt.extraPrice.toStringAsFixed(0)}', style: const TextStyle(color: _red, fontSize: 11)) : null,
+                              groupValue: selectedList.isNotEmpty
+                                  ? selectedList.first
+                                  : null,
+                              title: Text(
+                                opt.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              subtitle: opt.extraPrice > 0
+                                  ? Text(
+                                      '+₹${opt.extraPrice.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: _red,
+                                        fontSize: 11,
+                                      ),
+                                    )
+                                  : null,
                               activeColor: _red,
                               contentPadding: EdgeInsets.zero,
                               onChanged: (val) {
@@ -788,15 +995,33 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                           } else {
                             return CheckboxListTile(
                               value: isSelected,
-                              title: Text(opt.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                              subtitle: opt.extraPrice > 0 ? Text('+₹${opt.extraPrice.toStringAsFixed(0)}', style: const TextStyle(color: _red, fontSize: 11)) : null,
+                              title: Text(
+                                opt.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              subtitle: opt.extraPrice > 0
+                                  ? Text(
+                                      '+₹${opt.extraPrice.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: _red,
+                                        fontSize: 11,
+                                      ),
+                                    )
+                                  : null,
                               activeColor: _red,
                               contentPadding: EdgeInsets.zero,
                               onChanged: (val) {
                                 setDialogState(() {
-                                  final currentList = List<ModifierOption>.from(tempSelections[group.id] ?? []);
+                                  final currentList = List<ModifierOption>.from(
+                                    tempSelections[group.id] ?? [],
+                                  );
                                   if (val == true) {
-                                    if (group.maxSelection > 0 && currentList.length >= group.maxSelection) {
+                                    if (group.maxSelection > 0 &&
+                                        currentList.length >=
+                                            group.maxSelection) {
                                       currentList.removeAt(0);
                                     }
                                     currentList.add(opt);
@@ -818,22 +1043,36 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     for (final group in product.modifierGroups) {
-                      if (group.required && (tempSelections[group.id] ?? []).isEmpty) {
+                      if (group.required &&
+                          (tempSelections[group.id] ?? []).isEmpty) {
                         ScaffoldMessenger.of(dialogCtx).showSnackBar(
-                          SnackBar(content: Text('Please select an option for ${group.name}')),
+                          SnackBar(
+                            content: Text(
+                              'Please select an option for ${group.name}',
+                            ),
+                          ),
                         );
                         return;
                       }
                     }
                     Navigator.pop(ctx, true);
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: _red, minimumSize: const Size(0, 36)),
-                  child: const Text('Done', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _red,
+                    minimumSize: const Size(0, 36),
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -876,8 +1115,13 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
       appBar: AppBar(
         backgroundColor: _surface,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text('Select Products',
-            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Select Products',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: _loading
           ? const Center(child: HdkPreloader())
@@ -891,12 +1135,22 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Search products by name...',
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.grey,
+                        size: 18,
+                      ),
                       filled: true,
                       fillColor: _card,
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _stroke)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _stroke),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _stroke),
+                      ),
                     ),
                   ),
                 ),
@@ -908,14 +1162,23 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                     itemBuilder: (context, index) {
                       final p = _filteredProducts[index];
                       final selected = _tempSelections[p.id];
-                      final qty = selected != null ? selected['quantity'] as int : 0;
+                      final qty = selected != null
+                          ? selected['quantity'] as int
+                          : 0;
 
                       return Card(
                         color: _card,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: qty > 0 ? _red.withValues(alpha: 0.5) : _stroke),
+                          side: BorderSide(
+                            color: qty > 0
+                                ? _red.withValues(alpha: 0.5)
+                                : _stroke,
+                          ),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -925,9 +1188,23 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text(
+                                      p.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(color: _red, fontWeight: FontWeight.w600, fontSize: 12)),
+                                    Text(
+                                      '₹${p.price.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: _red,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                     if (p.modifierGroups.isNotEmpty) ...[
                                       const SizedBox(height: 6),
                                       GestureDetector(
@@ -935,11 +1212,24 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.tune, color: _red, size: 14),
+                                            const Icon(
+                                              Icons.tune,
+                                              color: _red,
+                                              size: 14,
+                                            ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              qty > 0 && selected?['selections']?.isNotEmpty == true ? 'Edit Customizations' : 'Customize options',
-                                              style: const TextStyle(color: _red, fontSize: 12, fontWeight: FontWeight.w600),
+                                              qty > 0 &&
+                                                      selected?['selections']
+                                                              ?.isNotEmpty ==
+                                                          true
+                                                  ? 'Edit Customizations'
+                                                  : 'Customize options',
+                                              style: const TextStyle(
+                                                color: _red,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -953,34 +1243,52 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                                 children: [
                                   if (qty > 0) ...[
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.grey, size: 24),
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                        color: Colors.grey,
+                                        size: 24,
+                                      ),
                                       onPressed: () {
                                         setState(() {
                                           if (qty == 1) {
                                             _tempSelections.remove(p.id);
                                           } else {
-                                            _tempSelections[p.id]!['quantity'] = qty - 1;
+                                            _tempSelections[p.id]!['quantity'] =
+                                                qty - 1;
                                           }
                                         });
                                       },
                                     ),
-                                    Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                    Text(
+                                      '$qty',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                   ],
                                   IconButton(
-                                    icon: const Icon(Icons.add_circle, color: _red, size: 24),
+                                    icon: const Icon(
+                                      Icons.add_circle,
+                                      color: _red,
+                                      size: 24,
+                                    ),
                                     onPressed: () {
                                       setState(() {
                                         if (selected == null) {
                                           _tempSelections[p.id] = {
                                             'product': p,
                                             'quantity': 1,
-                                            'selections': <Map<String, dynamic>>[],
+                                            'selections':
+                                                <Map<String, dynamic>>[],
                                           };
                                           if (p.modifierGroups.isNotEmpty) {
                                             _customizeItem(p);
                                           }
                                         } else {
-                                          _tempSelections[p.id]!['quantity'] = qty + 1;
+                                          _tempSelections[p.id]!['quantity'] =
+                                              qty + 1;
                                         }
                                       });
                                     },
@@ -1010,10 +1318,22 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${_tempSelections.length} products selected', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text(
+                                '${_tempSelections.length} products selected',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text('₹${_subtotal.toStringAsFixed(2)}',
-                                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                              Text(
+                                '₹${_subtotal.toStringAsFixed(2)}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1024,10 +1344,18 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _red,
                             minimumSize: const Size(120, 44),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          child: const Text('Add to Basket',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: const Text(
+                            'Add to Basket',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ],
                     ),

@@ -12,11 +12,11 @@ class OrderItem {
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        productId: json['product'] ?? json['product_id'],
-        productName: json['product_name'] ?? 'Item',
-        quantity: json['quantity'] ?? 0,
-        price: double.tryParse('${json['price']}') ?? 0,
-      );
+    productId: json['product'] ?? json['product_id'],
+    productName: json['product_name'] ?? 'Item',
+    quantity: json['quantity'] ?? 0,
+    price: double.tryParse('${json['price']}') ?? 0,
+  );
 }
 
 typedef OrderItemLine = OrderItem;

@@ -7,18 +7,14 @@ class HdkSkeleton extends StatefulWidget {
   final double? height;
   final BorderRadius? borderRadius;
 
-  const HdkSkeleton({
-    super.key,
-    this.width,
-    this.height,
-    this.borderRadius,
-  });
+  const HdkSkeleton({super.key, this.width, this.height, this.borderRadius});
 
   @override
   State<HdkSkeleton> createState() => _HdkSkeletonState();
 }
 
-class _HdkSkeletonState extends State<HdkSkeleton> with SingleTickerProviderStateMixin {
+class _HdkSkeletonState extends State<HdkSkeleton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 

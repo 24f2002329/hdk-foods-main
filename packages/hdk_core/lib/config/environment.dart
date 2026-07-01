@@ -1,5 +1,1 @@
-enum Environment {
-  dev,
-  staging,
-  prod,
-}
+enum Environment { dev, staging, prod }

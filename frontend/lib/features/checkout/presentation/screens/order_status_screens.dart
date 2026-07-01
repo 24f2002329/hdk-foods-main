@@ -43,9 +43,10 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen>
       duration: const Duration(milliseconds: 700),
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
-    );
+    _scale = Tween<double>(
+      begin: 0.85,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
     _ctrl.forward();
   }
 
@@ -115,12 +116,15 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen>
                       const SizedBox(height: 20),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: _brandRed.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
-                          border:
-                              Border.all(color: _brandRed.withValues(alpha: 0.4)),
+                          border: Border.all(
+                            color: _brandRed.withValues(alpha: 0.4),
+                          ),
                         ),
                         child: Text(
                           'Order #${widget.orderNumber}',
@@ -153,7 +157,9 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen>
                         ? 'Proceed to Payment'
                         : 'Track My Order',
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w900),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _brandRed,
@@ -277,14 +283,19 @@ class _OrderRejectedScreenState extends State<OrderRejectedScreen>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.info_outline_rounded,
-                                color: _mutedText, size: 18),
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: _mutedText,
+                              size: 18,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 widget.reason!,
                                 style: const TextStyle(
-                                    color: _mutedText, fontSize: 13),
+                                  color: _mutedText,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
@@ -298,7 +309,9 @@ class _OrderRejectedScreenState extends State<OrderRejectedScreen>
                         'your original payment method within 3–5 business days.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            color: Colors.greenAccent, fontSize: 13),
+                          color: Colors.greenAccent,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ],
@@ -313,8 +326,7 @@ class _OrderRejectedScreenState extends State<OrderRejectedScreen>
                   icon: const Icon(Icons.home_rounded, size: 20),
                   label: const Text(
                     'Back to Home',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _brandRed,

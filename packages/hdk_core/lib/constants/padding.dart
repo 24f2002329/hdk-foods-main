@@ -10,13 +10,29 @@ class AppPadding {
   static const EdgeInsets xl = EdgeInsets.all(AppSpacing.xl);
   static const EdgeInsets xxl = EdgeInsets.all(AppSpacing.xxl);
 
-  static const EdgeInsets horizontalXs = EdgeInsets.symmetric(horizontal: AppSpacing.xs);
-  static const EdgeInsets horizontalSm = EdgeInsets.symmetric(horizontal: AppSpacing.sm);
-  static const EdgeInsets horizontalMd = EdgeInsets.symmetric(horizontal: AppSpacing.md);
-  static const EdgeInsets horizontalLg = EdgeInsets.symmetric(horizontal: AppSpacing.lg);
+  static const EdgeInsets horizontalXs = EdgeInsets.symmetric(
+    horizontal: AppSpacing.xs,
+  );
+  static const EdgeInsets horizontalSm = EdgeInsets.symmetric(
+    horizontal: AppSpacing.sm,
+  );
+  static const EdgeInsets horizontalMd = EdgeInsets.symmetric(
+    horizontal: AppSpacing.md,
+  );
+  static const EdgeInsets horizontalLg = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+  );
 
-  static const EdgeInsets verticalXs = EdgeInsets.symmetric(vertical: AppSpacing.xs);
-  static const EdgeInsets verticalSm = EdgeInsets.symmetric(vertical: AppSpacing.sm);
-  static const EdgeInsets verticalMd = EdgeInsets.symmetric(vertical: AppSpacing.md);
-  static const EdgeInsets verticalLg = EdgeInsets.symmetric(vertical: AppSpacing.lg);
+  static const EdgeInsets verticalXs = EdgeInsets.symmetric(
+    vertical: AppSpacing.xs,
+  );
+  static const EdgeInsets verticalSm = EdgeInsets.symmetric(
+    vertical: AppSpacing.sm,
+  );
+  static const EdgeInsets verticalMd = EdgeInsets.symmetric(
+    vertical: AppSpacing.md,
+  );
+  static const EdgeInsets verticalLg = EdgeInsets.symmetric(
+    vertical: AppSpacing.lg,
+  );
 }

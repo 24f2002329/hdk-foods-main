@@ -21,9 +21,13 @@ class ProductService {
 
   static Future<List<Product>> getFeaturedProducts() async {
     try {
-      final response = await http.get(Uri.parse("${ApiConfig.baseUrl}/products/featured/"));
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/products/featured/"),
+      );
       if (response.statusCode == 200) {
-        final list = (jsonDecode(response.body) as List).map((e) => Product.fromJson(e)).toList();
+        final list = (jsonDecode(response.body) as List)
+            .map((e) => Product.fromJson(e))
+            .toList();
         if (list.isNotEmpty) return list;
       }
     } catch (_) {}

@@ -47,7 +47,9 @@ class HdkInputField extends StatelessWidget {
         filled: true,
         fillColor: AppColors.surface,
         hintStyle: AppTypography.bodySmall.copyWith(color: AppColors.hintText),
-        labelStyle: AppTypography.bodyMedium.copyWith(color: AppColors.mutedText),
+        labelStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.mutedText,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AppRadius.mdBorderRadius,
           borderSide: const BorderSide(color: AppColors.border),

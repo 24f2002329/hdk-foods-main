@@ -43,7 +43,9 @@ class NotificationService {
   static Future<void> uploadToken() async {
     try {
       await FirebaseMessaging.instance.requestPermission(
-        alert: true, badge: true, sound: true,
+        alert: true,
+        badge: true,
+        sound: true,
       );
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null) return;
@@ -79,16 +81,18 @@ class NotificationService {
     final type = data['type'];
     if (type == 'chat') {
       final orderNumber = data['order_number'] ?? '';
-      Navigator.of(ctx).push(MaterialPageRoute(
-        builder: (_) => AdminOrderChatScreen(
-          orderId: orderId,
-          orderNumber: orderNumber,
+      Navigator.of(ctx).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              AdminOrderChatScreen(orderId: orderId, orderNumber: orderNumber),
         ),
-      ));
+      );
     } else {
-      Navigator.of(ctx).push(MaterialPageRoute(
-        builder: (_) => AdminOrderDetailScreen(orderId: orderId),
-      ));
+      Navigator.of(ctx).push(
+        MaterialPageRoute(
+          builder: (_) => AdminOrderDetailScreen(orderId: orderId),
+        ),
+      );
     }
   }
 
@@ -113,13 +117,16 @@ class NotificationService {
 
     await _local
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          _kChannelId,
-          _kChannelName,
-          importance: Importance.high,
-          enableVibration: true,
-        ));
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kChannelId,
+            _kChannelName,
+            importance: Importance.high,
+            enableVibration: true,
+          ),
+        );
   }
 
   static Future<void> _showLocal(RemoteMessage message) async {

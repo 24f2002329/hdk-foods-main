@@ -34,11 +34,7 @@ class HdkEmptyState extends StatelessWidget {
                 color: AppColors.border,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: AppColors.mutedText,
-                size: 36,
-              ),
+              child: Icon(icon, color: AppColors.mutedText, size: 36),
             ),
             const SizedBox(height: 24),
             Text(
@@ -54,11 +50,7 @@ class HdkEmptyState extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
-              HdkButton(
-                label: actionLabel!,
-                onPressed: onAction!,
-                width: 180,
-              ),
+              HdkButton(label: actionLabel!, onPressed: onAction!, width: 180),
             ],
           ],
         ),

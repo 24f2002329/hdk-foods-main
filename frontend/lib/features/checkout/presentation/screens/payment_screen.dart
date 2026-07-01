@@ -71,9 +71,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final paid = order.paymentStatus == 'paid';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(paid
-              ? 'Payment successful!'
-              : 'Payment received — confirming with the bank...'),
+          content: Text(
+            paid
+                ? 'Payment successful!'
+                : 'Payment received — confirming with the bank...',
+          ),
         ),
       );
       // Either way head to tracking, which keeps reconciling the status.
@@ -92,9 +94,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _pay() async {
@@ -156,7 +158,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }) {
     final selected = _selectedMethod == value;
     return GestureDetector(
-      onTap: (_isProcessing || _isLocked) ? null : () => setState(() => _selectedMethod = value),
+      onTap: (_isProcessing || _isLocked)
+          ? null
+          : () => setState(() => _selectedMethod = value),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -176,9 +180,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(subtitle, style: const TextStyle(color: Colors.grey)),
                 ],
@@ -196,8 +204,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
-        title: const Text('Payment',
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text(
+          'Payment',
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+        ),
         automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
@@ -216,23 +226,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Payment for HDK Kitchen',
-                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Payment for HDK Kitchen',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text('₹${widget.totalAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900)),
+                  Text(
+                    '₹${widget.totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            Text(_isLocked ? 'Payment Method' : 'Select Payment Method',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              _isLocked ? 'Payment Method' : 'Select Payment Method',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             if (!_isLocked || _selectedMethod == 'cod')
               _methodTile(
@@ -258,8 +279,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _brandRed,
               minimumSize: const Size.fromHeight(50),
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: _isProcessing ? null : _pay,
             child: _isProcessing
@@ -267,16 +289,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
                   )
                 : Text(
                     _selectedMethod == 'cod'
                         ? 'Place Order (COD)'
                         : 'Pay ₹${widget.totalAmount.toStringAsFixed(0)}',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
         ),

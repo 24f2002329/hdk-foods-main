@@ -37,7 +37,10 @@ class KitchenClosedScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: brandRed.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
-                    border: Border.all(color: brandRed.withValues(alpha: 0.3), width: 2),
+                    border: Border.all(
+                      color: brandRed.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
                   ),
                   child: const Center(
                     child: Icon(
@@ -63,8 +66,8 @@ class KitchenClosedScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  closedMessage.isNotEmpty 
-                      ? closedMessage 
+                  closedMessage.isNotEmpty
+                      ? closedMessage
                       : "We are currently closed. We'll be happy to serve you during our business hours!",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -87,7 +90,11 @@ class KitchenClosedScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.schedule_outlined, color: brandRed, size: 18),
+                        Icon(
+                          Icons.schedule_outlined,
+                          color: brandRed,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           "Kitchen Operating Hours",
@@ -129,10 +136,7 @@ class KitchenClosedScreen extends StatelessWidget {
                 },
                 child: const Text(
                   "Back to Menu",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

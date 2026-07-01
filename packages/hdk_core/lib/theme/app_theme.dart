@@ -13,9 +13,7 @@ class AppTheme {
         brightness: Brightness.dark,
         surface: AppColors.surface,
       ),
-      textTheme: GoogleFonts.poppinsTextTheme(
-        ThemeData.dark().textTheme,
-      ),
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: Colors.white,

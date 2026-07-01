@@ -50,10 +50,7 @@ class NotificationService {
           .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
           .toList();
       final count = (data['unread_count'] as num?)?.toInt() ?? 0;
-      return {
-        'notifications': list,
-        'unread_count': count,
-      };
+      return {'notifications': list, 'unread_count': count};
     }
     throw Exception('Failed to load notifications');
   }

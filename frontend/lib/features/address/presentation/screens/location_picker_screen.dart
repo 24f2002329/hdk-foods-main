@@ -80,7 +80,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _hasLocationPermission = permission == LocationPermission.always ||
+      _hasLocationPermission =
+          permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse;
     });
     // Return so callers can chain .then((_) => ...).
@@ -93,7 +94,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
   }
 
-  Future<void> _resolveLocation(LatLng location, {bool moveCamera = false}) async {
+  Future<void> _resolveLocation(
+    LatLng location, {
+    bool moveCamera = false,
+  }) async {
     setState(() {
       _selectedLocation = location;
       _selectedPlace = null;
@@ -123,9 +127,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     setState(() => _isResolving = true);
     try {
       await _checkLocationPermission();
-      if (!_hasLocationPermission) throw Exception('Location permission is required');
+      if (!_hasLocationPermission)
+        throw Exception('Location permission is required');
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       final location = LatLng(position.latitude, position.longitude);
       await _resolveLocation(location, moveCamera: true);
@@ -141,7 +148,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
     setState(() => _isResolving = true);
     try {
-      final place = _selectedPlace ?? await _placesService.reverseGeocode(location);
+      final place =
+          _selectedPlace ?? await _placesService.reverseGeocode(location);
       if (!mounted) return;
       Navigator.pop(context, LocationPickerResult(place: place));
     } catch (e) {
@@ -153,13 +161,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedLocation = _selectedLocation ??
+    final selectedLocation =
+        _selectedLocation ??
         (_hasValidInitialLocation ? widget.initialLocation : _worldCenter);
 
     if (_missingApiKey) {
@@ -227,7 +237,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: _panel,
                         borderRadius: BorderRadius.circular(10),
@@ -235,15 +247,20 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.touch_app_rounded,
-                              color: _mutedText, size: 16),
+                          const Icon(
+                            Icons.touch_app_rounded,
+                            color: _mutedText,
+                            size: 16,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _isResolving
                                 ? 'Finding address…'
                                 : 'Tap or drag pin to set location',
                             style: const TextStyle(
-                                color: _mutedText, fontSize: 13),
+                              color: _mutedText,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -268,7 +285,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: _brandRed),
+                        strokeWidth: 2,
+                        color: _brandRed,
+                      ),
                     )
                   : const Icon(Icons.gps_fixed_rounded),
             ),
@@ -305,12 +324,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: _brandRed),
+                              strokeWidth: 2,
+                              color: _brandRed,
+                            ),
                           ),
                           SizedBox(width: 10),
-                          Text('Resolving address…',
-                              style:
-                                  TextStyle(color: _mutedText, fontSize: 14)),
+                          Text(
+                            'Resolving address…',
+                            style: TextStyle(color: _mutedText, fontSize: 14),
+                          ),
                         ],
                       )
                     else
@@ -340,11 +362,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       icon: const Icon(Icons.check_circle_rounded),
-                      label: const Text('Confirm Location',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Confirm Location',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),

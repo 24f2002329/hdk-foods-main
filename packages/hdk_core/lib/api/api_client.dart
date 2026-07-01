@@ -21,24 +21,42 @@ class ApiClient {
     };
   }
 
-  Future<http.Response> get(String path) =>
-      _withRefresh(() async => http.get(Uri.parse(_url(path)), headers: await _authHeaders()));
+  Future<http.Response> get(String path) => _withRefresh(
+    () async => http.get(Uri.parse(_url(path)), headers: await _authHeaders()),
+  );
 
   Future<http.Response> post(String path, Map<String, dynamic> body) =>
-      _withRefresh(() async => http.post(Uri.parse(_url(path)),
-          headers: await _authHeaders(), body: jsonEncode(body)));
+      _withRefresh(
+        () async => http.post(
+          Uri.parse(_url(path)),
+          headers: await _authHeaders(),
+          body: jsonEncode(body),
+        ),
+      );
 
   Future<http.Response> patch(String path, Map<String, dynamic> body) =>
-      _withRefresh(() async => http.patch(Uri.parse(_url(path)),
-          headers: await _authHeaders(), body: jsonEncode(body)));
+      _withRefresh(
+        () async => http.patch(
+          Uri.parse(_url(path)),
+          headers: await _authHeaders(),
+          body: jsonEncode(body),
+        ),
+      );
 
-  Future<http.Response> delete(String path) =>
-      _withRefresh(() async => http.delete(Uri.parse(_url(path)), headers: await _authHeaders()));
+  Future<http.Response> delete(String path) => _withRefresh(
+    () async =>
+        http.delete(Uri.parse(_url(path)), headers: await _authHeaders()),
+  );
 
-  String _url(String path) =>
-      path.startsWith('http') ? path : '${ApiConfig.baseUrl}/$path'.replaceAll('//', '/').replaceAll('://', '://');
+  String _url(String path) => path.startsWith('http')
+      ? path
+      : '${ApiConfig.baseUrl}/$path'
+            .replaceAll('//', '/')
+            .replaceAll('://', '://');
 
-  Future<http.Response> _withRefresh(Future<http.Response> Function() call) async {
+  Future<http.Response> _withRefresh(
+    Future<http.Response> Function() call,
+  ) async {
     try {
       final response = await call();
       if (response.statusCode != 401) return response;
