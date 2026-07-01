@@ -112,3 +112,6 @@ npm-debug.log*
 
 # All other JSON files (firebase, google-services, etc.) should NOT be committed
 *.json
+
+# Django split-settings: local.py contains personal machine overrides
+backend/config/settings/local.py
