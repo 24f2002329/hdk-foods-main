@@ -301,12 +301,15 @@ class _KdsScreenState extends State<KdsScreen> with AutomaticKeepAliveClientMixi
           children: [
             const Icon(Icons.soup_kitchen_outlined, color: _red, size: 28),
             const SizedBox(width: 10),
-            Text(
-              'Kitchen Display System (KDS)',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
+            Expanded(
+              child: Text(
+                'Kitchen Display System (KDS)',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 12),

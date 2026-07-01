@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:hdk_core/hdk_core.dart';
 
@@ -141,15 +140,8 @@ class _AdminReviewsScreenState extends State<AdminReviewsScreen> {
   }
 
   Future<Map<String, dynamic>> _loadPage(int page) async {
-    final token = await TokenStorage.getAccessToken();
     final url = '${ApiConfig.baseUrl}/orders/admin/reviews/?page=$page';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    );
+    final response = await ApiClient().get(url);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;

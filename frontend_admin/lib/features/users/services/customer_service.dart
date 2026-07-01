@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 import 'package:hdk_core/hdk_core.dart';
 
 class Customer {
@@ -53,22 +51,13 @@ class CustomerDetail {
 class CustomerService {
   static final String _base = '${ApiConfig.baseUrl}/customers';
 
-  Future<Map<String, String>> _headers() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Not logged in');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<List<Customer>> getCustomers({String? search}) async {
     final uri = Uri.parse('$_base/').replace(
       queryParameters: search != null && search.isNotEmpty
           ? {'search': search}
           : null,
     );
-    final res = await http.get(uri, headers: await _headers());
+    final res = await ApiClient().get(uri.toString());
     if (res.statusCode != 200) throw Exception('Failed to load customers');
     final body = jsonDecode(res.body);
     final list = body is List ? body : body['results'] as List;
@@ -81,16 +70,13 @@ class CustomerService {
     final params = <String, String>{'page': page.toString()};
     if (search != null && search.isNotEmpty) params['search'] = search;
     final uri = Uri.parse('$_base/').replace(queryParameters: params);
-    final res = await http.get(uri, headers: await _headers());
+    final res = await ApiClient().get(uri.toString());
     if (res.statusCode != 200) throw Exception('Failed to load customers');
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   Future<CustomerDetail> getCustomerDetail(int id) async {
-    final res = await http.get(
-      Uri.parse('$_base/$id/'),
-      headers: await _headers(),
-    );
+    final res = await ApiClient().get('$_base/$id/');
     if (res.statusCode != 200) throw Exception('Failed to load customer');
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final rawOrders = data['recent_orders'] as List? ?? [];
@@ -103,19 +89,13 @@ class CustomerService {
   }
 
   Future<Customer> toggleStatus(int id) async {
-    final res = await http.patch(
-      Uri.parse('$_base/$id/toggle-status/'),
-      headers: await _headers(),
-    );
+    final res = await ApiClient().patch('$_base/$id/toggle-status/', {});
     if (res.statusCode != 200) throw Exception('Failed to update status');
     return Customer.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   Future<void> deleteCustomer(int id) async {
-    final res = await http.delete(
-      Uri.parse('$_base/$id/delete/'),
-      headers: await _headers(),
-    );
+    final res = await ApiClient().delete('$_base/$id/delete/');
     if (res.statusCode != 204) throw Exception('Failed to delete customer');
   }
 }

@@ -5,18 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ddabd169-5153-45d5-8f2f-e569670e66c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/cart/services/cart_provider.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/cart/services/cart_provider.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/checkout/screens/waiting_room_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/checkout/screens/waiting_room_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/home/screens/home_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/home/screens/home_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/menu/screens/menu_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/menu/screens/menu_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_chat_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_chat_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_tracking_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/order_tracking_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/features/orders/screens/orders_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/features/orders/screens/orders_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_card.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_card.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_row.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/shared/widgets/product_row.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/delivery_staff/services/delivery_staff_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/delivery_staff/services/delivery_staff_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/admin_home.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/admin_home.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/kds_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/kds_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/sentiment_dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/sentiment_dashboard_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/services/order_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/services/order_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/products/services/product_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/products/services/product_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/screens/admin_reviews_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/screens/admin_reviews_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/config_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/config_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/notification_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/notification_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/users/services/customer_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/users/services/customer_service.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,24 +28,29 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="3FqpObpctKVNpJjnXJCp29t5Rnr" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="ddabd169-5153-45d5-8f2f-e569670e66c5" name="Changes" comment="" />

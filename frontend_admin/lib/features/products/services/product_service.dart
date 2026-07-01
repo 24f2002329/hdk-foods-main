@@ -8,20 +8,8 @@ import 'package:hdk_core/hdk_core.dart';
 class ProductService {
   static final String _base = ApiConfig.baseUrl;
 
-  Future<Map<String, String>> _headers() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Not logged in');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<List<Category>> getCategories() async {
-    final response = await http.get(
-      Uri.parse('$_base/categories/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().get('$_base/categories/');
     if (response.statusCode == 200) {
       return (jsonDecode(response.body) as List)
           .map((e) => Category.fromJson(e as Map<String, dynamic>))
@@ -31,11 +19,7 @@ class ProductService {
   }
 
   Future<Category> createCategory(String name) async {
-    final response = await http.post(
-      Uri.parse('$_base/categories/'),
-      headers: await _headers(),
-      body: jsonEncode({'name': name}),
-    );
+    final response = await ApiClient().post('$_base/categories/', {'name': name});
     if (response.statusCode == 201) {
       return Category.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     }
@@ -43,20 +27,14 @@ class ProductService {
   }
 
   Future<void> deleteCategory(int id) async {
-    final response = await http.delete(
-      Uri.parse('$_base/categories/$id/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().delete('$_base/categories/$id/');
     if (response.statusCode != 204) {
       throw Exception('Failed to delete category: ${response.body}');
     }
   }
 
   Future<List<Product>> getProducts() async {
-    final response = await http.get(
-      Uri.parse('$_base/products/?all=1'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().get('$_base/products/?all=1');
     if (response.statusCode == 200) {
       return (jsonDecode(response.body) as List)
           .map((e) => Product.fromJson(e as Map<String, dynamic>))
@@ -66,10 +44,7 @@ class ProductService {
   }
 
   Future<Product> toggleAvailability(int productId) async {
-    final response = await http.patch(
-      Uri.parse('$_base/products/$productId/toggle/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().patch('$_base/products/$productId/toggle/', {});
     if (response.statusCode == 200) {
       return Product.fromJson(jsonDecode(response.body));
     }
@@ -77,11 +52,7 @@ class ProductService {
   }
 
   Future<Product> createProduct(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('$_base/products/create/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().post('$_base/products/create/', data);
     if (response.statusCode == 201) {
       return Product.fromJson(jsonDecode(response.body));
     }
@@ -89,11 +60,7 @@ class ProductService {
   }
 
   Future<Product> updateProduct(int id, Map<String, dynamic> data) async {
-    final response = await http.patch(
-      Uri.parse('$_base/products/$id/update/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().patch('$_base/products/$id/update/', data);
     if (response.statusCode == 200) {
       return Product.fromJson(jsonDecode(response.body));
     }
@@ -101,10 +68,7 @@ class ProductService {
   }
 
   Future<void> deleteProduct(int id) async {
-    final response = await http.delete(
-      Uri.parse('$_base/products/$id/delete/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().delete('$_base/products/$id/delete/');
     if (response.statusCode != 204) {
       throw Exception('Failed to delete product: ${response.body}');
     }
@@ -149,10 +113,7 @@ class ProductService {
   }
 
   Future<List<ModifierGroup>> getModifierGroups() async {
-    final response = await http.get(
-      Uri.parse('$_base/modifiers/groups/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().get('$_base/modifiers/groups/');
     if (response.statusCode == 200) {
       return (jsonDecode(response.body) as List)
           .map((e) => ModifierGroup.fromJson(e as Map<String, dynamic>))
@@ -162,11 +123,7 @@ class ProductService {
   }
 
   Future<ModifierGroup> createModifierGroup(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('$_base/modifiers/groups/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().post('$_base/modifiers/groups/', data);
     if (response.statusCode == 201) {
       return ModifierGroup.fromJson(jsonDecode(response.body));
     }
@@ -174,11 +131,7 @@ class ProductService {
   }
 
   Future<ModifierGroup> updateModifierGroup(int id, Map<String, dynamic> data) async {
-    final response = await http.patch(
-      Uri.parse('$_base/modifiers/groups/$id/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().patch('$_base/modifiers/groups/$id/', data);
     if (response.statusCode == 200) {
       return ModifierGroup.fromJson(jsonDecode(response.body));
     }
@@ -186,21 +139,14 @@ class ProductService {
   }
 
   Future<void> deleteModifierGroup(int id) async {
-    final response = await http.delete(
-      Uri.parse('$_base/modifiers/groups/$id/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().delete('$_base/modifiers/groups/$id/');
     if (response.statusCode != 204) {
       throw Exception('Failed to delete modifier group: ${response.body}');
     }
   }
 
   Future<ModifierOption> createModifierOption(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('$_base/modifiers/options/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().post('$_base/modifiers/options/', data);
     if (response.statusCode == 201) {
       return ModifierOption.fromJson(jsonDecode(response.body));
     }
@@ -208,11 +154,7 @@ class ProductService {
   }
 
   Future<ModifierOption> updateModifierOption(int id, Map<String, dynamic> data) async {
-    final response = await http.patch(
-      Uri.parse('$_base/modifiers/options/$id/'),
-      headers: await _headers(),
-      body: jsonEncode(data),
-    );
+    final response = await ApiClient().patch('$_base/modifiers/options/$id/', data);
     if (response.statusCode == 200) {
       return ModifierOption.fromJson(jsonDecode(response.body));
     }
@@ -220,10 +162,7 @@ class ProductService {
   }
 
   Future<void> deleteModifierOption(int id) async {
-    final response = await http.delete(
-      Uri.parse('$_base/modifiers/options/$id/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().delete('$_base/modifiers/options/$id/');
     if (response.statusCode != 204) {
       throw Exception('Failed to delete modifier option: ${response.body}');
     }

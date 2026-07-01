@@ -14,7 +14,8 @@ const _card = Color(0xFF111111);
 const _stroke = Color(0xFF2A2A2A);
 
 class SentimentDashboardScreen extends StatefulWidget {
-  const SentimentDashboardScreen({super.key});
+  final bool isEmbedded;
+  const SentimentDashboardScreen({super.key, this.isEmbedded = false});
 
   @override
   State<SentimentDashboardScreen> createState() => _SentimentDashboardScreenState();
@@ -188,6 +189,14 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
+      if (widget.isEmbedded) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: HdkPreloader(),
+          ),
+        );
+      }
       return const Scaffold(
         backgroundColor: _surface,
         body: Center(child: HdkPreloader()),
@@ -195,11 +204,21 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
     }
 
     if (_error != null) {
+      if (widget.isEmbedded) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: ErrorRetryWidget(error: _error!, onRetry: _loadData),
+          ),
+        );
+      }
       return Scaffold(
         backgroundColor: _surface,
         body: ErrorRetryWidget(error: _error!, onRetry: _loadData),
       );
     }
+
+    final isNarrow = MediaQuery.of(context).size.width < 600;
 
     // Filter reviews
     final filteredDishReviews = _productReviews.where((r) {
@@ -231,46 +250,55 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
 
     final alerts = _getConsecutiveLowRatingAlerts();
 
-    return Scaffold(
-      backgroundColor: _surface,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Review Sentiment Analytics',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 26,
-                        ),
+    final mainContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        if (!widget.isEmbedded) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Review Sentiment Analytics',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 26,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Monitor customer satisfaction trends and culinary quality signals',
-                        style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
-                        softWrap: true,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Monitor customer satisfaction trends and culinary quality signals',
+                      style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                      softWrap: true,
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.grey),
-                  onPressed: _loadData,
-                ),
-              ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.grey),
+                onPressed: _loadData,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ] else ...[
+          // Header / Title for Embedded Dashboard Section
+          Text(
+            'Review Sentiment Analytics',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
             ),
-            const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 16),
+        ],
 
             // Consecutive alerts panel
             if (alerts.isNotEmpty) ...[
@@ -468,7 +496,9 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Tab Buttons Row
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
                         children: [
                           TextButton(
                             onPressed: () => setState(() => _showDishReviews = true),
@@ -477,11 +507,10 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                               style: GoogleFonts.poppins(
                                 color: _showDishReviews ? _red : Colors.grey,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: isNarrow ? 14 : 16,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
                           TextButton(
                             onPressed: () => setState(() => _showDishReviews = false),
                             child: Text(
@@ -489,19 +518,19 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                               style: GoogleFonts.poppins(
                                 color: !_showDishReviews ? _red : Colors.grey,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: isNarrow ? 14 : 16,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      // Search & Filter Row
-                      Row(
-                        children: [
-                          // Search Bar
-                          Expanded(
-                            child: SizedBox(
+                      // Search & Filter Section
+                      if (isNarrow)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
                               height: 40,
                               child: TextField(
                                 onChanged: (v) => setState(() => _searchQuery = v),
@@ -524,40 +553,100 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-
-                          // Star Rating filter dropdown
-                          Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: _stroke),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: _selectedRatingFilter,
-                                dropdownColor: _card,
-                                style: const TextStyle(color: Colors.white),
-                                items: const [
-                                  DropdownMenuItem(value: 0, child: Text('All Ratings')),
-                                  DropdownMenuItem(value: 5, child: Text('5 ★')),
-                                  DropdownMenuItem(value: 4, child: Text('4 ★')),
-                                  DropdownMenuItem(value: 3, child: Text('3 ★')),
-                                  DropdownMenuItem(value: 2, child: Text('2 ★')),
-                                  DropdownMenuItem(value: 1, child: Text('1 ★')),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() => _selectedRatingFilter = val);
-                                  }
-                                },
+                            const SizedBox(height: 12),
+                            Container(
+                              height: 40,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: _stroke),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: _selectedRatingFilter,
+                                  dropdownColor: _card,
+                                  style: const TextStyle(color: Colors.white),
+                                  isExpanded: true,
+                                  items: const [
+                                    DropdownMenuItem(value: 0, child: Text('All Ratings')),
+                                    DropdownMenuItem(value: 5, child: Text('5 ★')),
+                                    DropdownMenuItem(value: 4, child: Text('4 ★')),
+                                    DropdownMenuItem(value: 3, child: Text('3 ★')),
+                                    DropdownMenuItem(value: 2, child: Text('2 ★')),
+                                    DropdownMenuItem(value: 1, child: Text('1 ★')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _selectedRatingFilter = val);
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: [
+                            // Search Bar
+                            Expanded(
+                              child: SizedBox(
+                                height: 40,
+                                child: TextField(
+                                  onChanged: (v) => setState(() => _searchQuery = v),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  decoration: InputDecoration(
+                                    hintText: _showDishReviews
+                                        ? 'Search dish name, comments...'
+                                        : 'Search order ID, comments...',
+                                    hintStyle: const TextStyle(color: Colors.grey),
+                                    prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: _stroke),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: _red),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Star Rating filter dropdown
+                            Container(
+                              height: 40,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: _stroke),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: _selectedRatingFilter,
+                                  dropdownColor: _card,
+                                  style: const TextStyle(color: Colors.white),
+                                  items: const [
+                                    DropdownMenuItem(value: 0, child: Text('All Ratings')),
+                                    DropdownMenuItem(value: 5, child: Text('5 ★')),
+                                    DropdownMenuItem(value: 4, child: Text('4 ★')),
+                                    DropdownMenuItem(value: 3, child: Text('3 ★')),
+                                    DropdownMenuItem(value: 2, child: Text('2 ★')),
+                                    DropdownMenuItem(value: 1, child: Text('1 ★')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _selectedRatingFilter = val);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -593,57 +682,64 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
 
                         return Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Avatar/Status Badge
-                              CircleAvatar(
-                                backgroundColor: isAlert ? _red.withValues(alpha: 0.15) : Colors.green.withValues(alpha: 0.15),
-                                radius: 22,
-                                child: Icon(
-                                  isAlert ? Icons.warning_amber_rounded : Icons.thumb_up_alt_outlined,
-                                  color: isAlert ? _red : Colors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-
-                              // Review Main Info
-                              Expanded(
-                                child: Column(
+                          child: isNarrow
+                              ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Flexible(
-                                          child: Text(
-                                            titleText,
-                                            style: GoogleFonts.poppins(
-                                                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                                            overflow: TextOverflow.ellipsis,
+                                        CircleAvatar(
+                                          backgroundColor: isAlert ? _red.withValues(alpha: 0.15) : Colors.green.withValues(alpha: 0.15),
+                                          radius: 20,
+                                          child: Icon(
+                                            isAlert ? Icons.warning_amber_rounded : Icons.thumb_up_alt_outlined,
+                                            color: isAlert ? _red : Colors.green,
+                                            size: 18,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-                                        Flexible(
-                                          child: Text(
-                                            'Order #$orderNumber',
-                                            style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                            overflow: TextOverflow.ellipsis,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      titleText,
+                                                      style: GoogleFonts.poppins(
+                                                          color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Order #$orderNumber',
+                                                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: List.generate(
+                                                  5,
+                                                  (starIndex) => Icon(
+                                                    Icons.star,
+                                                    size: 12,
+                                                    color: starIndex < rating ? Colors.amber : Colors.grey.shade800,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: List.generate(
-                                        5,
-                                        (starIndex) => Icon(
-                                          Icons.star,
-                                          size: 14,
-                                          color: starIndex < rating ? Colors.amber : Colors.grey.shade800,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 10),
                                     Text(
                                       comment.isEmpty ? 'No comment text provided' : comment,
                                       style: TextStyle(
@@ -656,55 +752,171 @@ class _SentimentDashboardScreenState extends State<SentimentDashboardScreen> {
                                       'Submitted by: $customerName ($customerPhone) on ${DateFormat('MMM dd, yyyy HH:mm').format(createdAt)}',
                                       style: const TextStyle(color: Colors.grey, fontSize: 11),
                                     ),
+                                    if (isAlert) ...[
+                                      const SizedBox(height: 12),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: _red),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            ),
+                                            icon: const Icon(Icons.card_giftcard, color: _red, size: 14),
+                                            label: const Text('Issue Coupon', style: TextStyle(color: _red, fontSize: 11)),
+                                            onPressed: () => _showIssueCouponDialog(customerName, customerId),
+                                          ),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey.shade900,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                side: const BorderSide(color: _stroke),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            ),
+                                            icon: const Icon(Icons.phone, color: Colors.white, size: 14),
+                                            label: const Text('Contact', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Opening chat with phone: $customerPhone')),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
-                                ),
-                              ),
-
-                              // Actions Side
-                              if (isAlert)
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
+                                )
+                              : Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: _red),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    // Avatar/Status Badge
+                                    CircleAvatar(
+                                      backgroundColor: isAlert ? _red.withValues(alpha: 0.15) : Colors.green.withValues(alpha: 0.15),
+                                      radius: 22,
+                                      child: Icon(
+                                        isAlert ? Icons.warning_amber_rounded : Icons.thumb_up_alt_outlined,
+                                        color: isAlert ? _red : Colors.green,
                                       ),
-                                      icon: const Icon(Icons.card_giftcard, color: _red, size: 16),
-                                      label: const Text('Issue Coupon', style: TextStyle(color: _red, fontSize: 12)),
-                                      onPressed: () => _showIssueCouponDialog(customerName, customerId),
                                     ),
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.grey.shade900,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          side: const BorderSide(color: _stroke),
-                                        ),
+                                    const SizedBox(width: 16),
+
+                                    // Review Main Info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  titleText,
+                                                  style: GoogleFonts.poppins(
+                                                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Flexible(
+                                                child: Text(
+                                                  'Order #$orderNumber',
+                                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: List.generate(
+                                              5,
+                                              (starIndex) => Icon(
+                                                Icons.star,
+                                                size: 14,
+                                                color: starIndex < rating ? Colors.amber : Colors.grey.shade800,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            comment.isEmpty ? 'No comment text provided' : comment,
+                                            style: TextStyle(
+                                                color: comment.isEmpty ? Colors.grey.shade600 : Colors.white70,
+                                                fontSize: 13,
+                                                fontStyle: comment.isEmpty ? FontStyle.italic : FontStyle.normal),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Submitted by: $customerName ($customerPhone) on ${DateFormat('MMM dd, yyyy HH:mm').format(createdAt)}',
+                                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                          ),
+                                        ],
                                       ),
-                                      icon: const Icon(Icons.phone, color: Colors.white, size: 16),
-                                      label: const Text('Contact', style: TextStyle(color: Colors.white, fontSize: 12)),
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Opening chat with phone: $customerPhone')),
-                                        );
-                                      },
                                     ),
+
+                                    // Actions Side
+                                    if (isAlert) ...[
+                                      const SizedBox(width: 16),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: _red),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            icon: const Icon(Icons.card_giftcard, color: _red, size: 16),
+                                            label: const Text('Issue Coupon', style: TextStyle(color: _red, fontSize: 12)),
+                                            onPressed: () => _showIssueCouponDialog(customerName, customerId),
+                                          ),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey.shade900,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                side: const BorderSide(color: _stroke),
+                                              ),
+                                            ),
+                                            icon: const Icon(Icons.phone, color: Colors.white, size: 16),
+                                            label: const Text('Contact', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Opening chat with phone: $customerPhone')),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
-                            ],
-                          ),
                         );
                       },
                     ),
                 ],
               ),
             ),
-          ],
+        ],
+      );
+
+      if (widget.isEmbedded) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: mainContent,
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: _surface,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: mainContent,
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {

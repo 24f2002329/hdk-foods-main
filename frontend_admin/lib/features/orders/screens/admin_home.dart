@@ -53,7 +53,6 @@ class _AdminHomeState extends State<AdminHome> {
           _DashboardTab(),
           KdsScreen(),
           DispatchScreen(),
-          SentimentDashboardScreen(),
           _OrdersTab(),
           _ProductsTab(),
           SiteConfigScreen(),
@@ -77,10 +76,6 @@ class _AdminHomeState extends State<AdminHome> {
               icon: Icon(Icons.local_shipping_outlined),
               selectedIcon: Icon(Icons.local_shipping, color: _red),
               label: 'Dispatch'),
-          NavigationDestination(
-              icon: Icon(Icons.sentiment_satisfied_alt_outlined),
-              selectedIcon: Icon(Icons.sentiment_satisfied_alt, color: _red),
-              label: 'Sentiment'),
           NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long, color: _red),
@@ -902,6 +897,8 @@ class _DashboardTabState extends State<_DashboardTab>
                         ),
                       ],
                       _buildTopProductsChart(),
+                      const SizedBox(height: 24),
+                      const SentimentDashboardScreen(isEmbedded: true),
                       const SizedBox(height: 24),
                     ],
                   ),

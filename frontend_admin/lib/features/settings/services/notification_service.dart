@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:hdk_core/hdk_core.dart';
 
 class NotificationModel {
@@ -31,19 +30,8 @@ class NotificationModel {
 class NotificationService {
   static final String _baseUrl = ApiConfig.baseUrl;
 
-  Future<Map<String, String>> _headers() async {
-    final token = await TokenStorage.getAccessToken();
-    return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<Map<String, dynamic>> getNotifications() async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/config/notifications/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().get('$_baseUrl/config/notifications/');
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final list = (data['notifications'] as List? ?? [])
@@ -59,20 +47,14 @@ class NotificationService {
   }
 
   Future<void> markAllAsRead() async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/config/notifications/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().post('$_baseUrl/config/notifications/', {});
     if (response.statusCode != 200) {
       throw Exception('Failed to mark all notifications as read');
     }
   }
 
   Future<void> markAsRead(int id) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/config/notifications/$id/read/'),
-      headers: await _headers(),
-    );
+    final response = await ApiClient().post('$_baseUrl/config/notifications/$id/read/', {});
     if (response.statusCode != 200) {
       throw Exception('Failed to mark notification as read');
     }
