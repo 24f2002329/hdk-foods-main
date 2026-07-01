@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import 'fly_to_cart.dart';
+import 'rating_badge.dart';
+import 'quantity_selector.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -10,7 +12,6 @@ const _mutedText = Color(0xFFB8B8B8);
 const _panel = Color(0xFF111111);
 const _panelAlt = Color(0xFF1E1E1E);
 const _stroke = Color(0xFF2A2A2A);
-const _gold = Color(0xFFFFC107);
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -155,26 +156,7 @@ class _ProductCardState extends State<ProductCard>
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      if (product.rating > 0) ...[
-                        const Icon(Icons.star_rounded, color: _gold, size: 14),
-                        const SizedBox(width: 3),
-                        Text(
-                          product.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: _gold,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ] else
-                        const Text(
-                          'New',
-                          style: TextStyle(
-                            color: _gold,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                      RatingBadge(rating: product.rating, size: 14),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -230,10 +212,13 @@ class _ProductCardState extends State<ProductCard>
                       ),
                       const SizedBox(width: 8),
                       if (quantity > 0)
-                        _QuantityStepper(
+                        QuantitySelector(
                           quantity: quantity,
                           onDecreasePressed: onDecreasePressed,
                           onIncreasePressed: onIncreasePressed ?? onAddPressed,
+                          width: 88,
+                          panelColor: _panelAlt,
+                          strokeColor: _stroke,
                         )
                       else
                         AnimatedBuilder(
@@ -321,71 +306,6 @@ class _InfoChip extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _QuantityStepper extends StatelessWidget {
-  final int quantity;
-  final VoidCallback? onDecreasePressed;
-  final VoidCallback? onIncreasePressed;
-
-  const _QuantityStepper({
-    required this.quantity,
-    required this.onDecreasePressed,
-    required this.onIncreasePressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 88,
-      height: 34,
-      decoration: BoxDecoration(
-        color: _panelAlt,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _stroke),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _StepperButton(
-            icon: Icons.remove_rounded,
-            onPressed: onDecreasePressed,
-          ),
-          Text(
-            quantity.toString(),
-            style: const TextStyle(
-              color: _deepText,
-              fontWeight: FontWeight.w900,
-              fontSize: 14,
-            ),
-          ),
-          _StepperButton(icon: Icons.add_rounded, onPressed: onIncreasePressed),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepperButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  const _StepperButton({required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 32,
-      height: 38,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        color: _brandRed,
-        iconSize: 18,
-        padding: EdgeInsets.zero,
       ),
     );
   }
