@@ -78,64 +78,206 @@ def upload_file_to_firebase(file_obj, destination_path: str) -> str:
         raise e
 
 
-def send_push(user, title: str, body: str, data: dict = None):
-    """Send a push notification to a single user. Silently skips if no token or Firebase not configured."""
+def _create_notification_log(
+    *,
+    title: str,
+    body: str,
+    data: dict = None,
+    user=None,
+    notification=None,
+    token: str = "",
+    target_role: str = "",
+    priority: str = "normal",
+):
     try:
-        from app_config.models import Notification
+        from notifications.models import NotificationLog
 
-        Notification.objects.create(user=user, title=title, body=body)
+        return NotificationLog.objects.create(
+            notification=notification,
+            user=user,
+            target_role=target_role,
+            title=title,
+            body=body,
+            data=data or {},
+            token=token,
+            priority=priority,
+        )
+    except Exception as e:
+        logger.warning("Failed to create notification log: %s", e)
+        return None
+
+
+def _update_notification_log(log, **fields):
+    if not log:
+        return
+    try:
+        for field, value in fields.items():
+            setattr(log, field, value)
+        log.save(update_fields=[*fields.keys(), "updated_at"])
+    except Exception as e:
+        logger.warning("Failed to update notification log: %s", e)
+
+
+def send_push(user, title: str, body: str, data: dict = None, priority: str = "normal"):
+    """Send a push notification to a single user and record delivery status."""
+    notification = None
+    try:
+        from notifications.models import Notification
+
+        notification = Notification.objects.create(
+            user=user, title=title, body=body, priority=priority
+        )
     except Exception as e:
         logger.warning("Failed to save database notification: %s", e)
 
-    if not firebase_admin._apps:
-        return
     token = getattr(user, "fcm_token", "").strip()
+    log = _create_notification_log(
+        user=user,
+        notification=notification,
+        title=title,
+        body=body,
+        data=data,
+        token=token,
+        priority=priority,
+    )
+
+    if not firebase_admin._apps:
+        _update_notification_log(
+            log,
+            status="skipped",
+            error="Firebase is not configured.",
+        )
+        return
     if not token:
+        _update_notification_log(log, status="skipped", error="User has no FCM token.")
         return
     try:
+        from django.utils import timezone
+
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body),
             data={k: str(v) for k, v in (data or {}).items()},
             token=token,
         )
-        messaging.send(message)
+        message_id = messaging.send(message)
+        _update_notification_log(
+            log,
+            status="sent",
+            attempts=1,
+            fcm_message_id=message_id,
+            sent_at=timezone.now(),
+            error="",
+        )
     except Exception as e:
+        _update_notification_log(log, status="failed", attempts=1, error=str(e))
         logger.warning("FCM send failed for user %s: %s", user.pk, e)
 
 
-def send_push_to_role(role: str, title: str, body: str, data: dict = None):
+def send_push_to_role(
+    role: str, title: str, body: str, data: dict = None, priority: str = "normal"
+):
     """Send push to all users of the given role who have an FCM token."""
     if not firebase_admin._apps:
+        _update_notification_log(
+            _create_notification_log(
+                target_role=role,
+                title=title,
+                body=body,
+                data=data,
+                priority=priority,
+            ),
+            status="skipped",
+            error="Firebase is not configured.",
+        )
         return
     from accounts.models import User
 
     for user in User.objects.filter(role=role).exclude(fcm_token=""):
-        send_push(user, title, body, data)
+        send_push(user, title, body, data, priority=priority)
 
 
-def send_push_to_all(title: str, body: str, data: dict = None) -> int:
+def send_push_to_all(
+    title: str,
+    body: str,
+    data: dict = None,
+    notification=None,
+    priority: str = "normal",
+) -> int:
     """Broadcast a push notification to all users with an FCM token. Returns count sent."""
     if not firebase_admin._apps:
+        _update_notification_log(
+            _create_notification_log(
+                notification=notification,
+                title=title,
+                body=body,
+                data=data,
+                priority=priority,
+            ),
+            status="skipped",
+            error="Firebase is not configured.",
+        )
         return 0
     from accounts.models import User
+    from django.utils import timezone
 
-    tokens = list(
-        User.objects.exclude(fcm_token="").values_list("fcm_token", flat=True)
-    )
-    if not tokens:
+    users = list(User.objects.exclude(fcm_token="").only("id", "fcm_token"))
+    if not users:
+        _update_notification_log(
+            _create_notification_log(
+                notification=notification,
+                title=title,
+                body=body,
+                data=data,
+                priority=priority,
+            ),
+            status="skipped",
+            error="No users with FCM tokens.",
+        )
         return 0
-    # FCM multicast accepts up to 500 tokens per call
+
     sent = 0
-    for i in range(0, len(tokens), 500):
-        batch = tokens[i : i + 500]
+    for i in range(0, len(users), 500):
+        batch_users = users[i : i + 500]
+        batch_tokens = [user.fcm_token for user in batch_users]
+        batch_logs = [
+            _create_notification_log(
+                user=user,
+                notification=notification,
+                title=title,
+                body=body,
+                data=data,
+                token=user.fcm_token,
+                priority=priority,
+            )
+            for user in batch_users
+        ]
         try:
             message = messaging.MulticastMessage(
                 notification=messaging.Notification(title=title, body=body),
                 data={k: str(v) for k, v in (data or {}).items()},
-                tokens=batch,
+                tokens=batch_tokens,
             )
             response = messaging.send_each_for_multicast(message)
             sent += response.success_count
+            for log, result in zip(batch_logs, response.responses):
+                if result.success:
+                    _update_notification_log(
+                        log,
+                        status="sent",
+                        attempts=1,
+                        fcm_message_id=result.message_id or "",
+                        sent_at=timezone.now(),
+                        error="",
+                    )
+                else:
+                    _update_notification_log(
+                        log,
+                        status="failed",
+                        attempts=1,
+                        error=str(result.exception),
+                    )
         except Exception as e:
+            for log in batch_logs:
+                _update_notification_log(log, status="failed", attempts=1, error=str(e))
             logger.warning("FCM broadcast batch failed: %s", e)
     return sent

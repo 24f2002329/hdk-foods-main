@@ -14,6 +14,7 @@ from products.models import Product
 from authentication.permissions import IsCustomer
 from authentication.firebase import send_push, send_push_to_role
 from .models import Coupon, Order, OrderItem, OrderReview, ProductReview, PrepConfig
+from payments.models import Gateway, Payment, PaymentAttempt, PaymentMethod, PaymentStatus
 from .serializers import (
     AcknowledgeChangesSerializer,
     AdminPaymentMethodSerializer,
@@ -265,6 +266,17 @@ class CreateOrderView(APIView):
 
         order.save()
 
+        # ── Create the Payment record for the new order ────────────────────────
+        payment = Payment.objects.create(
+            order=order,
+            method=PaymentMethod.COD,
+            status=PaymentStatus.PENDING,
+            amount=order.total_amount,
+        )
+        order.payment_record = payment
+        order.save(update_fields=["payment_record"])
+        # ──────────────────────────────────────────────────────────────────────
+
         send_push_to_role(
             "admin",
             "New Order 🛍️",
@@ -275,6 +287,26 @@ class CreateOrderView(APIView):
         _broadcast_order(order, "new_order")
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+def _get_or_create_payment(order: Order, method: str, amount) -> Payment:
+    """Return the Payment linked to this order, creating one if absent."""
+    if order.payment_record_id:
+        payment = order.payment_record
+        payment.method = method
+        payment.amount = amount
+        payment.save(update_fields=["method", "amount", "updated_at"])
+        return payment
+
+    payment = Payment.objects.create(
+        order=order,
+        method=method,
+        status=PaymentStatus.PENDING,
+        amount=amount,
+    )
+    order.payment_record = payment
+    order.save(update_fields=["payment_record"])
+    return payment
 
 
 class SelectPaymentView(APIView):
@@ -319,6 +351,12 @@ class SelectPaymentView(APIView):
             order.payment_method = "cod"
             order.payment_status = "pending"
             order.save(update_fields=["payment_method", "payment_status", "updated_at"])
+
+            # ── Payment model ──────────────────────────────────────────────────
+            payment = _get_or_create_payment(order, PaymentMethod.COD, order.total_amount)
+            payment.status = PaymentStatus.PENDING
+            payment.save(update_fields=["status", "updated_at"])
+            # ──────────────────────────────────────────────────────────────────
 
             return Response(
                 {"payment_method": "cod", "order": OrderSerializer(order).data}
@@ -376,10 +414,11 @@ class SelectPaymentView(APIView):
             )
 
         cf_order = cf_response.json()
+        session_id = cf_order["payment_session_id"]
 
         order.payment_method = "online"
         order.cashfree_order_id = cf_order_id
-        order.payment_session_id = cf_order["payment_session_id"]
+        order.payment_session_id = session_id
         # A new attempt supersedes any prior failed one.
         if order.payment_status == "failed":
             order.payment_status = "pending"
@@ -393,10 +432,26 @@ class SelectPaymentView(APIView):
             ]
         )
 
+        # ── Payment / PaymentAttempt models ───────────────────────────────────
+        payment = _get_or_create_payment(order, PaymentMethod.ONLINE, order.total_amount)
+        if payment.status == PaymentStatus.FAILED:
+            payment.status = PaymentStatus.PENDING
+            payment.save(update_fields=["status", "updated_at"])
+        PaymentAttempt.objects.create(
+            payment=payment,
+            gateway=Gateway.CASHFREE,
+            gateway_order_id=cf_order_id,
+            payment_session_id=session_id,
+            status=PaymentStatus.PENDING,
+            amount=order.total_amount,
+            gateway_response=cf_order,
+        )
+        # ─────────────────────────────────────────────────────────────────────
+
         return Response(
             {
                 "payment_method": "online",
-                "payment_session_id": cf_order["payment_session_id"],
+                "payment_session_id": session_id,
                 "cf_order_id": cf_order_id,
                 "environment": settings.CASHFREE_ENV,
                 "order": OrderSerializer(order).data,
@@ -467,9 +522,24 @@ class VerifyPaymentView(APIView):
         # ACTIVE (and others)  -> still awaiting payment; leave pending so
         #                         this endpoint is safe to poll repeatedly.
         if order_status == "PAID":
+            gw_payment_id = str(cf_order.get("cf_order_id", ""))
             order.payment_status = "paid"
-            order.payment_id = str(cf_order.get("cf_order_id", ""))
+            order.payment_id = gw_payment_id
             order.save(update_fields=["payment_status", "payment_id", "updated_at"])
+
+            # ── Payment / PaymentAttempt models ───────────────────────────────
+            if order.payment_record_id:
+                payment = order.payment_record
+                payment.mark_paid(gw_payment_id)
+                # Update the latest pending attempt for this order
+                PaymentAttempt.objects.filter(
+                    payment=payment,
+                    gateway_order_id=order.cashfree_order_id,
+                ).update(
+                    status=PaymentStatus.PAID,
+                    gateway_payment_id=gw_payment_id,
+                )
+            # ─────────────────────────────────────────────────────────────────
 
             return Response(
                 {"payment_status": "paid", "order": OrderSerializer(order).data}
@@ -478,6 +548,15 @@ class VerifyPaymentView(APIView):
         if order_status in ("EXPIRED", "TERMINATED"):
             order.payment_status = "failed"
             order.save(update_fields=["payment_status", "updated_at"])
+
+            # ── Payment / PaymentAttempt models ───────────────────────────────
+            if order.payment_record_id:
+                order.payment_record.mark_failed()
+                PaymentAttempt.objects.filter(
+                    payment=order.payment_record,
+                    gateway_order_id=order.cashfree_order_id,
+                ).update(status=PaymentStatus.FAILED)
+            # ─────────────────────────────────────────────────────────────────
 
         return Response(
             {
@@ -538,6 +617,17 @@ class DriverInitiatePaymentView(APIView):
         order.payment_method = "online"
         order.save(update_fields=["payment_method", "updated_at"])
 
+        # ── Payment / PaymentAttempt models ───────────────────────────────────
+        payment = _get_or_create_payment(order, PaymentMethod.UPI, order.total_amount)
+        PaymentAttempt.objects.create(
+            payment=payment,
+            gateway=Gateway.UPI_MANUAL,
+            gateway_order_id=order.order_number,
+            status=PaymentStatus.PENDING,
+            amount=order.total_amount,
+        )
+        # ─────────────────────────────────────────────────────────────────────
+
         return Response(
             {
                 "upi_uri": upi_uri,
@@ -562,10 +652,9 @@ class DriverVerifyPaymentView(APIView):
             )
 
         # Mark order as paid directly
+        driver_ref = f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
         order.payment_status = "paid"
-        order.payment_id = (
-            f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
-        )
+        order.payment_id = driver_ref
         order.payment_method = "online"
         order.save(
             update_fields=[
@@ -575,6 +664,28 @@ class DriverVerifyPaymentView(APIView):
                 "updated_at",
             ]
         )
+
+        # ── Payment / PaymentAttempt models ───────────────────────────────────
+        payment = _get_or_create_payment(order, PaymentMethod.UPI, order.total_amount)
+        payment.mark_paid(driver_ref)
+        # Update the latest pending UPI attempt if present; create one if absent.
+        attempt = payment.attempts.filter(
+            gateway=Gateway.UPI_MANUAL, status=PaymentStatus.PENDING
+        ).first()
+        if attempt:
+            attempt.status = PaymentStatus.PAID
+            attempt.gateway_payment_id = driver_ref
+            attempt.save(update_fields=["status", "gateway_payment_id", "updated_at"])
+        else:
+            PaymentAttempt.objects.create(
+                payment=payment,
+                gateway=Gateway.UPI_MANUAL,
+                gateway_order_id=order.order_number,
+                gateway_payment_id=driver_ref,
+                status=PaymentStatus.PAID,
+                amount=order.total_amount,
+            )
+        # ─────────────────────────────────────────────────────────────────────
 
         return Response(
             {

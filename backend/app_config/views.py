@@ -98,16 +98,10 @@ class BroadcastNotificationView(APIView):
             )
 
         from authentication.firebase import send_push_to_all
+        from notifications.models import Notification
 
-        count = send_push_to_all(title=title, body=body)
-
-        # Create global Notification database record
-        from .models import Notification
-
-        try:
-            Notification.objects.create(title=title, body=body, user=None)
-        except Exception:
-            pass
+        notification = Notification.objects.create(title=title, body=body, user=None)
+        count = send_push_to_all(title=title, body=body, notification=notification)
 
         return Response({"sent": count})
 
@@ -189,7 +183,7 @@ class NotificationListView(APIView):
 
     def get(self, request):
         from django.db.models import Q
-        from .models import Notification
+        from notifications.models import Notification
         from .serializers import NotificationSerializer
 
         notifications = Notification.objects.filter(
@@ -204,7 +198,7 @@ class NotificationListView(APIView):
     def post(self, request):
         """Mark all notifications as read."""
         from django.db.models import Q
-        from .models import Notification
+        from notifications.models import Notification
 
         Notification.objects.filter(Q(user=request.user) | Q(user__isnull=True)).update(
             is_read=True
@@ -221,7 +215,7 @@ class MarkNotificationReadView(APIView):
 
     def post(self, request, pk):
         from django.db.models import Q
-        from .models import Notification
+        from notifications.models import Notification
 
         try:
             notification = Notification.objects.get(

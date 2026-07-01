@@ -46,6 +46,17 @@ class Order(models.Model):
 
     payment_session_id = models.CharField(max_length=255, blank=True)
 
+    # ── New: link to the dedicated Payment record ──────────────────────────────
+    # Nullable during the migration period so existing orders without a
+    # Payment row keep working.  New orders should always have one.
+    payment_record = models.OneToOneField(
+        "payments.Payment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="order_record",
+    )
+
     delivery_notes = models.TextField(blank=True)
 
     estimated_preparation_time = models.PositiveIntegerField(null=True, blank=True)

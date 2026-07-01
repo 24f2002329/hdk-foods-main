@@ -78,3 +78,12 @@ class CoinTransaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 ```
 This enables transaction histories to be logged whenever a user completes an order (earned), uses coins at checkout (redeemed), or has their order cancelled/refunded (reversed).
+
+
+---
+
+## 4. Notification Delivery Logging
+
+The `notifications.Notification` model remains the in-app notification feed and stores read status for user-specific and global announcements. Push delivery attempts are tracked separately in `notifications.NotificationLog`.
+
+`NotificationLog` records the target user or role, payload data, priority, FCM token, delivery status (`pending`, `sent`, `failed`, or `skipped`), attempt count, FCM message ID, error text, and timestamps. This gives the backend a durable audit trail for notification analytics and future retry workflows without changing existing push call sites.

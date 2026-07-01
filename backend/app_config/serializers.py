@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Banner, SiteConfig, Notification
+from notifications.models import Notification
+
+from .models import Banner, SiteConfig
 
 
 class SiteConfigSerializer(serializers.ModelSerializer):
@@ -68,4 +70,4 @@ class BannerSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ["id", "title", "body", "is_read", "created_at"]
+        fields = ["id", "title", "body", "priority", "is_read", "created_at"]
