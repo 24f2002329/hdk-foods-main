@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 if not firebase_admin._apps:
     firebase_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if not firebase_json:
-        print("Warning: FIREBASE_SERVICE_ACCOUNT environment variable is not set.")
+        logger.warning("FIREBASE_SERVICE_ACCOUNT environment variable is not set.")
     else:
         try:
             firebase_data = json.loads(firebase_json)

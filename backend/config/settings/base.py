@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.logging.LogContextMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -209,11 +210,14 @@ LOGGING = {
             "style": "{",
         },
         "simple": {"format": "{levelname} {message}", "style": "{"},
+        "json": {
+            "()": "config.logging.StructuredJSONFormatter",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "json",
         },
     },
     "root": {"handlers": ["console"], "level": "INFO"},

@@ -70,6 +70,7 @@ from channels.layers import get_channel_layer
 import uuid
 import requests
 import logging
+from config.logging import bind_log_context
 import hmac
 import hashlib
 
@@ -333,6 +334,14 @@ class SelectPaymentView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         if order.status not in ["confirmed", "preparing", "out_for_delivery"]:
             return Response(
                 {
@@ -362,6 +371,7 @@ class SelectPaymentView(APIView):
             payment = _get_or_create_payment(
                 order, PaymentMethod.COD, order.total_amount
             )
+            bind_log_context(payment=payment.id)
             payment.status = PaymentStatus.PENDING
             payment.save(update_fields=["status", "updated_at"])
             # ──────────────────────────────────────────────────────────────────
@@ -444,6 +454,7 @@ class SelectPaymentView(APIView):
         payment = _get_or_create_payment(
             order, PaymentMethod.ONLINE, order.total_amount
         )
+        bind_log_context(payment=payment.id)
         if payment.status == PaymentStatus.FAILED:
             payment.status = PaymentStatus.PENDING
             payment.save(update_fields=["status", "updated_at"])
@@ -487,6 +498,14 @@ class VerifyPaymentView(APIView):
             return Response(
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
         # No online attempt has been started for this order yet.
         if not order.cashfree_order_id:
@@ -590,6 +609,14 @@ class DriverInitiatePaymentView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         if order.payment_status == "paid":
             return Response(
                 {
@@ -660,6 +687,14 @@ class DriverVerifyPaymentView(APIView):
             return Response(
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
         # Mark order as paid directly
         driver_ref = f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
@@ -1297,6 +1332,14 @@ class CashfreeWebhookView(APIView):
 
                     order = Order.objects.get(order_number=order_number)
 
+                    bind_log_context(
+                        order_id=order.id,
+                        customer=order.user_id,
+                        payment=order.payment_record_id,
+                        delivery_partner=order.assigned_delivery_id,
+                        status=order.status,
+                    )
+
                     order.payment_status = "paid"
                     order.payment_id = str(cf_payment_id)
 
@@ -1331,6 +1374,14 @@ class CashfreeWebhookView(APIView):
                     order_number = "_".join(order_id_str.split("_")[:-1])
 
                     order = Order.objects.get(order_number=order_number)
+
+                    bind_log_context(
+                        order_id=order.id,
+                        customer=order.user_id,
+                        payment=order.payment_record_id,
+                        delivery_partner=order.assigned_delivery_id,
+                        status=order.status,
+                    )
 
                     order.payment_status = "failed"
 
@@ -1369,6 +1420,14 @@ class ApplyDiscountView(APIView):
             return Response(
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
         if order.status in ("delivered", "cancelled", "rejected"):
             return Response(
@@ -1433,6 +1492,14 @@ class AcknowledgeChangesView(APIView):
             return Response(
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
         serializer = AcknowledgeChangesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
