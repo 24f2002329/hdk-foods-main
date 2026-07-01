@@ -134,6 +134,10 @@ class HomeTab extends StatelessWidget {
                 onRetry: homeProvider.reload,
               );
             }
+            if (snapshot.hasData) {
+              final categories = snapshot.data![1] as List<Category>;
+              homeProvider.precacheCategories(context, categories);
+            }
             return Stack(
               children: [
                 RefreshIndicator(
@@ -213,8 +217,12 @@ class HomeTab extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                           child: FutureBuilder<List<AppBanner>>(
                             future: homeProvider.bannersFuture,
-                            builder: (context, snap) =>
-                                _BannerCarousel(banners: snap.data ?? []),
+                            builder: (context, snap) {
+                              if (snap.hasData) {
+                                homeProvider.precacheBanners(context, snap.data!);
+                              }
+                              return _BannerCarousel(banners: snap.data ?? []);
+                            },
                           ),
                         ),
                       ),
@@ -1062,6 +1070,8 @@ class _BannerCarouselState extends State<_BannerCarousel> {
                         CachedNetworkImage(
                           imageUrl: image,
                           fit: BoxFit.cover,
+                          fadeInDuration: const Duration(milliseconds: 300),
+                          fadeOutDuration: const Duration(milliseconds: 300),
                           placeholder: (context, url) =>
                               Container(color: _panel),
                           errorWidget: (context, url, error) =>
@@ -1269,6 +1279,8 @@ class _CategoriesSection extends StatelessWidget {
                                 child: CachedNetworkImage(
                                   imageUrl: imageUrl,
                                   fit: BoxFit.cover,
+                                  fadeInDuration: const Duration(milliseconds: 300),
+                                  fadeOutDuration: const Duration(milliseconds: 300),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke),
                                   errorWidget: (context, url, error) =>
@@ -1379,6 +1391,8 @@ class _SpecialsSection extends StatelessWidget {
                                   height: 120,
                                   width: 175,
                                   fit: BoxFit.cover,
+                                  fadeInDuration: const Duration(milliseconds: 300),
+                                  fadeOutDuration: const Duration(milliseconds: 300),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke, height: 120),
                                   errorWidget: (context, url, s) =>
@@ -1682,6 +1696,8 @@ class _BestSellersGrid extends StatelessWidget {
                                 width: 120,
                                 height: 132,
                                 fit: BoxFit.cover,
+                                fadeInDuration: const Duration(milliseconds: 300),
+                                fadeOutDuration: const Duration(milliseconds: 300),
                                 placeholder: (context, url) =>
                                     Container(color: _stroke),
                                 errorWidget: (context, url, s) =>
@@ -2023,6 +2039,8 @@ class _ComboOffersSectionState extends State<_ComboOffersSection> {
                               height: 120,
                               width: 280,
                               fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 300),
+                              fadeOutDuration: const Duration(milliseconds: 300),
                               placeholder: (context, url) =>
                                   Container(color: _stroke),
                               errorWidget: (context, url, s) =>
@@ -2462,6 +2480,8 @@ class _TrendingAndNewSection extends StatelessWidget {
                                     height: 95,
                                     width: 150,
                                     fit: BoxFit.cover,
+                                    fadeInDuration: const Duration(milliseconds: 300),
+                                    fadeOutDuration: const Duration(milliseconds: 300),
                                     placeholder: (context, url) =>
                                         Container(color: _stroke, height: 95),
                                     errorWidget: (context, url, s) =>
@@ -2631,6 +2651,8 @@ class _TrendingAndNewSection extends StatelessWidget {
                                   height: 95,
                                   width: 150,
                                   fit: BoxFit.cover,
+                                  fadeInDuration: const Duration(milliseconds: 300),
+                                  fadeOutDuration: const Duration(milliseconds: 300),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke, height: 95),
                                   errorWidget: (context, url, s) =>

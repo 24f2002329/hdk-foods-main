@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hdk_core/hdk_core.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../address/data/models/customer_address.dart';
 import '../../../address/data/repositories/address_service.dart';
@@ -46,6 +47,7 @@ class HomeProvider extends ChangeNotifier {
   int unreadNotificationCount = 0;
 
   Timer? _autoReloadTimer;
+  final Set<String> _precachedUrls = {};
 
   HomeProvider() {
     reload();
@@ -64,6 +66,7 @@ class HomeProvider extends ChangeNotifier {
   }
 
   void reload() {
+    _precachedUrls.clear();
     productsFuture = ProductService.getFeaturedProducts();
     allProductsFuture = ProductService.getProducts();
     categoriesFuture = ProductService.getCategories();
@@ -126,5 +129,25 @@ class HomeProvider extends ChangeNotifier {
   void setSelectedAddress(CustomerAddress address) {
     selectedAddress = address;
     notifyListeners();
+  }
+
+  void precacheCategories(BuildContext context, List<Category> categories) {
+    for (final cat in categories) {
+      final url = cat.image.isNotEmpty ? cat.image : '';
+      if (url.isNotEmpty && !_precachedUrls.contains(url)) {
+        _precachedUrls.add(url);
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    }
+  }
+
+  void precacheBanners(BuildContext context, List<AppBanner> banners) {
+    for (final b in banners) {
+      final url = b.imageUrl;
+      if (url.isNotEmpty && !_precachedUrls.contains(url)) {
+        _precachedUrls.add(url);
+        precacheImage(CachedNetworkImageProvider(url), context);
+      }
+    }
   }
 }
