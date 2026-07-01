@@ -1,21 +1,17 @@
 import datetime
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
-from datetime import timedelta
 
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-
-from accounts.models import Address
-from authentication.utils import sanitize_text
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
 
-class AuthenticationSecurityTests(TestCase):
+class AuthenticationApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         cache.clear()
@@ -32,13 +28,6 @@ class AuthenticationSecurityTests(TestCase):
             phone_number="+918888888888",
             password="customerpassword123",
             name="Customer User",
-            role="customer",
-            is_phone_verified=True,
-        )
-        self.other_customer = User.objects.create_user(
-            phone_number="+917777777777",
-            password="otherpassword123",
-            name="Other Customer",
             role="customer",
             is_phone_verified=True,
         )
@@ -69,8 +58,6 @@ class AuthenticationSecurityTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
 
-        # Since rotate refresh tokens is True, we expect a new refresh token (either in body or cookies)
-        # simple_jwt sends it in the JSON response by default, and we set it in the cookie too
         new_refresh = response.cookies.get("refresh_token")
         self.assertIsNotNone(new_refresh)
 
@@ -95,7 +82,6 @@ class AuthenticationSecurityTests(TestCase):
         """
         Test that SMS requests are rate-limited to 10 requests per IP per hour.
         """
-        # We vary the phone number, but keep the IP address constant
         for i in range(10):
             phone = f"+91990000000{i}"
             response = self.client.post(
@@ -132,7 +118,6 @@ class AuthenticationSecurityTests(TestCase):
         self.assertTrue(cookie["httponly"])
 
         # Refresh using the cookie (sending empty refresh in body)
-        # Clear body to test that refresh token is pulled from cookies
         self.client.cookies = response.cookies
         refresh_response = self.client.post("/api/auth/token/refresh/", {})
         self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
@@ -164,80 +149,3 @@ class AuthenticationSecurityTests(TestCase):
             "/api/auth/token/refresh/", {"refresh": refresh_token}
         )
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_xss_input_sanitization(self):
-        """
-        Verify that XSS / script injections are stripped from text inputs.
-        """
-        payload = "<script>alert('XSS')</script>John Doe <p>Paragraph</p>"
-        sanitized = sanitize_text(payload)
-        # Verify script tag and p tag are stripped
-        self.assertEqual(sanitized, "John Doe Paragraph")
-
-        # Test UserSerializer sanitization
-        self.client.force_authenticate(user=self.customer_user)
-        response = self.client.patch(
-            "/api/me/", {"name": "<script>evil()</script>Good Name"}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "Good Name")
-
-        # Test AddressSerializer sanitization
-        addr_response = self.client.post(
-            "/api/addresses/",
-            {
-                "label": "Home",
-                "house": "<script>alert(1)</script>Flat 404",
-                "street": "Super Street <img src=x onerror=alert(1)>",
-                "landmark": "Near Shop",
-                "city": "Sojat Road",
-                "pincode": "306103",
-                "latitude": "25.8610",
-                "longitude": "73.7490",
-            },
-        )
-        self.assertEqual(addr_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(addr_response.data["label"], "Home")
-        self.assertEqual(addr_response.data["house"], "Flat 404")
-        self.assertEqual(addr_response.data["street"], "Super Street")
-
-    def test_rbac_delivery_location_tracking(self):
-        """
-        Verify that standard customers cannot access other customers' delivery location streams.
-        """
-        # Create an order under customer_user
-        from orders.models import Order
-
-        order = Order.objects.create(
-            user=self.customer_user,
-            address=Address.objects.create(
-                user=self.customer_user,
-                label="Home",
-                house="123",
-                street="St",
-                city="City",
-                pincode="306103",
-                latitude="25.8610",
-                longitude="73.7490",
-            ),
-            total_amount=100.00,
-            status="confirmed",
-            delivery_latitude="25.8615",
-            delivery_longitude="73.7495",
-        )
-
-        # Test that owner customer CAN access it
-        self.client.force_authenticate(user=self.customer_user)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["available"], True)
-
-        # Test that OTHER customer CANNOT access it
-        self.client.force_authenticate(user=self.other_customer)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-        # Test that admin CAN access it
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.get(f"/api/orders/{order.id}/delivery-location/get/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -73,7 +73,7 @@ jobs:
       - name: Run Django Tests
         run: |
           source ../antenv/bin/activate
-          python manage.py test --verbosity=2
+          python manage.py test tests --verbosity=2 --noinput
         working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: config.settings

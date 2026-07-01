@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     "loyalty",
     "support",
     "reviews",
+    "tests.apps.TestsConfig",
     "rest_framework",
     "corsheaders",
     "channels",

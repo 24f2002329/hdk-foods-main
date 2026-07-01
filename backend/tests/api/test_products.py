@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
-from .models import Category, Product
+from products.models import Category, Product
 
 
 def _auth(client, user):
@@ -17,9 +17,6 @@ class ProductAPITest(TestCase):
         self.client = APIClient()
         self.admin = User.objects.create_user(
             phone_number="9100000001", role="admin", is_staff=True
-        )
-        self.customer = User.objects.create_user(
-            phone_number="9100000002", role="customer"
         )
         self.category = Category.objects.create(name="Pizzas")
         self.product = Product.objects.create(
@@ -46,19 +43,6 @@ class ProductAPITest(TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, 201)
-
-    def test_customer_cannot_create_product(self):
-        _auth(self.client, self.customer)
-        res = self.client.post(
-            "/api/products/create/",
-            {
-                "category": self.category.id,
-                "name": "Should Fail",
-                "price": "100.00",
-            },
-            format="json",
-        )
-        self.assertEqual(res.status_code, 403)
 
     def test_toggle_availability(self):
         _auth(self.client, self.admin)

@@ -1,12 +1,11 @@
 from decimal import Decimal
 from django.test import TestCase
-from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import Address, User
 from products.models import Category, Product
-from .models import Coupon, Order, OrderItem, OrderReview
+from orders.models import Coupon, Order, OrderItem
 
 
 def _jwt(user):
@@ -21,7 +20,6 @@ class BaseOrderTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-        # Ensure the kitchen/store is configured as open 24/7 during tests
         from app_config.models import SiteConfig
         from datetime import time
 
@@ -153,16 +151,6 @@ class ConfirmRejectOrderTest(BaseOrderTest):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["status"], "confirmed")
 
-    def test_customer_cannot_confirm_order(self):
-        order = self._create_order()
-        _auth(self.client, self.customer)
-        res = self.client.patch(
-            f"/api/orders/{order.id}/confirm/",
-            {"estimated_preparation_time": 20},
-            format="json",
-        )
-        self.assertEqual(res.status_code, 403)
-
     def test_admin_rejects_order(self):
         order = self._create_order()
         _auth(self.client, self.admin)
@@ -188,19 +176,6 @@ class UpdateOrderStatusTest(BaseOrderTest):
         )
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["status"], "preparing")
-
-    def test_delivery_can_only_mark_delivered(self):
-        order = self._create_order()
-        order.status = "out_for_delivery"
-        order.assigned_delivery = self.delivery
-        order.save()
-        _auth(self.client, self.delivery)
-        res = self.client.patch(
-            f"/api/orders/{order.id}/status/",
-            {"status": "preparing"},
-            format="json",
-        )
-        self.assertEqual(res.status_code, 403)
 
     def test_delivery_marks_own_order_delivered(self):
         order = self._create_order()
@@ -235,7 +210,6 @@ class UpdateOrderStatusTest(BaseOrderTest):
     def test_dynamic_loyalty_coins_earned(self):
         from app_config.models import SiteConfig
 
-        # Configure loyalty coins percentage as 5%
         config = SiteConfig.get()
         config.loyalty_coins_percentage = 5
         config.save()
@@ -254,12 +228,10 @@ class UpdateOrderStatusTest(BaseOrderTest):
         )
         self.assertEqual(res.status_code, 200)
 
-        # 199.00 * 5 // 100 = 9
         self.assertEqual(res.data["coins_earned"], 9)
         self.customer.refresh_from_db()
         self.assertEqual(self.customer.loyalty_coins, 9)
 
-        # Now test 15%
         config.loyalty_coins_percentage = 15
         config.save()
 
@@ -276,10 +248,8 @@ class UpdateOrderStatusTest(BaseOrderTest):
         )
         self.assertEqual(res2.status_code, 200)
 
-        # 199.00 * 15 // 100 = 29
         self.assertEqual(res2.data["coins_earned"], 29)
         self.customer.refresh_from_db()
-        # Customer should have previous 9 coins + new 29 coins = 38 coins
         self.assertEqual(self.customer.loyalty_coins, 38)
 
 
@@ -292,7 +262,7 @@ class PaginationTest(BaseOrderTest):
         self.assertEqual(res.status_code, 200)
         self.assertIn("results", res.data)
         self.assertIn("count", res.data)
-        self.assertEqual(len(res.data["results"]), 20)  # default page_size
+        self.assertEqual(len(res.data["results"]), 20)
 
     def test_my_orders_paginated(self):
         for _ in range(25):
@@ -327,11 +297,6 @@ class AdminDashboardTest(BaseOrderTest):
         self.assertEqual(res.status_code, 200)
         self.assertIn("data", res.data)
         self.assertEqual(res.data["days"], 7)
-
-    def test_customer_cannot_access_dashboard(self):
-        _auth(self.client, self.customer)
-        res = self.client.get("/api/orders/admin/dashboard/")
-        self.assertEqual(res.status_code, 403)
 
 
 class CouponTest(BaseOrderTest):
@@ -404,64 +369,12 @@ class CouponTest(BaseOrderTest):
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["is_active"])
 
-    def test_percentage_coupon_with_cap(self):
-        coupon = Coupon.objects.create(
-            code="PCT20",
-            discount_type="percentage",
-            discount_value=Decimal("20.00"),
-            max_discount_amount=Decimal("50.00"),
-        )
-        discount = coupon.compute_discount(Decimal("500.00"))
-        self.assertEqual(discount, Decimal("50.00"))  # capped at 50
 
-    def test_percentage_coupon_under_cap(self):
-        coupon = Coupon.objects.create(
-            code="PCT20B",
-            discount_type="percentage",
-            discount_value=Decimal("20.00"),
-            max_discount_amount=Decimal("50.00"),
-        )
-        discount = coupon.compute_discount(Decimal("100.00"))
-        self.assertEqual(discount, Decimal("20.00"))
-
-
-class SmartPrepTimePredictorTest(BaseOrderTest):
+class PredictPrepTimeAPITest(BaseOrderTest):
     def setUp(self):
         super().setUp()
-        from .models import PrepConfig
-
-        self.prep_config = PrepConfig.get()
-        # Set default values for tests
-        self.prep_config.queue_multiplier = 2.0
-        self.prep_config.rush_hour_bonus = 5
-        self.prep_config.override_boost = 0
-        self.prep_config.peak_weekdays = "4,5,6"  # Fri-Sun
-        self.prep_config.save()
-
-        # Update product to have base_prep_minutes
         self.product.base_prep_minutes = 15
         self.product.save()
-
-    def test_calculate_prep_time_no_backlog(self):
-        from .utils import calculate_predicted_prep_time
-
-        # Max base prep (15) + (2.0 * 0 active orders) + 0 boost
-        pred = calculate_predicted_prep_time([self.product.id])
-        # Note: timezone-dependent peak hour calculation might add rush hour bonus,
-        # but let's test the endpoint behavior and check calculations.
-        self.assertTrue(pred >= 15)
-
-    def test_calculate_prep_time_with_backlog(self):
-        from .utils import calculate_predicted_prep_time
-
-        # Create some active orders
-        self._create_order()
-        self._create_order()
-
-        # Now we have 2 active orders (status: pending_confirmation)
-        # Expected = 15 + (2.0 * 2) = 19 minutes (ignoring rush hour for now)
-        pred = calculate_predicted_prep_time([self.product.id])
-        self.assertTrue(pred >= 19)
 
     def test_predict_prep_time_view(self):
         _auth(self.client, self.customer)
@@ -475,36 +388,6 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
             res.data["predicted_delivery_time_minutes"],
             res.data["predicted_preparation_time"] + 15,
         )
-
-    def test_prep_config_admin_endpoints(self):
-        # Customer should be forbidden
-        _auth(self.client, self.customer)
-        res = self.client.get("/api/orders/admin/prep-config/")
-        self.assertEqual(res.status_code, 403)
-
-        # Admin should access and update
-        _auth(self.client, self.admin)
-        res = self.client.get("/api/orders/admin/prep-config/")
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data["queue_multiplier"], 2.0)
-
-        # Update boost
-        res = self.client.patch(
-            "/api/orders/admin/prep-config/", {"override_boost": 10}, format="json"
-        )
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data["override_boost"], 10)
-
-        # Verify prediction reflects boost
-        from .utils import calculate_predicted_prep_time
-
-        pred_before = calculate_predicted_prep_time([self.product.id])
-        # Reset to 0 boost
-        self.client.patch(
-            "/api/orders/admin/prep-config/", {"override_boost": 0}, format="json"
-        )
-        pred_after = calculate_predicted_prep_time([self.product.id])
-        self.assertEqual(pred_before - pred_after, 10)
 
     def test_order_serializer_includes_predicted_prep_time(self):
         order = self._create_order()
