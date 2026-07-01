@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "channels",
     "rest_framework_simplejwt.token_blacklist",
+    "axes",
 ]
 
 MIDDLEWARE = [
@@ -110,6 +111,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -292,3 +294,13 @@ LOGGING = {
         },
     },
 }
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Axes security locking settings
+AXES_FAILURE_LIMIT = 5  # Lock out user/IP after 5 failed login attempts
+AXES_COOLOFF_TIME = timedelta(hours=1)  # Cooloff time duration before automatic reset
+

@@ -28,12 +28,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     super.dispose();
   }
 
+  /// Normalise the entered phone to E.164 format with the +91 country code.
+  String _normalisePhone(String raw) {
+    final digits = raw.trim();
+    if (digits.startsWith('+')) return digits; // already has country code
+    if (digits.startsWith('91') && digits.length == 12) return '+$digits';
+    return '+91$digits';
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
       final data = await _auth.login(
-        phoneNumber: _phoneController.text.trim(),
+        phoneNumber: _normalisePhone(_phoneController.text),
         password: _passwordController.text,
       );
       if (data['role'] != 'admin') {
@@ -88,6 +96,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
+                    hintText: '9876543210 or +919876543210',
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 12),
                     prefixIcon: Icon(Icons.phone, color: Color(0xFFFF1E1E)),
                   ),
                   validator: (v) =>

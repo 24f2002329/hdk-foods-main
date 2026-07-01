@@ -58,3 +58,4 @@ urllib3==2.6.3
 whitenoise==6.11.0
 channels-redis==4.3.0
 redis==8.0.1
+django-axes>=6.0.0

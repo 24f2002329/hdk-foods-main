@@ -6,3 +6,5 @@ db.sqlite3
 credentials/
 *.json
 !frontend/assets/animations/*.json
+
+.idea/
