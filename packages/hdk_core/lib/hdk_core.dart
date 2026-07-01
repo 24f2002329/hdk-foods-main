@@ -1,7 +1,11 @@
 library hdk_core;
 
-export 'api/api_config.dart';
 export 'api/api_client.dart';
+export 'config/environment.dart';
+export 'config/app_config.dart';
+export 'config/api_config.dart';
+export 'config/firebase_config.dart';
+
 export 'models/modifier.dart';
 export 'models/product.dart';
 export 'models/order.dart';

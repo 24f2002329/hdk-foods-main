@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'firebase_options.dart';
 import 'package:hdk_core/hdk_core.dart';
 import 'features/address/presentation/screens/address_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
@@ -62,10 +61,11 @@ Future<void> _uploadFcmToken(String fcmToken, String accessToken) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: FirebaseConfig.options);
   await _initFCM();
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});

@@ -1,4 +1,7 @@
+import '../config/api_config.dart' as new_config;
+
 class ApiConfig {
-  static const String baseUrl = "https://api.hdkfoods.in/api";
-  static const String wsBaseUrl = "wss://api.hdkfoods.in";
+  static String get baseUrl => new_config.ApiConfig.baseUrl;
+  static String get wsBaseUrl => new_config.ApiConfig.wsBaseUrl;
 }
+
