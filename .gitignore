@@ -1,10 +1,114 @@
+# ─── Python / Django ──────────────────────────────────────────────────────────
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
 .env
+*.env.*
+!*.env.example
 db.sqlite3
-credentials/
-*.json
-!frontend/assets/animations/*.json
+*.sqlite3
+staticfiles/
+media/
 
+# Credentials / secrets
+credentials/
+*.p12
+*.pem
+google-services.json
+GoogleService-Info.plist
+
+# ─── Dart / Flutter (all apps + shared package) ───────────────────────────────
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Build outputs
+build/
+**/build/
+
+# Dart tool cache
+.dart_tool/
+**/.dart_tool/
+
+# Flutter plugin registration (auto-generated at flutter pub get)
+.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Pub cache / lock files inside packages (lock files are committed in apps,
+# but not in the shared library where they are purely a dev artifact)
+packages/hdk_core/pubspec.lock
+
+# Coverage
+coverage/
+lcov.info
+
+# Android generated / Gradle cache
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/build/          # Gradle build outputs – NOT source build.gradle.kts
+# Re-include Android build scripts that are source files, not outputs:
+!**/android/build.gradle
+!**/android/build.gradle.kts
+!**/android/app/build.gradle
+!**/android/app/build.gradle.kts
+
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Runner.xcworkspace/
+
+# macOS / Linux / Windows runners
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
 .idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# JetBrains
+*.iws
+out/
+
+# ─── AI Agent config dirs ─────────────────────────────────────────────────────
+.agents/
+.claude/
+.codex/
+.gemini/
+
+# ─── OS artefacts ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Exceptions (keep these) ──────────────────────────────────────────────────
+# Lottie animations are JSON but must be committed
+!frontend/assets/animations/*.json
+!frontend_admin/assets/animations/*.json
+!frontend_delivery/assets/animations/*.json
+
+# All other JSON files (firebase, google-services, etc.) should NOT be committed
+*.json
