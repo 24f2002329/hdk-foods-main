@@ -126,6 +126,12 @@ jobs:
           cd ../frontend_admin && flutter test
           cd ../frontend_delivery && flutter test
 
+      - name: Create Mock google-services.json
+        run: |
+          mkdir -p android/app
+          echo '{"project_info":{"project_number":"123456789","project_id":"mock-id","storage_bucket":"mock-id.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:123:android:123","android_client_info":{"package_name":"com.hdkfoods.app"}},"api_key":[{"current_key":"mock_key"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}]}' > android/app/google-services.json
+        working-directory: frontend
+
       - name: Build Android APK (Customer App)
         run: flutter build apk --debug --dart-define=ENV=dev --dart-define=GOOGLE_MAPS_API_KEY=mock_key
         working-directory: frontend
