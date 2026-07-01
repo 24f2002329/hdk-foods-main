@@ -100,9 +100,10 @@ class OrderRepository {
     required int orderId,
     required bool accepted,
   }) async {
-    final response = await ApiClient().post('orders/$orderId/acknowledge-changes/', {
-      'accepted': accepted,
-    });
+    final response = await ApiClient().post(
+      'orders/$orderId/acknowledge-changes/',
+      {'accepted': accepted},
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -112,7 +113,10 @@ class OrderRepository {
   /// Confirms a Cashfree payment. The backend fetches the order status from
   /// Cashfree server-to-server, so no client-side signature is needed.
   Future<Order> verifyPayment({required int orderId}) async {
-    final response = await ApiClient().post('orders/$orderId/verify-payment/', {});
+    final response = await ApiClient().post(
+      'orders/$orderId/verify-payment/',
+      {},
+    );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       return Order.fromJson(data['order']);
@@ -157,9 +161,10 @@ class OrderRepository {
     required int orderId,
     required String reason,
   }) async {
-    final response = await ApiClient().post('orders/$orderId/request-cancellation/', {
-      'reason': reason,
-    });
+    final response = await ApiClient().post(
+      'orders/$orderId/request-cancellation/',
+      {'reason': reason},
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -191,7 +196,10 @@ class OrderRepository {
   }
 
   Future<Order> reportNotReceived(int orderId) async {
-    final response = await ApiClient().post('orders/$orderId/report-not-received/', {});
+    final response = await ApiClient().post(
+      'orders/$orderId/report-not-received/',
+      {},
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }

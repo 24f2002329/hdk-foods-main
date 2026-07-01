@@ -12,7 +12,11 @@ const _stroke = Color(0xFF2A2A2A);
 class EditItemsDialog extends StatefulWidget {
   final Order order;
   final OrderRepository service;
-  const EditItemsDialog({super.key, required this.order, required this.service});
+  const EditItemsDialog({
+    super.key,
+    required this.order,
+    required this.service,
+  });
 
   @override
   State<EditItemsDialog> createState() => _EditItemsDialogState();

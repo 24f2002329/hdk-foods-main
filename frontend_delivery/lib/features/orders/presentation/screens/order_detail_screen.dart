@@ -151,8 +151,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     final result = await showDialog<ReadyResult>(
       context: context,
-      builder: (_) =>
-          AssignAndReadyDialog(staff: staff, initial: defaultStaff),
+      builder: (_) => AssignAndReadyDialog(staff: staff, initial: defaultStaff),
     );
     if (result == null) return;
 

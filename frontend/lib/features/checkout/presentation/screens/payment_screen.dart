@@ -65,7 +65,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   /// status from Cashfree and marks the order paid.
   Future<void> _onPaymentVerify(String orderId) async {
     try {
-      final order = await _orderRepository.verifyPayment(orderId: widget.orderId);
+      final order = await _orderRepository.verifyPayment(
+        orderId: widget.orderId,
+      );
 
       if (!mounted) return;
       final paid = order.paymentStatus == 'paid';

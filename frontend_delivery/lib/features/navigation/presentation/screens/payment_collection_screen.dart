@@ -152,13 +152,10 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       ).timeout(const Duration(seconds: 8));
 
       await ApiClient()
-          .post(
-            'orders/${widget.order.id}/delivery-location/',
-            {
-              'latitude': pos.latitude,
-              'longitude': pos.longitude,
-            },
-          )
+          .post('orders/${widget.order.id}/delivery-location/', {
+            'latitude': pos.latitude,
+            'longitude': pos.longitude,
+          })
           .timeout(const Duration(seconds: 8));
     } catch (_) {
       // Best-effort — silently skip if GPS or network unavailable

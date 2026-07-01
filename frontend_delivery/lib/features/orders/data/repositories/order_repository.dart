@@ -69,9 +69,10 @@ class OrderRepository {
   }
 
   Future<Order> assignDelivery(int orderId, int deliveryUserId) async {
-    final response = await _apiClient.patch('orders/$orderId/assign-delivery/', {
-      'delivery_user_id': deliveryUserId,
-    });
+    final response = await _apiClient.patch(
+      'orders/$orderId/assign-delivery/',
+      {'delivery_user_id': deliveryUserId},
+    );
     if (response.statusCode == 200) {
       return Order.fromJson(jsonDecode(response.body));
     }
@@ -110,7 +111,10 @@ class OrderRepository {
   }
 
   Future<Map<String, dynamic>> driverInitiatePayment(int orderId) async {
-    final response = await _apiClient.post('orders/$orderId/driver-payment/', {});
+    final response = await _apiClient.post(
+      'orders/$orderId/driver-payment/',
+      {},
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
@@ -127,7 +131,10 @@ class OrderRepository {
     if (utr != null) {
       payload['utr'] = utr;
     }
-    final response = await _apiClient.post('orders/$orderId/driver-verify/', payload);
+    final response = await _apiClient.post(
+      'orders/$orderId/driver-verify/',
+      payload,
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }

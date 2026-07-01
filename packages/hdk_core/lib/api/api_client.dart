@@ -61,7 +61,9 @@ class ApiClient {
     if (path.startsWith('http')) return path;
     final base = ApiConfig.baseUrl;
     final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    return base.endsWith('/') ? '$base$normalizedPath' : '$base/$normalizedPath';
+    return base.endsWith('/')
+        ? '$base$normalizedPath'
+        : '$base/$normalizedPath';
   }
 
   Future<http.Response> _withRefresh(

@@ -51,7 +51,10 @@ class NotificationService {
   }
 
   Future<void> markAsRead(int id) async {
-    final response = await _apiClient.post('config/notifications/$id/read/', {});
+    final response = await _apiClient.post(
+      'config/notifications/$id/read/',
+      {},
+    );
     if (response.statusCode != 200) {
       throw Exception('Failed to mark notification as read');
     }

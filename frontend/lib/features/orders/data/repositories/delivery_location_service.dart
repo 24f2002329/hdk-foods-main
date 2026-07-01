@@ -18,7 +18,9 @@ class DeliveryLocationService {
   final ApiClient _apiClient = ApiClient();
 
   Future<DeliveryLocation?> getDeliveryLocation(int orderId) async {
-    final response = await _apiClient.get('orders/$orderId/delivery-location/get/');
+    final response = await _apiClient.get(
+      'orders/$orderId/delivery-location/get/',
+    );
 
     if (response.statusCode != 200) return null;
 
