@@ -129,6 +129,13 @@ class Order(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["payment_status"]),
+        ]
+
     def save(self, *args, **kwargs):
 
         if not self.order_number:

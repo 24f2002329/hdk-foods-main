@@ -162,136 +162,28 @@ class CreateOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from app_config.models import SiteConfig
-
-        config = SiteConfig.get()
-        if not config.is_currently_open():
-            return Response(
-                {
-                    "detail": config.store_closed_msg
-                    or "The kitchen is closed right now."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = OrderCreateSerializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
-
         data = serializer.validated_data
 
-        address = Address.objects.get(id=data["address_id"], user=request.user)
+        from services.order_service import create_order
+        from django.core.exceptions import ValidationError as DjangoValidationError
 
-        total_amount = Decimal("0.00")
-
-        # Validate coupon early so we don't create an order if it's invalid
-        coupon_code = data.get("coupon_code", "").strip()
-        coupon = None
-        if coupon_code:
-            try:
-                coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
-            except Coupon.DoesNotExist:
-                return Response(
-                    {"detail": "Invalid or expired coupon code."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        order = Order.objects.create(
-            user=address.user,
-            address=address,
-            payment_method=data.get("payment_method") or "cod",
-            delivery_notes=data.get("delivery_notes", ""),
-            total_amount=0,
-        )
-
-        for item in data["items"]:
-
-            product = Product.objects.get(id=item["product_id"])
-
-            quantity = item["quantity"]
-
-            price = product.price
-
-            total_amount += price * quantity
-
-            OrderItem.objects.create(
-                order=order, product=product, quantity=quantity, price=price
+        try:
+            order = create_order(
+                user=request.user,
+                address_id=data["address_id"],
+                items=data["items"],
+                payment_method=data.get("payment_method") or "cod",
+                delivery_notes=data.get("delivery_notes", ""),
+                coupon_code=data.get("coupon_code", ""),
+                redeem_coins=bool(request.data.get("redeem_coins", False)),
             )
-
-        order.total_amount = total_amount
-
-        # Apply coupon discount
-        if coupon:
-            now = timezone.now()
-            if coupon.valid_from and now < coupon.valid_from:
-                order.delete()
-                return Response(
-                    {"detail": "Coupon is not yet valid."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if coupon.valid_until and now > coupon.valid_until:
-                order.delete()
-                return Response(
-                    {"detail": "Coupon has expired."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
-                order.delete()
-                return Response(
-                    {"detail": "Coupon usage limit reached."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if total_amount < coupon.min_order_amount:
-                order.delete()
-                return Response(
-                    {
-                        "detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            discount = coupon.compute_discount(total_amount)
-            order.discount_amount = discount
-            order.discount_reason = f"Coupon: {coupon.code}"
-            order.original_total = total_amount
-            order.total_amount = total_amount - discount
-            Coupon.objects.filter(pk=coupon.pk).update(
-                usage_count=coupon.usage_count + 1
+        except DjangoValidationError as e:
+            return Response(
+                {"detail": str(e.message if hasattr(e, "message") else e)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # Apply loyalty coins redemption
-        redeem_coins = bool(request.data.get("redeem_coins", False))
-        if redeem_coins:
-            user = request.user
-            available_coins = getattr(user, "loyalty_coins", 0)
-            if available_coins > 0:
-                redeemed = min(available_coins, int(order.total_amount))
-                if redeemed > 0:
-                    order.coins_redeemed = redeemed
-                    order.total_amount = order.total_amount - Decimal(str(redeemed))
-                    user.loyalty_coins = available_coins - redeemed
-                    user.save(update_fields=["loyalty_coins"])
-
-        order.save()
-
-        # ── Create the Payment record for the new order ────────────────────────
-        payment = Payment.objects.create(
-            order=order,
-            method=PaymentMethod.COD,
-            status=PaymentStatus.PENDING,
-            amount=order.total_amount,
-        )
-        order.payment_record = payment
-        order.save(update_fields=["payment_record"])
-        # ──────────────────────────────────────────────────────────────────────
-
-        send_push_to_role(
-            "admin",
-            "New Order 🛍️",
-            f"Order #{order.order_number} is waiting for review.",
-            {"order_id": str(order.id)},
-        )
-
-        _broadcast_order(order, "new_order")
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
@@ -326,7 +218,6 @@ class SelectPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
@@ -357,124 +248,43 @@ class SelectPaymentView(APIView):
             )
 
         serializer = SelectPaymentSerializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
-
         method = serializer.validated_data["payment_method"]
 
-        if method == "cod":
-            order.payment_method = "cod"
-            order.payment_status = "pending"
-            order.save(update_fields=["payment_method", "payment_status", "updated_at"])
+        from services.payments import select_payment_method
 
-            # ── Payment model ──────────────────────────────────────────────────
-            payment = _get_or_create_payment(
-                order, PaymentMethod.COD, order.total_amount
+        try:
+            result = select_payment_method(order, method, request.user)
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=(
+                    status.HTTP_400_BAD_REQUEST
+                    if method == "cod"
+                    else status.HTTP_503_SERVICE_UNAVAILABLE
+                ),
             )
-            bind_log_context(payment=payment.id)
-            payment.status = PaymentStatus.PENDING
-            payment.save(update_fields=["status", "updated_at"])
-            # ──────────────────────────────────────────────────────────────────
+        except ConnectionError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
+        payment = result.pop("payment", None)
+        if payment:
+            bind_log_context(payment=payment.id)
+
+        if method == "cod":
             return Response(
                 {"payment_method": "cod", "order": OrderSerializer(order).data}
             )
 
-        # online -> Cashfree
-        if not settings.CASHFREE_APP_ID or not settings.CASHFREE_SECRET_KEY:
-            return Response(
-                {"detail": "Online payment is not " "configured."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        # Cashfree expects the amount in rupees (not paise) and a globally
-        # unique order id. A failed attempt leaves its order behind on
-        # Cashfree, so each attempt gets a fresh id derived from our
-        # order_number to avoid an "order_already_exists" collision on retry.
-        cf_order_id = f"{order.order_number}_" f"{uuid.uuid4().hex[:10]}"
-
-        logger.info(
-            f"Creating Cashfree order: cf_order_id={cf_order_id}, "
-            f"amount={order.total_amount}, user_id={request.user.id}"
-        )
-
-        try:
-            cf_response = requests.post(
-                f"{settings.CASHFREE_BASE_URL}/orders",
-                headers={
-                    "x-client-id": settings.CASHFREE_APP_ID,
-                    "x-client-secret": settings.CASHFREE_SECRET_KEY,
-                    "x-api-version": settings.CASHFREE_API_VERSION,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "order_id": cf_order_id,
-                    "order_amount": float(order.total_amount),
-                    "order_currency": "INR",
-                    "customer_details": {
-                        "customer_id": str(request.user.id),
-                        "customer_phone": request.user.phone_number,
-                        "customer_name": request.user.name or "Customer",
-                    },
-                },
-                timeout=15,
-            )
-        except requests.RequestException:
-            return Response(
-                {"detail": "Could not reach payment " "gateway."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        if cf_response.status_code not in (200, 201):
-            return Response(
-                {"detail": "Payment gateway error.", "gateway": cf_response.text},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        cf_order = cf_response.json()
-        session_id = cf_order["payment_session_id"]
-
-        order.payment_method = "online"
-        order.cashfree_order_id = cf_order_id
-        order.payment_session_id = session_id
-        # A new attempt supersedes any prior failed one.
-        if order.payment_status == "failed":
-            order.payment_status = "pending"
-        order.save(
-            update_fields=[
-                "payment_method",
-                "cashfree_order_id",
-                "payment_session_id",
-                "payment_status",
-                "updated_at",
-            ]
-        )
-
-        # ── Payment / PaymentAttempt models ───────────────────────────────────
-        payment = _get_or_create_payment(
-            order, PaymentMethod.ONLINE, order.total_amount
-        )
-        bind_log_context(payment=payment.id)
-        if payment.status == PaymentStatus.FAILED:
-            payment.status = PaymentStatus.PENDING
-            payment.save(update_fields=["status", "updated_at"])
-        PaymentAttempt.objects.create(
-            payment=payment,
-            gateway=Gateway.CASHFREE,
-            gateway_order_id=cf_order_id,
-            payment_session_id=session_id,
-            status=PaymentStatus.PENDING,
-            amount=order.total_amount,
-            gateway_response=cf_order,
-        )
-        # ─────────────────────────────────────────────────────────────────────
-
         return Response(
             {
                 "payment_method": "online",
-                "payment_session_id": session_id,
-                "cf_order_id": cf_order_id,
-                "environment": settings.CASHFREE_ENV,
+                "payment_session_id": result["payment_session_id"],
+                "cf_order_id": result["cf_order_id"],
+                "environment": result["environment"],
                 "order": OrderSerializer(order).data,
             }
         )
@@ -491,7 +301,6 @@ class VerifyPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
@@ -516,81 +325,25 @@ class VerifyPaymentView(APIView):
                 }
             )
 
+        from services.payments import verify_payment
+
         try:
-            cf_response = requests.get(
-                f"{settings.CASHFREE_BASE_URL}" f"/orders/{order.cashfree_order_id}",
-                headers={
-                    "x-client-id": settings.CASHFREE_APP_ID,
-                    "x-client-secret": settings.CASHFREE_SECRET_KEY,
-                    "x-api-version": settings.CASHFREE_API_VERSION,
-                },
-                timeout=15,
-            )
-        except requests.RequestException:
+            result = verify_payment(order)
+        except ValueError as e:
             return Response(
-                {"detail": "Could not reach payment " "gateway."},
+                {"detail": str(e)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
-        if cf_response.status_code != 200:
+        except ConnectionError as e:
             return Response(
-                {"detail": "Payment gateway error.", "gateway": cf_response.text},
+                {"detail": str(e)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
-        cf_order = cf_response.json()
-        order_status = cf_order.get("order_status")
-
-        logger.info(
-            f"Verified Cashfree payment: order_id={order.id}, "
-            f"cf_order_id={order.cashfree_order_id}, status={order_status}"
-        )
-
-        # PAID                 -> success
-        # EXPIRED/TERMINATED   -> terminal failure
-        # ACTIVE (and others)  -> still awaiting payment; leave pending so
-        #                         this endpoint is safe to poll repeatedly.
-        if order_status == "PAID":
-            gw_payment_id = str(cf_order.get("cf_order_id", ""))
-            order.payment_status = "paid"
-            order.payment_id = gw_payment_id
-            order.save(update_fields=["payment_status", "payment_id", "updated_at"])
-
-            # ── Payment / PaymentAttempt models ───────────────────────────────
-            if order.payment_record_id:
-                payment = order.payment_record
-                payment.mark_paid(gw_payment_id)
-                # Update the latest pending attempt for this order
-                PaymentAttempt.objects.filter(
-                    payment=payment,
-                    gateway_order_id=order.cashfree_order_id,
-                ).update(
-                    status=PaymentStatus.PAID,
-                    gateway_payment_id=gw_payment_id,
-                )
-            # ─────────────────────────────────────────────────────────────────
-
-            return Response(
-                {"payment_status": "paid", "order": OrderSerializer(order).data}
-            )
-
-        if order_status in ("EXPIRED", "TERMINATED"):
-            order.payment_status = "failed"
-            order.save(update_fields=["payment_status", "updated_at"])
-
-            # ── Payment / PaymentAttempt models ───────────────────────────────
-            if order.payment_record_id:
-                order.payment_record.mark_failed()
-                PaymentAttempt.objects.filter(
-                    payment=order.payment_record,
-                    gateway_order_id=order.cashfree_order_id,
-                ).update(status=PaymentStatus.FAILED)
-            # ─────────────────────────────────────────────────────────────────
 
         return Response(
             {
                 "payment_status": order.payment_status,
-                "order_status": order_status,
+                "order_status": result.get("order_status", ""),
                 "order": OrderSerializer(order).data,
             }
         )
@@ -617,62 +370,14 @@ class DriverInitiatePaymentView(APIView):
             status=order.status,
         )
 
-        if order.payment_status == "paid":
-            return Response(
-                {
-                    "detail": "Order already paid.",
-                    "upi_uri": "",
-                    "amount": float(order.total_amount),
-                    "order_number": order.order_number,
-                    "payment_status": "paid",
-                },
-                status=status.HTTP_200_OK,
-            )
+        from services.payments import driver_initiate_payment
 
-        from app_config.models import SiteConfig
-        import urllib.parse
+        res = driver_initiate_payment(order)
+        payment = res.pop("payment", None)
+        if payment:
+            bind_log_context(payment=payment.id)
 
-        config = SiteConfig.get()
-        merchant_upi_id = config.merchant_upi_id or "hdkfoods@axisbank"
-
-        # Clean amount representation
-        amount_str = f"{order.total_amount:.2f}".rstrip("0").rstrip(".")
-
-        # Construct dynamic upi://pay Intent URI
-        params = {
-            "pa": merchant_upi_id,
-            "pn": "HDK Foods",
-            "am": amount_str,
-            "cu": "INR",
-            "tn": f"Order {order.order_number}",
-        }
-        upi_uri = (
-            f"upi://pay?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
-        )
-
-        # Set payment method to online for tracking
-        order.payment_method = "online"
-        order.save(update_fields=["payment_method", "updated_at"])
-
-        # ── Payment / PaymentAttempt models ───────────────────────────────────
-        payment = _get_or_create_payment(order, PaymentMethod.UPI, order.total_amount)
-        PaymentAttempt.objects.create(
-            payment=payment,
-            gateway=Gateway.UPI_MANUAL,
-            gateway_order_id=order.order_number,
-            status=PaymentStatus.PENDING,
-            amount=order.total_amount,
-        )
-        # ─────────────────────────────────────────────────────────────────────
-
-        return Response(
-            {
-                "upi_uri": upi_uri,
-                "amount": float(order.total_amount),
-                "order_number": order.order_number,
-                "payment_status": order.payment_status,
-            }
-        )
+        return Response(res)
 
 
 class DriverVerifyPaymentView(APIView):
@@ -696,49 +401,15 @@ class DriverVerifyPaymentView(APIView):
             status=order.status,
         )
 
-        # Mark order as paid directly
-        driver_ref = f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
-        order.payment_status = "paid"
-        order.payment_id = driver_ref
-        order.payment_method = "online"
-        order.save(
-            update_fields=[
-                "payment_status",
-                "payment_id",
-                "payment_method",
-                "updated_at",
-            ]
-        )
+        from services.payments import driver_verify_payment
 
-        # ── Payment / PaymentAttempt models ───────────────────────────────────
-        payment = _get_or_create_payment(order, PaymentMethod.UPI, order.total_amount)
-        payment.mark_paid(driver_ref)
-        # Update the latest pending UPI attempt if present; create one if absent.
-        attempt = payment.attempts.filter(
-            gateway=Gateway.UPI_MANUAL, status=PaymentStatus.PENDING
-        ).first()
-        if attempt:
-            attempt.status = PaymentStatus.PAID
-            attempt.gateway_payment_id = driver_ref
-            attempt.save(update_fields=["status", "gateway_payment_id", "updated_at"])
-        else:
-            PaymentAttempt.objects.create(
-                payment=payment,
-                gateway=Gateway.UPI_MANUAL,
-                gateway_order_id=order.order_number,
-                gateway_payment_id=driver_ref,
-                status=PaymentStatus.PAID,
-                amount=order.total_amount,
-            )
-        # ─────────────────────────────────────────────────────────────────────
+        res = driver_verify_payment(order)
+        payment = res.pop("payment", None)
+        if payment:
+            bind_log_context(payment=payment.id)
 
-        return Response(
-            {
-                "payment_status": "paid",
-                "payment_id": order.payment_id,
-                "order": OrderSerializer(order).data,
-            }
-        )
+        res["order"] = OrderSerializer(order).data
+        return Response(res)
 
 
 class OrderPagination(PageNumberPagination):
@@ -782,7 +453,6 @@ class ConfirmOrderView(APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -790,36 +460,21 @@ class ConfirmOrderView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         serializer = ConfirmOrderSerializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
-
         prep_time = serializer.validated_data["estimated_preparation_time"]
 
-        order.status = "confirmed"
+        from services.order_service import confirm_order
 
-        order.confirmed_at = timezone.now()
-
-        order.estimated_preparation_time = prep_time
-
-        order.estimated_delivery_time = timezone.now() + timedelta(
-            minutes=prep_time + 15
-        )
-
-        order.confirmed_by = request.user
-        order.save()
-
-        send_push(
-            order.user,
-            "Order Confirmed ✅",
-            f"Your order #{order.order_number} is confirmed! Ready in ~{prep_time} mins.",
-            {"order_id": str(order.id), "type": "order"},
-        )
-
-        if order.payment_method == "online" and order.payment_status == "pending":
-            _schedule_pending_online_payment_reminder(order.id)
-
-        _broadcast_order(order)
+        order = confirm_order(order, prep_time, request.user)
 
         return Response(OrderSerializer(order).data)
 
@@ -829,7 +484,6 @@ class RejectOrderView(APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -837,24 +491,21 @@ class RejectOrderView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = RejectOrderSerializer(data=request.data)
-
-        serializer.is_valid(raise_exception=True)
-
-        order.status = "rejected"
-
-        order.rejection_reason = serializer.validated_data["reason"]
-
-        order.save()
-
-        send_push(
-            order.user,
-            "Order Rejected ❌",
-            f"Order #{order.order_number} was rejected. Sorry for the inconvenience.",
-            {"order_id": str(order.id), "type": "order"},
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
         )
 
-        _broadcast_order(order)
+        serializer = RejectOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reason = serializer.validated_data["reason"]
+
+        from services.order_service import reject_order
+
+        order = reject_order(order, reason)
 
         return Response(OrderSerializer(order).data)
 
@@ -864,7 +515,6 @@ class UpdateOrderStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -872,71 +522,26 @@ class UpdateOrderStatusView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         serializer = UpdateStatusSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_status = serializer.validated_data["status"]
 
-        user = request.user
+        from services.order_service import update_order_status
 
-        # Delivery staff: may only mark their own assigned order as delivered
-        if hasattr(user, "role") and user.role == "delivery":
-            if new_status != "delivered":
-                return Response(
-                    {"detail": "Delivery staff can only mark orders as delivered."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            if order.assigned_delivery_id != user.id:
-                return Response(
-                    {"detail": "You are not assigned to this order."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-        elif not (hasattr(user, "role") and user.role == "admin"):
-            return Response(
-                {"detail": "You do not have permission to perform this action."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        if new_status == "delivered" and order.status != "delivered":
-            block_reason = _delivery_block_reason(order)
-            if block_reason:
-                return Response(
-                    {"detail": block_reason},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            from app_config.models import SiteConfig
-
-            percentage = SiteConfig.get().loyalty_coins_percentage
-            earned = int((order.total_amount * percentage) // 100)
-            if earned > 0:
-                customer = order.user
-                customer.loyalty_coins = getattr(customer, "loyalty_coins", 0) + earned
-                customer.save(update_fields=["loyalty_coins"])
-                order.coins_earned = earned
-
-        order.status = new_status
-        order.save()
-
-        _push_map = {
-            "preparing": (
-                "Kitchen is preparing your order 👨‍🍳",
-                "Your food is being freshly prepared!",
-            ),
-            "out_for_delivery": (
-                "On the way! 🛵",
-                f"Order #{order.order_number} is out for delivery.",
-            ),
-            "delivered": (
-                "Order Delivered! 🎉",
-                "Rate your food and share your feedback ⭐",
-            ),
-        }
-        if new_status in _push_map:
-            title, body = _push_map[new_status]
-            send_push(
-                order.user, title, body, {"order_id": str(order.id), "type": "order"}
-            )
-
-        _broadcast_order(order)
+        try:
+            order = update_order_status(order, new_status, request.user)
+        except PermissionError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(OrderSerializer(order).data)
 
@@ -946,7 +551,6 @@ class AssignDeliveryView(APIView):
     permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
-
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
@@ -954,28 +558,28 @@ class AssignDeliveryView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = AssignDeliverySerializer(data=request.data)
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
+        serializer = AssignDeliverySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        delivery_user_id = serializer.validated_data["delivery_user_id"]
+
+        from services.order_service import assign_delivery_user
+        from django.core.exceptions import ValidationError as DjangoValidationError
 
         try:
-            delivery_user = User.objects.get(
-                id=serializer.validated_data["delivery_user_id"], role="delivery"
-            )
-        except User.DoesNotExist:
+            order = assign_delivery_user(order, delivery_user_id)
+        except DjangoValidationError as e:
             return Response(
-                {"detail": "Delivery user not found."}, status=status.HTTP_404_NOT_FOUND
+                {"detail": str(e.message if hasattr(e, "message") else e)},
+                status=status.HTTP_404_NOT_FOUND,
             )
-
-        order.assigned_delivery = delivery_user
-        order.save()
-
-        send_push(
-            delivery_user,
-            "New Delivery Assigned 🛵",
-            f"Order #{order.order_number} has been assigned to you.",
-            {"order_id": str(order.id), "type": "order"},
-        )
 
         return Response(OrderSerializer(order).data)
 
@@ -1437,41 +1041,15 @@ class ApplyDiscountView(APIView):
 
         serializer = ApplyDiscountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        discount = serializer.validated_data["discount_amount"]
+        reason = serializer.validated_data.get("discount_reason", "")
 
-        discount = data["discount_amount"]
-        reason = data.get("discount_reason", "")
+        from services.order_service import apply_discount
 
-        # Calculate true subtotal from items
-        subtotal = sum(item.price * item.quantity for item in order.items.all())
-        order.original_total = subtotal
-
-        if discount > subtotal:
-            return Response(
-                {"detail": "Discount cannot exceed the original order total."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        order.discount_amount = discount
-        order.discount_reason = reason
-        order.total_amount = subtotal - discount
-        order.is_modified_by_staff = True
-        order.save(
-            update_fields=[
-                "discount_amount",
-                "discount_reason",
-                "total_amount",
-                "original_total",
-                "is_modified_by_staff",
-                "updated_at",
-            ]
-        )
-
-        logger.info(
-            f"Discount applied: order_id={order.id}, "
-            f"discount={discount}, reason='{reason}', "
-            f"new_total={order.total_amount}, user_id={request.user.id}"
-        )
+        try:
+            order = apply_discount(order, discount, reason, request.user)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(OrderSerializer(order).data)
 
@@ -1505,23 +1083,9 @@ class AcknowledgeChangesView(APIView):
         serializer.is_valid(raise_exception=True)
         accepted = serializer.validated_data["accepted"]
 
-        if accepted:
-            order.is_modified_by_staff = False
-            order.save(update_fields=["is_modified_by_staff", "updated_at"])
-            logger.info(f"Customer accepted modified order: order_id={order.id}")
-        else:
-            order.status = "rejected"
-            order.rejection_reason = "Customer rejected the modified order."
-            order.is_modified_by_staff = False
-            order.save(
-                update_fields=[
-                    "status",
-                    "rejection_reason",
-                    "is_modified_by_staff",
-                    "updated_at",
-                ]
-            )
-            logger.info(f"Customer rejected modified order: order_id={order.id}")
+        from services.order_service import acknowledge_changes
+
+        order = acknowledge_changes(order, accepted)
 
         return Response(OrderSerializer(order).data)
 
@@ -2144,11 +1708,13 @@ class RequestCancellationView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        if order.status in ["delivered", "cancelled", "rejected"]:
-            return Response(
-                {"detail": "Cannot request cancellation for this order."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
 
         reason = request.data.get("reason", "").strip()
         if not reason:
@@ -2157,13 +1723,16 @@ class RequestCancellationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        order.cancellation_requested = True
-        order.cancellation_reason = reason
-        order.cancellation_requested_at = timezone.now()
-        order.save()
+        from services.order_service import request_cancellation
+        from django.core.exceptions import ValidationError as DjangoValidationError
 
-        # Notify admins via websocket
-        _broadcast_order(order, "cancellation_requested")
+        try:
+            order = request_cancellation(order, reason)
+        except DjangoValidationError as e:
+            return Response(
+                {"detail": str(e.message if hasattr(e, "message") else e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(OrderSerializer(order).data)
 
@@ -2181,6 +1750,14 @@ class AdminHandleCancellationView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         action = request.data.get("action", "").strip()  # "approve" or "reject"
         reason = request.data.get("reason", "").strip()
 
@@ -2190,58 +1767,16 @@ class AdminHandleCancellationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if action == "approve":
-            order.cancellation_approved = True
-            order.status = "cancelled"
-            if reason:
-                order.cancellation_reason = reason
+        from services.order_service import handle_cancellation_request
+        from django.core.exceptions import ValidationError as DjangoValidationError
 
-            if order.coins_redeemed > 0:
-                customer = order.user
-                customer.loyalty_coins = (
-                    getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
-                )
-                customer.save(update_fields=["loyalty_coins"])
-
-            # Initiate Cashfree Refund if paid online
-            if order.payment_method == "online" and order.payment_status == "paid":
-                success = initiate_cashfree_refund(
-                    order, reason or "Customer Cancellation Request Approved"
-                )
-                if success:
-                    order.refund_status = "initiated"
-                    order.payment_status = "refunded"
-                else:
-                    order.refund_status = "failed"
-            else:
-                order.refund_status = "not_applicable"
-
-            try:
-                send_push(
-                    order.user,
-                    "Order Cancelled 🚫",
-                    f"Your cancellation request for order #{order.order_number} has been approved.",
-                    {"order_id": str(order.id), "type": "order"},
-                )
-            except Exception as e:
-                logger.warning(f"Could not send push notification: {e}")
-        else:
-            order.cancellation_approved = False
-            order.cancellation_requested = (
-                False  # reset so they can request again if needed
+        try:
+            order = handle_cancellation_request(order, action, reason)
+        except DjangoValidationError as e:
+            return Response(
+                {"detail": str(e.message if hasattr(e, "message") else e)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            try:
-                send_push(
-                    order.user,
-                    "Cancellation Request Declined ⚠️",
-                    f"Your cancellation request for order #{order.order_number} was declined.",
-                    {"order_id": str(order.id), "type": "order"},
-                )
-            except Exception as e:
-                logger.warning(f"Could not send push notification: {e}")
-
-        order.save()
-        _broadcast_order(order)
 
         return Response(OrderSerializer(order).data)
 
@@ -2259,6 +1794,14 @@ class AdminCancelOrderView(APIView):
                 {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        bind_log_context(
+            order_id=order.id,
+            customer=order.user_id,
+            payment=order.payment_record_id,
+            delivery_partner=order.assigned_delivery_id,
+            status=order.status,
+        )
+
         reason = request.data.get("reason", "").strip()
         if not reason:
             return Response(
@@ -2266,40 +1809,9 @@ class AdminCancelOrderView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        order.status = "cancelled"
-        order.cancellation_reason = reason
-        order.cancellation_approved = True
+        from services.order_service import admin_cancel_order
 
-        if order.coins_redeemed > 0:
-            customer = order.user
-            customer.loyalty_coins = (
-                getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
-            )
-            customer.save(update_fields=["loyalty_coins"])
-
-        # Initiate Cashfree Refund if paid online
-        if order.payment_method == "online" and order.payment_status == "paid":
-            success = initiate_cashfree_refund(order, reason)
-            if success:
-                order.refund_status = "initiated"
-                order.payment_status = "refunded"
-            else:
-                order.refund_status = "failed"
-        else:
-            order.refund_status = "not_applicable"
-
-        order.save()
-        _broadcast_order(order)
-
-        try:
-            send_push(
-                order.user,
-                "Order Cancelled 🚫",
-                f"Your order #{order.order_number} has been cancelled by the kitchen: {reason}",
-                {"order_id": str(order.id), "type": "order"},
-            )
-        except Exception as e:
-            logger.warning(f"Could not send push notification: {e}")
+        order = admin_cancel_order(order, reason)
 
         return Response(OrderSerializer(order).data)
 
