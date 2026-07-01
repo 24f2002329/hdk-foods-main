@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0007_siteconfig_kitchen_location'),
+        ("app_config", "0007_siteconfig_kitchen_location"),
     ]
 
     operations = [
@@ -14,9 +14,8 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.DeleteModel(
-                    name='Notification',
+                    name="Notification",
                 ),
-            ]
+            ],
         )
     ]
-

@@ -1,14 +1,16 @@
 from django.db import models
 from accounts.models import User
 
+
 class Notification(models.Model):
     """In-app notifications for users (global announcements or user-specific order updates)."""
+
     user = models.ForeignKey(
         User,
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="notifications"
+        related_name="notifications",
     )
     title = models.CharField(max_length=255)
     body = models.TextField()

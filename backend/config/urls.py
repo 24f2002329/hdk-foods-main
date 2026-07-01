@@ -23,39 +23,23 @@ from django.views.static import serve
 
 from django.http import JsonResponse
 
+
 def health_check(request):
     return JsonResponse({"status": "healthy"})
+
 
 urlpatterns = [
     path("", health_check, name="health_check"),
     path("admin/", admin.site.urls),
-
-    path(
-        "api/",
-        include("products.urls")
-    ),
-
-    path(
-        "api/orders/",
-        include("orders.urls")
-    ),
-
-    path(
-    "api/auth/",
-    include("authentication.urls")
-    ),
-
-    path(
-    "api/",
-    include("accounts.urls")),
-
-    path(
-    "api/",
-    include("app_config.urls")),
+    path("api/", include("products.urls")),
+    path("api/orders/", include("orders.urls")),
+    path("api/auth/", include("authentication.urls")),
+    path("api/", include("accounts.urls")),
+    path("api/", include("app_config.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Manual routing to serve media and static files when DEBUG = False in production
 urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT}),
 ]

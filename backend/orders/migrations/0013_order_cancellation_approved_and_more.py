@@ -6,33 +6,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0012_alter_order_status'),
+        ("orders", "0012_alter_order_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='cancellation_approved',
+            model_name="order",
+            name="cancellation_approved",
             field=models.BooleanField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='order',
-            name='cancellation_reason',
-            field=models.TextField(blank=True, default=''),
+            model_name="order",
+            name="cancellation_reason",
+            field=models.TextField(blank=True, default=""),
         ),
         migrations.AddField(
-            model_name='order',
-            name='cancellation_requested',
+            model_name="order",
+            name="cancellation_requested",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='order',
-            name='cancellation_requested_at',
+            model_name="order",
+            name="cancellation_requested_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='order',
-            name='refund_status',
-            field=models.CharField(blank=True, default='', max_length=50),
+            model_name="order",
+            name="refund_status",
+            field=models.CharField(blank=True, default="", max_length=50),
         ),
     ]

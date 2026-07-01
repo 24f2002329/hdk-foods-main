@@ -7,6 +7,7 @@ from asgiref.sync import sync_to_async
 def _get_user(token_str):
     from django.contrib.auth import get_user_model
     from django.db import close_old_connections
+
     close_old_connections()
     User = get_user_model()
     try:
@@ -30,9 +31,7 @@ class OrderConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         query_string = self.scope.get("query_string", b"").decode()
-        params = dict(
-            p.split("=", 1) for p in query_string.split("&") if "=" in p
-        )
+        params = dict(p.split("=", 1) for p in query_string.split("&") if "=" in p)
         token_str = params.get("token", "")
 
         self.user = await sync_to_async(_get_user)(token_str)
@@ -58,7 +57,9 @@ class OrderConsumer(AsyncJsonWebsocketConsumer):
             self.groups_joined.append("admin_orders")
 
         elif self.scope["path"].startswith("/ws/delivery/"):
-            if not (hasattr(self.user, "role") and self.user.role in ("delivery", "admin")):
+            if not (
+                hasattr(self.user, "role") and self.user.role in ("delivery", "admin")
+            ):
                 await self.close(code=4003)
                 return
             self.groups_joined.append(f"delivery_{self.user.id}")

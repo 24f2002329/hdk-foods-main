@@ -7,51 +7,111 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0004_product_promo_tag_product_strike_price'),
+        ("products", "0004_product_promo_tag_product_strike_price"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ModifierGroup',
+            name="ModifierGroup",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('selection_type', models.CharField(choices=[('SINGLE', 'Single Choice'), ('MULTIPLE', 'Multiple Choice')], default='SINGLE', max_length=10)),
-                ('required', models.BooleanField(default=False)),
-                ('min_selection', models.PositiveIntegerField(default=0)),
-                ('max_selection', models.PositiveIntegerField(default=1)),
-                ('display_order', models.PositiveIntegerField(default=0)),
-                ('visibility', models.BooleanField(default=True)),
-                ('description', models.TextField(blank=True, default='')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "selection_type",
+                    models.CharField(
+                        choices=[
+                            ("SINGLE", "Single Choice"),
+                            ("MULTIPLE", "Multiple Choice"),
+                        ],
+                        default="SINGLE",
+                        max_length=10,
+                    ),
+                ),
+                ("required", models.BooleanField(default=False)),
+                ("min_selection", models.PositiveIntegerField(default=0)),
+                ("max_selection", models.PositiveIntegerField(default=1)),
+                ("display_order", models.PositiveIntegerField(default=0)),
+                ("visibility", models.BooleanField(default=True)),
+                ("description", models.TextField(blank=True, default="")),
             ],
         ),
         migrations.AddField(
-            model_name='product',
-            name='modifier_groups',
-            field=models.ManyToManyField(blank=True, related_name='products', to='products.modifiergroup'),
+            model_name="product",
+            name="modifier_groups",
+            field=models.ManyToManyField(
+                blank=True, related_name="products", to="products.modifiergroup"
+            ),
         ),
         migrations.CreateModel(
-            name='ModifierOption',
+            name="ModifierOption",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('extra_price', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
-                ('is_available', models.BooleanField(default=True)),
-                ('image', models.URLField(blank=True, default='')),
-                ('sort_order', models.PositiveIntegerField(default=0)),
-                ('modifier_group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='options', to='products.modifiergroup')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "extra_price",
+                    models.DecimalField(decimal_places=2, default=0.0, max_digits=10),
+                ),
+                ("is_available", models.BooleanField(default=True)),
+                ("image", models.URLField(blank=True, default="")),
+                ("sort_order", models.PositiveIntegerField(default=0)),
+                (
+                    "modifier_group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="options",
+                        to="products.modifiergroup",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ProductModifierOptionOverride',
+            name="ProductModifierOptionOverride",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('extra_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('modifier_option', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='product_overrides', to='products.modifieroption')),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='price_overrides', to='products.product')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("extra_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "modifier_option",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="product_overrides",
+                        to="products.modifieroption",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="price_overrides",
+                        to="products.product",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('product', 'modifier_option')},
+                "unique_together": {("product", "modifier_option")},
             },
         ),
     ]

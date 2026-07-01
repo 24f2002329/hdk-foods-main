@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('orders', '0019_delete_coupon_remove_ordermessage_order_and_more'),
+        ("orders", "0019_delete_coupon_remove_ordermessage_order_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -19,20 +19,41 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.CreateModel(
-                    name='OrderMessage',
+                    name="OrderMessage",
                     fields=[
-                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('message', models.TextField()),
-                        ('is_admin', models.BooleanField(default=False)),
-                        ('created_at', models.DateTimeField(auto_now_add=True)),
-                        ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='orders.order')),
-                        ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_messages', to=settings.AUTH_USER_MODEL)),
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        ("message", models.TextField()),
+                        ("is_admin", models.BooleanField(default=False)),
+                        ("created_at", models.DateTimeField(auto_now_add=True)),
+                        (
+                            "order",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="messages",
+                                to="orders.order",
+                            ),
+                        ),
+                        (
+                            "sender",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="sent_messages",
+                                to=settings.AUTH_USER_MODEL,
+                            ),
+                        ),
                     ],
                     options={
-                        'db_table': 'orders_ordermessage',
+                        "db_table": "orders_ordermessage",
                     },
                 ),
-            ]
+            ],
         )
     ]
-

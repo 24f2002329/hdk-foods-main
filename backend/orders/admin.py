@@ -3,6 +3,7 @@ from .models import Order, OrderItem
 
 # Register your models here.
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
 
@@ -12,13 +13,10 @@ class OrderAdmin(admin.ModelAdmin):
         "status",
         "total_amount",
         "payment_status",
-        "created_at"
+        "created_at",
     )
 
-    list_filter = (
-        "status",
-        "payment_status"
-    )
+    list_filter = ("status", "payment_status")
 
 
 admin.site.register(OrderItem)

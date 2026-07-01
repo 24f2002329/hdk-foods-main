@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0004_address_street_alter_address_label'),
+        ("accounts", "0004_address_street_alter_address_label"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='is_default_delivery',
+            model_name="user",
+            name="is_default_delivery",
             field=models.BooleanField(default=False),
         ),
     ]

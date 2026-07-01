@@ -1,17 +1,16 @@
 from django.db import models
 from accounts.models import User
 
+
 class CoinTransaction(models.Model):
     TRANSACTION_TYPES = [
-        ('earned', 'Earned'),
-        ('redeemed', 'Redeemed'),
-        ('reversed', 'Reversed'),
+        ("earned", "Earned"),
+        ("redeemed", "Redeemed"),
+        ("reversed", "Reversed"),
     ]
 
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="coin_transactions"
+        User, on_delete=models.CASCADE, related_name="coin_transactions"
     )
     amount = models.IntegerField()
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)

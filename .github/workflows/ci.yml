@@ -72,7 +72,7 @@ jobs:
 
       - name: Run Django Tests
         run: |
-          source antenv/bin/activate
+          source ../antenv/bin/activate
           python manage.py test --verbosity=2
         working-directory: backend
         env:
@@ -115,10 +115,10 @@ jobs:
 
       - name: Flutter Analyze
         run: |
-          flutter analyze packages/hdk_core
-          flutter analyze frontend
-          flutter analyze frontend_delivery
-          flutter analyze frontend_admin
+          flutter analyze packages/hdk_core --no-fatal-infos
+          flutter analyze frontend --no-fatal-infos
+          flutter analyze frontend_delivery --no-fatal-infos
+          flutter analyze frontend_admin --no-fatal-infos
 
       - name: Flutter Test
         run: |

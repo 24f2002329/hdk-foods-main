@@ -10,8 +10,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('orders', '0019_delete_coupon_remove_ordermessage_order_and_more'),
-        ('products', '0006_product_base_prep_minutes'),
+        ("orders", "0019_delete_coupon_remove_ordermessage_order_and_more"),
+        ("products", "0006_product_base_prep_minutes"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -20,36 +20,86 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.CreateModel(
-                    name='OrderReview',
+                    name="OrderReview",
                     fields=[
-                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('rating', models.PositiveSmallIntegerField()),
-                        ('comment', models.TextField(blank=True, default='')),
-                        ('created_at', models.DateTimeField(auto_now_add=True)),
-                        ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to=settings.AUTH_USER_MODEL)),
-                        ('order', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='review', to='orders.order')),
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        ("rating", models.PositiveSmallIntegerField()),
+                        ("comment", models.TextField(blank=True, default="")),
+                        ("created_at", models.DateTimeField(auto_now_add=True)),
+                        (
+                            "customer",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="reviews",
+                                to=settings.AUTH_USER_MODEL,
+                            ),
+                        ),
+                        (
+                            "order",
+                            models.OneToOneField(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="review",
+                                to="orders.order",
+                            ),
+                        ),
                     ],
                     options={
-                        'db_table': 'orders_orderreview',
+                        "db_table": "orders_orderreview",
                     },
                 ),
                 migrations.CreateModel(
-                    name='ProductReview',
+                    name="ProductReview",
                     fields=[
-                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('rating', models.PositiveSmallIntegerField()),
-                        ('comment', models.TextField(blank=True, default='')),
-                        ('created_at', models.DateTimeField(auto_now_add=True)),
-                        ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='product_reviews', to=settings.AUTH_USER_MODEL)),
-                        ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='product_reviews', to='orders.order')),
-                        ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='products.product')),
+                        (
+                            "id",
+                            models.BigAutoField(
+                                auto_created=True,
+                                primary_key=True,
+                                serialize=False,
+                                verbose_name="ID",
+                            ),
+                        ),
+                        ("rating", models.PositiveSmallIntegerField()),
+                        ("comment", models.TextField(blank=True, default="")),
+                        ("created_at", models.DateTimeField(auto_now_add=True)),
+                        (
+                            "customer",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="product_reviews",
+                                to=settings.AUTH_USER_MODEL,
+                            ),
+                        ),
+                        (
+                            "order",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="product_reviews",
+                                to="orders.order",
+                            ),
+                        ),
+                        (
+                            "product",
+                            models.ForeignKey(
+                                on_delete=django.db.models.deletion.CASCADE,
+                                related_name="reviews",
+                                to="products.product",
+                            ),
+                        ),
                     ],
                     options={
-                        'db_table': 'orders_productreview',
-                        'unique_together': {('order', 'product')},
+                        "db_table": "orders_productreview",
+                        "unique_together": {("order", "product")},
                     },
                 ),
-            ]
+            ],
         )
     ]
-

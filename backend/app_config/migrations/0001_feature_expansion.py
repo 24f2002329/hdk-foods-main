@@ -8,38 +8,71 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Banner',
+            name="Banner",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image_url', models.URLField()),
-                ('title', models.CharField(blank=True, default='', max_length=100)),
-                ('subtitle', models.CharField(blank=True, default='', max_length=200)),
-                ('link_action', models.CharField(blank=True, default='', help_text="e.g. 'menu', 'orders' — navigates customer to that section", max_length=50)),
-                ('order', models.PositiveIntegerField(default=0)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image_url", models.URLField()),
+                ("title", models.CharField(blank=True, default="", max_length=100)),
+                ("subtitle", models.CharField(blank=True, default="", max_length=200)),
+                (
+                    "link_action",
+                    models.CharField(
+                        blank=True,
+                        default="",
+                        help_text="e.g. 'menu', 'orders' — navigates customer to that section",
+                        max_length=50,
+                    ),
+                ),
+                ("order", models.PositiveIntegerField(default=0)),
+                ("is_active", models.BooleanField(default=True)),
             ],
             options={
-                'ordering': ['order'],
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='SiteConfig',
+            name="SiteConfig",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('announcement', models.CharField(blank=True, default='', max_length=255)),
-                ('is_store_open', models.BooleanField(default=True)),
-                ('store_open_time', models.TimeField(default=datetime.time(8, 0))),
-                ('store_close_time', models.TimeField(default=datetime.time(22, 0))),
-                ('store_closed_msg', models.CharField(blank=True, default="We're closed right now. See you soon!", max_length=255)),
-                ('show_ratings', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "announcement",
+                    models.CharField(blank=True, default="", max_length=255),
+                ),
+                ("is_store_open", models.BooleanField(default=True)),
+                ("store_open_time", models.TimeField(default=datetime.time(8, 0))),
+                ("store_close_time", models.TimeField(default=datetime.time(22, 0))),
+                (
+                    "store_closed_msg",
+                    models.CharField(
+                        blank=True,
+                        default="We're closed right now. See you soon!",
+                        max_length=255,
+                    ),
+                ),
+                ("show_ratings", models.BooleanField(default=True)),
             ],
             options={
-                'verbose_name': 'Site Configuration',
+                "verbose_name": "Site Configuration",
             },
         ),
     ]

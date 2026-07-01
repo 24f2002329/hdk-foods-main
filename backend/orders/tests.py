@@ -24,13 +24,14 @@ class BaseOrderTest(TestCase):
         # Ensure the kitchen/store is configured as open 24/7 during tests
         from app_config.models import SiteConfig
         from datetime import time
+
         SiteConfig.objects.update_or_create(
             pk=1,
             defaults={
                 "is_store_open": True,
                 "store_open_time": time(0, 0),
                 "store_close_time": time(23, 59, 59),
-            }
+            },
         )
 
         self.admin = User.objects.create_user(
@@ -81,20 +82,28 @@ class BaseOrderTest(TestCase):
 class CreateOrderTest(BaseOrderTest):
     def test_customer_can_create_order(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/create/", {
-            "address_id": self.address.id,
-            "payment_method": "cod",
-            "items": [{"product_id": self.product.id, "quantity": 2}],
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/create/",
+            {
+                "address_id": self.address.id,
+                "payment_method": "cod",
+                "items": [{"product_id": self.product.id, "quantity": 2}],
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.data["status"], "pending_confirmation")
         self.assertEqual(Decimal(res.data["total_amount"]), Decimal("398.00"))
 
     def test_unauthenticated_cannot_create_order(self):
-        res = self.client.post("/api/orders/create/", {
-            "address_id": self.address.id,
-            "items": [{"product_id": self.product.id, "quantity": 1}],
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/create/",
+            {
+                "address_id": self.address.id,
+                "items": [{"product_id": self.product.id, "quantity": 1}],
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 401)
 
     def test_create_order_with_valid_coupon(self):
@@ -102,12 +111,16 @@ class CreateOrderTest(BaseOrderTest):
             code="SAVE50", discount_type="flat", discount_value=Decimal("50.00")
         )
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/create/", {
-            "address_id": self.address.id,
-            "payment_method": "cod",
-            "coupon_code": "SAVE50",
-            "items": [{"product_id": self.product.id, "quantity": 1}],
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/create/",
+            {
+                "address_id": self.address.id,
+                "payment_method": "cod",
+                "coupon_code": "SAVE50",
+                "items": [{"product_id": self.product.id, "quantity": 1}],
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 201)
         self.assertEqual(Decimal(res.data["discount_amount"]), Decimal("50.00"))
         self.assertEqual(Decimal(res.data["total_amount"]), Decimal("149.00"))
@@ -116,11 +129,15 @@ class CreateOrderTest(BaseOrderTest):
 
     def test_create_order_with_invalid_coupon(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/create/", {
-            "address_id": self.address.id,
-            "coupon_code": "INVALID",
-            "items": [{"product_id": self.product.id, "quantity": 1}],
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/create/",
+            {
+                "address_id": self.address.id,
+                "coupon_code": "INVALID",
+                "items": [{"product_id": self.product.id, "quantity": 1}],
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 400)
 
 
@@ -217,6 +234,7 @@ class UpdateOrderStatusTest(BaseOrderTest):
 
     def test_dynamic_loyalty_coins_earned(self):
         from app_config.models import SiteConfig
+
         # Configure loyalty coins percentage as 5%
         config = SiteConfig.get()
         config.loyalty_coins_percentage = 5
@@ -286,9 +304,7 @@ class PaginationTest(BaseOrderTest):
 
     def test_customer_list_paginated(self):
         for i in range(25):
-            User.objects.create_user(
-                phone_number=f"800000{i:04d}", role="customer"
-            )
+            User.objects.create_user(phone_number=f"800000{i:04d}", role="customer")
         _auth(self.client, self.admin)
         res = self.client.get("/api/customers/")
         self.assertEqual(res.status_code, 200)
@@ -330,39 +346,55 @@ class CouponTest(BaseOrderTest):
 
     def test_validate_valid_coupon(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/coupons/validate/", {
-            "code": "FLAT100",
-            "order_total": "300.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/coupons/validate/",
+            {
+                "code": "FLAT100",
+                "order_total": "300.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.data["valid"])
         self.assertEqual(Decimal(res.data["discount_amount"]), Decimal("100.00"))
 
     def test_validate_below_minimum(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/coupons/validate/", {
-            "code": "FLAT100",
-            "order_total": "100.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/coupons/validate/",
+            {
+                "code": "FLAT100",
+                "order_total": "100.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["valid"])
 
     def test_validate_invalid_code(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/orders/coupons/validate/", {
-            "code": "NOSUCHCODE",
-            "order_total": "300.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/coupons/validate/",
+            {
+                "code": "NOSUCHCODE",
+                "order_total": "300.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data["valid"])
 
     def test_admin_creates_coupon(self):
         _auth(self.client, self.admin)
-        res = self.client.post("/api/orders/coupons/", {
-            "code": "PERCENT10",
-            "discount_type": "percentage",
-            "discount_value": "10.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/orders/coupons/",
+            {
+                "code": "PERCENT10",
+                "discount_type": "percentage",
+                "discount_value": "10.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.data["code"], "PERCENT10")
 
@@ -397,6 +429,7 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
     def setUp(self):
         super().setUp()
         from .models import PrepConfig
+
         self.prep_config = PrepConfig.get()
         # Set default values for tests
         self.prep_config.queue_multiplier = 2.0
@@ -411,6 +444,7 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
 
     def test_calculate_prep_time_no_backlog(self):
         from .utils import calculate_predicted_prep_time
+
         # Max base prep (15) + (2.0 * 0 active orders) + 0 boost
         pred = calculate_predicted_prep_time([self.product.id])
         # Note: timezone-dependent peak hour calculation might add rush hour bonus,
@@ -419,10 +453,11 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
 
     def test_calculate_prep_time_with_backlog(self):
         from .utils import calculate_predicted_prep_time
+
         # Create some active orders
         self._create_order()
         self._create_order()
-        
+
         # Now we have 2 active orders (status: pending_confirmation)
         # Expected = 15 + (2.0 * 2) = 19 minutes (ignoring rush hour for now)
         pred = calculate_predicted_prep_time([self.product.id])
@@ -430,13 +465,15 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
 
     def test_predict_prep_time_view(self):
         _auth(self.client, self.customer)
-        res = self.client.get(f"/api/orders/predict-prep-time/?product_ids={self.product.id}")
+        res = self.client.get(
+            f"/api/orders/predict-prep-time/?product_ids={self.product.id}"
+        )
         self.assertEqual(res.status_code, 200)
         self.assertIn("predicted_preparation_time", res.data)
         self.assertIn("predicted_delivery_time_minutes", res.data)
         self.assertEqual(
             res.data["predicted_delivery_time_minutes"],
-            res.data["predicted_preparation_time"] + 15
+            res.data["predicted_preparation_time"] + 15,
         )
 
     def test_prep_config_admin_endpoints(self):
@@ -452,15 +489,20 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
         self.assertEqual(res.data["queue_multiplier"], 2.0)
 
         # Update boost
-        res = self.client.patch("/api/orders/admin/prep-config/", {"override_boost": 10}, format="json")
+        res = self.client.patch(
+            "/api/orders/admin/prep-config/", {"override_boost": 10}, format="json"
+        )
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["override_boost"], 10)
 
         # Verify prediction reflects boost
         from .utils import calculate_predicted_prep_time
+
         pred_before = calculate_predicted_prep_time([self.product.id])
         # Reset to 0 boost
-        self.client.patch("/api/orders/admin/prep-config/", {"override_boost": 0}, format="json")
+        self.client.patch(
+            "/api/orders/admin/prep-config/", {"override_boost": 0}, format="json"
+        )
         pred_after = calculate_predicted_prep_time([self.product.id])
         self.assertEqual(pred_before - pred_after, 10)
 
@@ -470,4 +512,3 @@ class SmartPrepTimePredictorTest(BaseOrderTest):
         res = self.client.get(f"/api/orders/{order.id}/")
         self.assertEqual(res.status_code, 200)
         self.assertIn("predicted_preparation_time", res.data)
-

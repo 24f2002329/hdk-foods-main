@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import Coupon, Order, OrderItem, OrderReview, ProductReview, PrepConfig
 
 
-
 class OrderItemCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
     quantity = serializers.IntegerField()
@@ -12,31 +11,17 @@ class OrderCreateSerializer(serializers.Serializer):
 
     address_id = serializers.IntegerField()
 
-    payment_method = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
+    payment_method = serializers.CharField(required=False, allow_blank=True)
 
-    delivery_notes = serializers.CharField(
-        required=False,
-        allow_blank=True
-    )
+    delivery_notes = serializers.CharField(required=False, allow_blank=True)
 
-    coupon_code = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        default=""
-    )
+    coupon_code = serializers.CharField(required=False, allow_blank=True, default="")
 
-    items = OrderItemCreateSerializer(
-        many=True
-    )
+    items = OrderItemCreateSerializer(many=True)
 
 
 class ConfirmOrderSerializer(serializers.Serializer):
-    estimated_preparation_time = (
-        serializers.IntegerField()
-    )
+    estimated_preparation_time = serializers.IntegerField()
 
 
 class RejectOrderSerializer(serializers.Serializer):
@@ -58,15 +43,11 @@ class UpdateStatusSerializer(serializers.Serializer):
 
 
 class AssignDeliverySerializer(serializers.Serializer):
-    delivery_user_id = (
-        serializers.IntegerField()
-    )
+    delivery_user_id = serializers.IntegerField()
 
 
 class SelectPaymentSerializer(serializers.Serializer):
-    payment_method = serializers.ChoiceField(
-        choices=["cod", "online"]
-    )
+    payment_method = serializers.ChoiceField(choices=["cod", "online"])
 
 
 class AdminPaymentMethodSerializer(serializers.Serializer):
@@ -83,14 +64,10 @@ class AdminPaymentMethodSerializer(serializers.Serializer):
 
 class ApplyDiscountSerializer(serializers.Serializer):
     discount_amount = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        min_value=0
+        max_digits=10, decimal_places=2, min_value=0
     )
     discount_reason = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        default=""
+        required=False, allow_blank=True, default=""
     )
 
 
@@ -98,27 +75,18 @@ class AcknowledgeChangesSerializer(serializers.Serializer):
     accepted = serializers.BooleanField()
 
 
-
 class OrderItemSerializer(serializers.ModelSerializer):
 
-    product_name = serializers.CharField(
-        source="product.name",
-        read_only=True
-    )
+    product_name = serializers.CharField(source="product.name", read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = [
-            "id",
-            "product",
-            "product_name",
-            "quantity",
-            "price"
-        ]
+        fields = ["id", "product", "product_name", "quantity", "price"]
 
 
 class OrderAddressSerializer(serializers.Serializer):
     """Read-only snapshot of the delivery address for an order."""
+
     label = serializers.CharField()
     house = serializers.CharField()
     street = serializers.CharField()
@@ -135,17 +103,18 @@ class UpdateDeliveryLocationSerializer(serializers.Serializer):
     heartbeat = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
-        if not attrs.get('heartbeat') and ('latitude' not in attrs or 'longitude' not in attrs):
-            raise serializers.ValidationError("latitude and longitude are required unless it is a heartbeat.")
+        if not attrs.get("heartbeat") and (
+            "latitude" not in attrs or "longitude" not in attrs
+        ):
+            raise serializers.ValidationError(
+                "latitude and longitude are required unless it is a heartbeat."
+            )
         return attrs
 
 
 class OrderSerializer(serializers.ModelSerializer):
 
-    items = OrderItemSerializer(
-        many=True,
-        read_only=True
-    )
+    items = OrderItemSerializer(many=True, read_only=True)
 
     address_detail = serializers.SerializerMethodField()
     customer_name = serializers.SerializerMethodField()
@@ -162,13 +131,14 @@ class OrderSerializer(serializers.ModelSerializer):
         return OrderAddressSerializer(obj.address).data
 
     def get_customer_name(self, obj):
-        return obj.user.name if obj.user_id else ''
+        return obj.user.name if obj.user_id else ""
 
     def get_customer_phone(self, obj):
-        return obj.user.phone_number if obj.user_id else ''
+        return obj.user.phone_number if obj.user_id else ""
 
     def get_predicted_preparation_time(self, obj):
         from .utils import calculate_predicted_prep_time
+
         product_ids = list(obj.items.values_list("product_id", flat=True))
         return calculate_predicted_prep_time(product_ids)
 
@@ -177,28 +147,43 @@ class CouponSerializer(serializers.ModelSerializer):
     class Meta:
         model = Coupon
         fields = [
-            'id', 'code', 'discount_type', 'discount_value',
-            'min_order_amount', 'max_discount_amount',
-            'is_active', 'valid_from', 'valid_until',
-            'usage_limit', 'usage_count', 'created_at',
+            "id",
+            "code",
+            "discount_type",
+            "discount_value",
+            "min_order_amount",
+            "max_discount_amount",
+            "is_active",
+            "valid_from",
+            "valid_until",
+            "usage_limit",
+            "usage_count",
+            "created_at",
         ]
-        read_only_fields = ['usage_count', 'created_at']
+        read_only_fields = ["usage_count", "created_at"]
 
 
 class CouponWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Coupon
         fields = [
-            'code', 'discount_type', 'discount_value',
-            'min_order_amount', 'max_discount_amount',
-            'is_active', 'valid_from', 'valid_until',
-            'usage_limit',
+            "code",
+            "discount_type",
+            "discount_value",
+            "min_order_amount",
+            "max_discount_amount",
+            "is_active",
+            "valid_from",
+            "valid_until",
+            "usage_limit",
         ]
 
 
 class OrderReviewSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True)
-    customer_phone = serializers.CharField(source="customer.phone_number", read_only=True)
+    customer_phone = serializers.CharField(
+        source="customer.phone_number", read_only=True
+    )
     order_number = serializers.CharField(source="order.order_number", read_only=True)
 
     class Meta:
@@ -217,6 +202,7 @@ class OrderReviewSerializer(serializers.ModelSerializer):
 
 
 from .models import OrderMessage
+
 
 class OrderMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source="sender.name", read_only=True)
@@ -240,7 +226,9 @@ class OrderMessageSerializer(serializers.ModelSerializer):
 class ProductReviewSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     customer_name = serializers.CharField(source="customer.name", read_only=True)
-    customer_phone = serializers.CharField(source="customer.phone_number", read_only=True)
+    customer_phone = serializers.CharField(
+        source="customer.phone_number", read_only=True
+    )
     order_number = serializers.CharField(source="order.order_number", read_only=True)
 
     class Meta:

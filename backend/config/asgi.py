@@ -10,9 +10,9 @@ django_asgi_app = get_asgi_application()
 
 from orders.routing import websocket_urlpatterns  # noqa: E402 – after Django setup
 
-application = ProtocolTypeRouter({
-    "http": django_asgi_app,
-    "websocket": AllowedHostsOriginValidator(
-        URLRouter(websocket_urlpatterns)
-    ),
-})
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": AllowedHostsOriginValidator(URLRouter(websocket_urlpatterns)),
+    }
+)

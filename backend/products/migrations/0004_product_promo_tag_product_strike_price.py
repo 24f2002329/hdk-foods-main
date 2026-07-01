@@ -6,18 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0003_product_is_addon'),
+        ("products", "0003_product_is_addon"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
-            name='promo_tag',
-            field=models.CharField(blank=True, default='', help_text="Custom promo badge text (e.g. '15% OFF', 'BOGO', 'Chef Special').", max_length=50),
+            model_name="product",
+            name="promo_tag",
+            field=models.CharField(
+                blank=True,
+                default="",
+                help_text="Custom promo badge text (e.g. '15% OFF', 'BOGO', 'Chef Special').",
+                max_length=50,
+            ),
         ),
         migrations.AddField(
-            model_name='product',
-            name='strike_price',
-            field=models.DecimalField(blank=True, decimal_places=2, help_text='Original price before discount (slashed). Leave blank if no discount.', max_digits=10, null=True),
+            model_name="product",
+            name="strike_price",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                help_text="Original price before discount (slashed). Leave blank if no discount.",
+                max_digits=10,
+                null=True,
+            ),
         ),
     ]

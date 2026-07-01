@@ -12,6 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_name(self, value):
         from authentication.utils import sanitize_text
+
         return sanitize_text(value)
 
 
@@ -43,9 +44,7 @@ class CreateDeliveryStaffSerializer(serializers.ModelSerializer):
         )
 
 
-class AddressSerializer(
-    serializers.ModelSerializer
-):
+class AddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
@@ -63,14 +62,12 @@ class AddressSerializer(
             "is_default",
         ]
 
-        read_only_fields = [
-            "id"
-        ]
+        read_only_fields = ["id"]
 
     def validate(self, data):
         from authentication.utils import sanitize_text
+
         for field in ["label", "house", "street", "landmark", "city", "pincode"]:
             if field in data and isinstance(data[field], str):
                 data[field] = sanitize_text(data[field])
         return data
-

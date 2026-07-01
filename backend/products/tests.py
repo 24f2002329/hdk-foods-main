@@ -36,20 +36,28 @@ class ProductAPITest(TestCase):
 
     def test_admin_creates_product(self):
         _auth(self.client, self.admin)
-        res = self.client.post("/api/products/create/", {
-            "category": self.category.id,
-            "name": "Pepperoni",
-            "price": "349.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/products/create/",
+            {
+                "category": self.category.id,
+                "name": "Pepperoni",
+                "price": "349.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 201)
 
     def test_customer_cannot_create_product(self):
         _auth(self.client, self.customer)
-        res = self.client.post("/api/products/create/", {
-            "category": self.category.id,
-            "name": "Should Fail",
-            "price": "100.00",
-        }, format="json")
+        res = self.client.post(
+            "/api/products/create/",
+            {
+                "category": self.category.id,
+                "name": "Should Fail",
+                "price": "100.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 403)
 
     def test_toggle_availability(self):
@@ -60,9 +68,13 @@ class ProductAPITest(TestCase):
 
     def test_update_product(self):
         _auth(self.client, self.admin)
-        res = self.client.patch(f"/api/products/{self.product.id}/update/", {
-            "price": "320.00",
-        }, format="json")
+        res = self.client.patch(
+            f"/api/products/{self.product.id}/update/",
+            {
+                "price": "320.00",
+            },
+            format="json",
+        )
         self.assertEqual(res.status_code, 200)
         self.assertEqual(Decimal(res.data["price"]), Decimal("320.00"))
 

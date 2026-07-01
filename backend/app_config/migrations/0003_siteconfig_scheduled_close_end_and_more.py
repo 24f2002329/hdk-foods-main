@@ -6,23 +6,35 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0002_alter_banner_image_url'),
+        ("app_config", "0002_alter_banner_image_url"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='siteconfig',
-            name='scheduled_close_end',
-            field=models.DateTimeField(blank=True, help_text='End date & time of the scheduled closure', null=True),
+            model_name="siteconfig",
+            name="scheduled_close_end",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="End date & time of the scheduled closure",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='siteconfig',
-            name='scheduled_close_start',
-            field=models.DateTimeField(blank=True, help_text='Start date & time of the scheduled closure', null=True),
+            model_name="siteconfig",
+            name="scheduled_close_start",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="Start date & time of the scheduled closure",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='siteconfig',
-            name='scheduled_closed_msg',
-            field=models.CharField(blank=True, default='We are closed for a scheduled holiday/maintenance. See you soon!', max_length=255),
+            model_name="siteconfig",
+            name="scheduled_closed_msg",
+            field=models.CharField(
+                blank=True,
+                default="We are closed for a scheduled holiday/maintenance. See you soon!",
+                max_length=255,
+            ),
         ),
     ]

@@ -68,17 +68,18 @@ class ProductListView(generics.ListAPIView):
 
     Staff/admin can pass ?all=1 to get all products (incl. unavailable).
     """
+
     serializer_class = ProductSerializer
 
     def get_queryset(self):
-        if self.request.query_params.get('all') == '1':
+        if self.request.query_params.get("all") == "1":
             user = self.request.user
-            if user.is_authenticated and user.role == 'admin':
-                return Product.objects.all().order_by('category', 'name')
+            if user.is_authenticated and user.role == "admin":
+                return Product.objects.all().order_by("category", "name")
         # Customers see available, non-add-on products in the menu.
-        return Product.objects.filter(
-            is_available=True, is_addon=False
-        ).order_by('category', 'name')
+        return Product.objects.filter(is_available=True, is_addon=False).order_by(
+            "category", "name"
+        )
 
 
 class ProductToggleAvailabilityView(APIView):
@@ -91,8 +92,7 @@ class ProductToggleAvailabilityView(APIView):
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return Response(
-                {"detail": "Product not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Product not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         product.is_available = not product.is_available
@@ -103,6 +103,7 @@ class ProductToggleAvailabilityView(APIView):
 
 class FeaturedProductsView(generics.ListAPIView):
     """Public list of featured + available products, ordered by rating descending."""
+
     serializer_class = ProductSerializer
 
     def get_queryset(self):
@@ -113,12 +114,11 @@ class FeaturedProductsView(generics.ListAPIView):
 
 class AddOnListView(generics.ListAPIView):
     """Public list of available add-on items (e.g. Coke, Juice) for the cart."""
+
     serializer_class = ProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(
-            is_addon=True, is_available=True
-        ).order_by("name")
+        return Product.objects.filter(is_addon=True, is_available=True).order_by("name")
 
 
 class ProductCreateView(APIView):
@@ -189,29 +189,40 @@ class ProductImageUploadView(APIView):
 
         image_file = request.FILES.get("image")
         if not image_file:
-            return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "No image file provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Validate content type
         content_type = image_file.content_type or ""
         ext = os.path.splitext(image_file.name)[1].lower()
         is_image_ext = ext in [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
         if not (content_type.startswith("image/") or is_image_ext):
-            return Response({"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "File must be an image."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         ext = os.path.splitext(image_file.name)[1].lower() or ".jpg"
         filename = f"product_{pk}{ext}"
 
         import firebase_admin
+
         if firebase_admin._apps:
             from authentication.firebase import upload_file_to_firebase
             import logging
+
             logger = logging.getLogger(__name__)
             try:
-                product.image = upload_file_to_firebase(image_file, f"products/{filename}")
+                product.image = upload_file_to_firebase(
+                    image_file, f"products/{filename}"
+                )
                 product.save(update_fields=["image"])
                 return Response(ProductSerializer(product).data)
             except Exception as e:
-                logger.error("Firebase upload failed, falling back to local storage: %s", e)
+                logger.error(
+                    "Firebase upload failed, falling back to local storage: %s", e
+                )
 
         upload_dir = os.path.join(settings.MEDIA_ROOT, "products")
         os.makedirs(upload_dir, exist_ok=True)

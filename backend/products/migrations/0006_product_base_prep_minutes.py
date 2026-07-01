@@ -6,13 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('products', '0005_modifiergroup_product_modifier_groups_modifieroption_and_more'),
+        (
+            "products",
+            "0005_modifiergroup_product_modifier_groups_modifieroption_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
-            name='base_prep_minutes',
-            field=models.PositiveIntegerField(default=15, help_text='Base preparation time in minutes for this dish.'),
+            model_name="product",
+            name="base_prep_minutes",
+            field=models.PositiveIntegerField(
+                default=15, help_text="Base preparation time in minutes for this dish."
+            ),
         ),
     ]

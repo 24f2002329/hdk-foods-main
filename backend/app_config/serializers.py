@@ -25,18 +25,29 @@ class SiteConfigSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         from django.utils import timezone
+
         now = timezone.now()
         if instance.scheduled_close_start and instance.scheduled_close_end:
             if instance.scheduled_close_start <= now <= instance.scheduled_close_end:
                 ret["is_store_open"] = False
-                ret["store_closed_msg"] = instance.scheduled_closed_msg or instance.store_closed_msg
+                ret["store_closed_msg"] = (
+                    instance.scheduled_closed_msg or instance.store_closed_msg
+                )
         return ret
 
 
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ["id", "image_url", "title", "subtitle", "link_action", "order", "is_active"]
+        fields = [
+            "id",
+            "image_url",
+            "title",
+            "subtitle",
+            "link_action",
+            "order",
+            "is_active",
+        ]
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -46,8 +57,11 @@ class BannerSerializer(serializers.ModelSerializer):
                 ret["image_url"] = request.build_absolute_uri(ret["image_url"])
             else:
                 from django.conf import settings
+
                 domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
-                ret["image_url"] = domain.rstrip("/") + "/" + ret["image_url"].lstrip("/")
+                ret["image_url"] = (
+                    domain.rstrip("/") + "/" + ret["image_url"].lstrip("/")
+                )
         return ret
 
 

@@ -13,19 +13,12 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
 
-        fields = [
-            "id",
-            "name",
-            "phone_number",
-            "role"
-        ]
+        fields = ["id", "name", "phone_number", "role"]
 
 
 class VerifyOTPSerializer(serializers.Serializer):
 
-    firebase_token = (
-        serializers.CharField()
-    )
+    firebase_token = serializers.CharField()
 
 
 class SendSMSSerializer(serializers.Serializer):

@@ -1,9 +1,7 @@
 from django.db.models import Count, Q
 from rest_framework import generics, status
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (
-    IsAuthenticated
-)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -25,80 +23,46 @@ class CustomerPagination(PageNumberPagination):
 
 class AddressListCreateView(generics.ListCreateAPIView):
 
-    serializer_class = (
-        AddressSerializer
-    )
+    serializer_class = AddressSerializer
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
 
-        return Address.objects.filter(
-            user=self.request.user
+        return Address.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        is_first_address = not Address.objects.filter(user=self.request.user).exists()
+
+        is_default = (
+            serializer.validated_data.get("is_default", False) or is_first_address
         )
-
-    def perform_create(
-        self,
-        serializer
-    ):
-        is_first_address = not Address.objects.filter(
-            user=self.request.user
-        ).exists()
-
-        is_default = serializer.validated_data.get(
-            "is_default",
-            False
-        ) or is_first_address
 
         if is_default:
-            Address.objects.filter(
-                user=self.request.user
-            ).update(
-                is_default=False
-            )
+            Address.objects.filter(user=self.request.user).update(is_default=False)
 
-        serializer.save(
-            user=self.request.user,
-            is_default=is_default
-        )
-
+        serializer.save(user=self.request.user, is_default=is_default)
 
 
 class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
-    serializer_class = (
-        AddressSerializer
-    )
+    serializer_class = AddressSerializer
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
 
-        return Address.objects.filter(
-            user=self.request.user
-        )
+        return Address.objects.filter(user=self.request.user)
 
-    def perform_update(
-        self,
-        serializer
-    ):
+    def perform_update(self, serializer):
         is_default = serializer.validated_data.get(
-            "is_default",
-            serializer.instance.is_default
+            "is_default", serializer.instance.is_default
         )
 
         if is_default:
-            Address.objects.filter(
-                user=self.request.user
-            ).exclude(
+            Address.objects.filter(user=self.request.user).exclude(
                 pk=serializer.instance.pk
-            ).update(
-                is_default=False
-            )
+            ).update(is_default=False)
 
         serializer.save()
 
@@ -127,9 +91,9 @@ class DeliveryStaffListView(generics.ListAPIView):
     permission_classes = [IsAdmin]
 
     def get_queryset(self):
-        return User.objects.filter(
-            role="delivery"
-        ).order_by("-is_default_delivery", "name")
+        return User.objects.filter(role="delivery").order_by(
+            "-is_default_delivery", "name"
+        )
 
 
 class SetDefaultDeliveryView(APIView):
@@ -142,15 +106,13 @@ class SetDefaultDeliveryView(APIView):
             user = User.objects.get(pk=pk, role="delivery")
         except User.DoesNotExist:
             return Response(
-                {"detail": "Delivery user not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Delivery user not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         # Clear existing default, then set this one.
-        User.objects.filter(
-            role="delivery",
-            is_default_delivery=True
-        ).update(is_default_delivery=False)
+        User.objects.filter(role="delivery", is_default_delivery=True).update(
+            is_default_delivery=False
+        )
 
         user.is_default_delivery = True
         user.save(update_fields=["is_default_delivery"])
@@ -166,7 +128,9 @@ class SaveFCMTokenView(APIView):
     def post(self, request):
         token = request.data.get("fcm_token", "").strip()
         if not token:
-            return Response({"detail": "fcm_token is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "fcm_token is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
         request.user.fcm_token = token
         request.user.save(update_fields=["fcm_token"])
         return Response({"detail": "Token saved."})
@@ -190,9 +154,11 @@ class CreateDeliveryStaffView(APIView):
 
 # ── Customer management ────────────────────────────────────────────────────────
 
+
 def _customer_to_dict(user, order_count=None):
     if order_count is None:
         from orders.models import Order
+
         order_count = Order.objects.filter(user=user).count()
     return {
         "id": user.id,
@@ -201,7 +167,7 @@ def _customer_to_dict(user, order_count=None):
         "is_active": user.is_active,
         "created_at": user.created_at,
         "order_count": order_count,
-        "loyalty_coins": getattr(user, 'loyalty_coins', 0),
+        "loyalty_coins": getattr(user, "loyalty_coins", 0),
     }
 
 
@@ -230,7 +196,7 @@ class CustomerListView(APIView):
                 "is_active": u.is_active,
                 "created_at": u.created_at,
                 "order_count": u.order_count,
-                "loyalty_coins": getattr(u, 'loyalty_coins', 0),
+                "loyalty_coins": getattr(u, "loyalty_coins", 0),
             }
             for u in page
         ]
@@ -257,17 +223,19 @@ class CustomerDetailView(APIView):
         recent_orders = Order.objects.filter(user=user).order_by("-created_at")[:10]
         addresses = Address.objects.filter(user=user)
 
-        return Response({
-            "id": user.id,
-            "name": user.name,
-            "phone_number": user.phone_number,
-            "is_active": user.is_active,
-            "created_at": user.created_at,
-            "order_count": Order.objects.filter(user=user).count(),
-            "loyalty_coins": getattr(user, 'loyalty_coins', 0),
-            "recent_orders": OrderSerializer(recent_orders, many=True).data,
-            "addresses": AddressSerializer(addresses, many=True).data,
-        })
+        return Response(
+            {
+                "id": user.id,
+                "name": user.name,
+                "phone_number": user.phone_number,
+                "is_active": user.is_active,
+                "created_at": user.created_at,
+                "order_count": Order.objects.filter(user=user).count(),
+                "loyalty_coins": getattr(user, "loyalty_coins", 0),
+                "recent_orders": OrderSerializer(recent_orders, many=True).data,
+                "addresses": AddressSerializer(addresses, many=True).data,
+            }
+        )
 
 
 class ToggleCustomerStatusView(APIView):
@@ -329,15 +297,18 @@ class AdminCustomerInfoView(APIView):
     def get(self, request):
         phone = request.query_params.get("phone", "").strip()
         if not phone:
-            return Response({"detail": "Phone parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Phone parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         normalized_phone = normalize_phone_number(phone)
         raw_10_digit = phone[-10:] if len(phone) >= 10 else phone
 
         user = User.objects.filter(
-            Q(phone_number=phone) |
-            Q(phone_number=normalized_phone) |
-            Q(phone_number__endswith=raw_10_digit)
+            Q(phone_number=phone)
+            | Q(phone_number=normalized_phone)
+            | Q(phone_number__endswith=raw_10_digit)
         ).first()
 
         if not user:
@@ -346,23 +317,27 @@ class AdminCustomerInfoView(APIView):
         addresses = Address.objects.filter(user=user)
         addresses_data = []
         for addr in addresses:
-            addresses_data.append({
-                "id": addr.id,
-                "label": addr.label,
-                "house": addr.house,
-                "street": addr.street,
-                "landmark": addr.landmark,
-                "city": addr.city,
-                "pincode": addr.pincode,
-                "latitude": float(addr.latitude),
-                "longitude": float(addr.longitude),
-                "is_default": addr.is_default,
-            })
+            addresses_data.append(
+                {
+                    "id": addr.id,
+                    "label": addr.label,
+                    "house": addr.house,
+                    "street": addr.street,
+                    "landmark": addr.landmark,
+                    "city": addr.city,
+                    "pincode": addr.pincode,
+                    "latitude": float(addr.latitude),
+                    "longitude": float(addr.longitude),
+                    "is_default": addr.is_default,
+                }
+            )
 
-        return Response({
-            "found": True,
-            "user_id": user.id,
-            "name": user.name,
-            "phone_number": user.phone_number,
-            "addresses": addresses_data
-        })
+        return Response(
+            {
+                "found": True,
+                "user_id": user.id,
+                "name": user.name,
+                "phone_number": user.phone_number,
+                "addresses": addresses_data,
+            }
+        )

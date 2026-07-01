@@ -8,10 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Address, User
-from authentication.permissions import (
-    IsAdmin,
-    IsDelivery
-)
+from authentication.permissions import IsAdmin, IsDelivery
 from products.models import Product
 
 from authentication.permissions import IsCustomer
@@ -33,7 +30,7 @@ from .serializers import (
     UpdateStatusSerializer,
     OrderReviewSerializer,
     ProductReviewSerializer,
-    PrepConfigSerializer
+    PrepConfigSerializer,
 )
 
 from django.utils import timezone
@@ -133,14 +130,13 @@ def _broadcast_location(order):
     # Compact structure: [latitude, longitude, speed, bearing, driver_id]
     lat = float(order.delivery_latitude) if order.delivery_latitude else 0.0
     lng = float(order.delivery_longitude) if order.delivery_longitude else 0.0
-    driver_id = f"drv_{order.assigned_delivery_id}" if order.assigned_delivery_id else ""
+    driver_id = (
+        f"drv_{order.assigned_delivery_id}" if order.assigned_delivery_id else ""
+    )
     compact_data = [lat, lng, 0.0, 0, driver_id]
     payload = {
         "type": "location_update",
-        "data": {
-            "type": "location_update",
-            "data": compact_data
-        }
+        "data": {"type": "location_update", "data": compact_data},
     }
     # Notify the per-order group (customer/delivery/admin watching this order)
     async_to_sync(channel_layer.group_send)(f"order_{order.id}", payload)
@@ -149,41 +145,34 @@ def _broadcast_location(order):
     # Notify the assigned delivery partner if any
     if order.assigned_delivery_id:
         async_to_sync(channel_layer.group_send)(
-            f"delivery_{order.assigned_delivery_id}",
-            payload
+            f"delivery_{order.assigned_delivery_id}", payload
         )
-
 
 
 class CreateOrderView(APIView):
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         from app_config.models import SiteConfig
+
         config = SiteConfig.get()
         if not config.is_currently_open():
             return Response(
-                {"detail": config.store_closed_msg or "The kitchen is closed right now."},
+                {
+                    "detail": config.store_closed_msg
+                    or "The kitchen is closed right now."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = OrderCreateSerializer(
-            data=request.data
-        )
+        serializer = OrderCreateSerializer(data=request.data)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
 
-        address = Address.objects.get(
-            id=data["address_id"],
-            user=request.user
-        )
+        address = Address.objects.get(id=data["address_id"], user=request.user)
 
         total_amount = Decimal("0.00")
 
@@ -202,35 +191,23 @@ class CreateOrderView(APIView):
         order = Order.objects.create(
             user=address.user,
             address=address,
-            payment_method=data.get(
-                "payment_method"
-            ) or "cod",
-            delivery_notes=data.get(
-                "delivery_notes",
-                ""
-            ),
-            total_amount=0
+            payment_method=data.get("payment_method") or "cod",
+            delivery_notes=data.get("delivery_notes", ""),
+            total_amount=0,
         )
 
         for item in data["items"]:
 
-            product = Product.objects.get(
-                id=item["product_id"]
-            )
+            product = Product.objects.get(id=item["product_id"])
 
             quantity = item["quantity"]
 
             price = product.price
 
-            total_amount += (
-                price * quantity
-            )
+            total_amount += price * quantity
 
             OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                price=price
+                order=order, product=product, quantity=quantity, price=price
             )
 
         order.total_amount = total_amount
@@ -259,7 +236,9 @@ class CreateOrderView(APIView):
             if total_amount < coupon.min_order_amount:
                 order.delete()
                 return Response(
-                    {"detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."},
+                    {
+                        "detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             discount = coupon.compute_discount(total_amount)
@@ -267,37 +246,35 @@ class CreateOrderView(APIView):
             order.discount_reason = f"Coupon: {coupon.code}"
             order.original_total = total_amount
             order.total_amount = total_amount - discount
-            Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
+            Coupon.objects.filter(pk=coupon.pk).update(
+                usage_count=coupon.usage_count + 1
+            )
 
         # Apply loyalty coins redemption
         redeem_coins = bool(request.data.get("redeem_coins", False))
         if redeem_coins:
             user = request.user
-            available_coins = getattr(user, 'loyalty_coins', 0)
+            available_coins = getattr(user, "loyalty_coins", 0)
             if available_coins > 0:
                 redeemed = min(available_coins, int(order.total_amount))
                 if redeemed > 0:
                     order.coins_redeemed = redeemed
                     order.total_amount = order.total_amount - Decimal(str(redeemed))
                     user.loyalty_coins = available_coins - redeemed
-                    user.save(update_fields=['loyalty_coins'])
+                    user.save(update_fields=["loyalty_coins"])
 
         order.save()
 
         send_push_to_role(
-            'admin',
-            'New Order 🛍️',
-            f'Order #{order.order_number} is waiting for review.',
-            {'order_id': str(order.id)},
+            "admin",
+            "New Order 🛍️",
+            f"Order #{order.order_number} is waiting for review.",
+            {"order_id": str(order.id)},
         )
 
         _broadcast_order(order, "new_order")
 
-        return Response(
-            OrderSerializer(order).data,
-            status=status.HTTP_201_CREATED
-        )
-
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
 class SelectPaymentView(APIView):
@@ -307,90 +284,58 @@ class SelectPaymentView(APIView):
     online -> create a Cashfree order and return the checkout params.
     """
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk,
-                user=request.user
-            )
+            order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         if order.status not in ["confirmed", "preparing", "out_for_delivery"]:
             return Response(
                 {
-                    "detail":
-                        "Order must be confirmed, preparing, or out for delivery "
-                        "before payment."
+                    "detail": "Order must be confirmed, preparing, or out for delivery "
+                    "before payment."
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if order.payment_status == "paid":
             return Response(
-                {"detail": "Order already paid."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Order already paid."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = SelectPaymentSerializer(
-            data=request.data
-        )
+        serializer = SelectPaymentSerializer(data=request.data)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        serializer.is_valid(raise_exception=True)
 
-        method = serializer.validated_data[
-            "payment_method"
-        ]
+        method = serializer.validated_data["payment_method"]
 
         if method == "cod":
             order.payment_method = "cod"
             order.payment_status = "pending"
-            order.save(
-                update_fields=[
-                    "payment_method",
-                    "payment_status",
-                    "updated_at"
-                ]
-            )
+            order.save(update_fields=["payment_method", "payment_status", "updated_at"])
 
             return Response(
-                {
-                    "payment_method": "cod",
-                    "order":
-                        OrderSerializer(order).data
-                }
+                {"payment_method": "cod", "order": OrderSerializer(order).data}
             )
 
         # online -> Cashfree
-        if not settings.CASHFREE_APP_ID or \
-                not settings.CASHFREE_SECRET_KEY:
+        if not settings.CASHFREE_APP_ID or not settings.CASHFREE_SECRET_KEY:
             return Response(
-                {
-                    "detail":
-                        "Online payment is not "
-                        "configured."
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
+                {"detail": "Online payment is not " "configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         # Cashfree expects the amount in rupees (not paise) and a globally
         # unique order id. A failed attempt leaves its order behind on
         # Cashfree, so each attempt gets a fresh id derived from our
         # order_number to avoid an "order_already_exists" collision on retry.
-        cf_order_id = (
-            f"{order.order_number}_"
-            f"{uuid.uuid4().hex[:10]}"
-        )
+        cf_order_id = f"{order.order_number}_" f"{uuid.uuid4().hex[:10]}"
 
         logger.info(
             f"Creating Cashfree order: cf_order_id={cf_order_id}, "
@@ -401,60 +346,40 @@ class SelectPaymentView(APIView):
             cf_response = requests.post(
                 f"{settings.CASHFREE_BASE_URL}/orders",
                 headers={
-                    "x-client-id":
-                        settings.CASHFREE_APP_ID,
-                    "x-client-secret":
-                        settings.CASHFREE_SECRET_KEY,
-                    "x-api-version":
-                        settings.CASHFREE_API_VERSION,
-                    "Content-Type":
-                        "application/json",
+                    "x-client-id": settings.CASHFREE_APP_ID,
+                    "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                    "x-api-version": settings.CASHFREE_API_VERSION,
+                    "Content-Type": "application/json",
                 },
                 json={
                     "order_id": cf_order_id,
-                    "order_amount": float(
-                        order.total_amount
-                    ),
+                    "order_amount": float(order.total_amount),
                     "order_currency": "INR",
                     "customer_details": {
-                        "customer_id":
-                            str(request.user.id),
-                        "customer_phone":
-                            request.user.phone_number,
-                        "customer_name":
-                            request.user.name or "Customer",
+                        "customer_id": str(request.user.id),
+                        "customer_phone": request.user.phone_number,
+                        "customer_name": request.user.name or "Customer",
                     },
                 },
-                timeout=15
+                timeout=15,
             )
         except requests.RequestException:
             return Response(
-                {
-                    "detail":
-                        "Could not reach payment "
-                        "gateway."
-                },
-                status=status.HTTP_502_BAD_GATEWAY
+                {"detail": "Could not reach payment " "gateway."},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         if cf_response.status_code not in (200, 201):
             return Response(
-                {
-                    "detail":
-                        "Payment gateway error.",
-                    "gateway":
-                        cf_response.text
-                },
-                status=status.HTTP_502_BAD_GATEWAY
+                {"detail": "Payment gateway error.", "gateway": cf_response.text},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         cf_order = cf_response.json()
 
         order.payment_method = "online"
         order.cashfree_order_id = cf_order_id
-        order.payment_session_id = cf_order[
-            "payment_session_id"
-        ]
+        order.payment_session_id = cf_order["payment_session_id"]
         # A new attempt supersedes any prior failed one.
         if order.payment_status == "failed":
             order.payment_status = "pending"
@@ -464,21 +389,17 @@ class SelectPaymentView(APIView):
                 "cashfree_order_id",
                 "payment_session_id",
                 "payment_status",
-                "updated_at"
+                "updated_at",
             ]
         )
 
         return Response(
             {
                 "payment_method": "online",
-                "payment_session_id":
-                    cf_order["payment_session_id"],
-                "cf_order_id":
-                    cf_order_id,
-                "environment":
-                    settings.CASHFREE_ENV,
-                "order":
-                    OrderSerializer(order).data
+                "payment_session_id": cf_order["payment_session_id"],
+                "cf_order_id": cf_order_id,
+                "environment": settings.CASHFREE_ENV,
+                "order": OrderSerializer(order).data,
             }
         )
 
@@ -491,73 +412,50 @@ class VerifyPaymentView(APIView):
     only ``order_status == "PAID"``.
     """
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk,
-                user=request.user
-            )
+            order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         # No online attempt has been started for this order yet.
         if not order.cashfree_order_id:
             return Response(
                 {
-                    "payment_status":
-                        order.payment_status,
-                    "order":
-                        OrderSerializer(order).data
+                    "payment_status": order.payment_status,
+                    "order": OrderSerializer(order).data,
                 }
             )
 
         try:
             cf_response = requests.get(
-                f"{settings.CASHFREE_BASE_URL}"
-                f"/orders/{order.cashfree_order_id}",
+                f"{settings.CASHFREE_BASE_URL}" f"/orders/{order.cashfree_order_id}",
                 headers={
-                    "x-client-id":
-                        settings.CASHFREE_APP_ID,
-                    "x-client-secret":
-                        settings.CASHFREE_SECRET_KEY,
-                    "x-api-version":
-                        settings.CASHFREE_API_VERSION,
+                    "x-client-id": settings.CASHFREE_APP_ID,
+                    "x-client-secret": settings.CASHFREE_SECRET_KEY,
+                    "x-api-version": settings.CASHFREE_API_VERSION,
                 },
-                timeout=15
+                timeout=15,
             )
         except requests.RequestException:
             return Response(
-                {
-                    "detail":
-                        "Could not reach payment "
-                        "gateway."
-                },
-                status=status.HTTP_502_BAD_GATEWAY
+                {"detail": "Could not reach payment " "gateway."},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         if cf_response.status_code != 200:
             return Response(
-                {
-                    "detail":
-                        "Payment gateway error.",
-                    "gateway":
-                        cf_response.text
-                },
-                status=status.HTTP_502_BAD_GATEWAY
+                {"detail": "Payment gateway error.", "gateway": cf_response.text},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
 
         cf_order = cf_response.json()
-        order_status = cf_order.get(
-            "order_status"
-        )
+        order_status = cf_order.get("order_status")
 
         logger.info(
             f"Verified Cashfree payment: order_id={order.id}, "
@@ -570,72 +468,59 @@ class VerifyPaymentView(APIView):
         #                         this endpoint is safe to poll repeatedly.
         if order_status == "PAID":
             order.payment_status = "paid"
-            order.payment_id = str(
-                cf_order.get("cf_order_id", "")
-            )
-            order.save(
-                update_fields=[
-                    "payment_status",
-                    "payment_id",
-                    "updated_at"
-                ]
-            )
+            order.payment_id = str(cf_order.get("cf_order_id", ""))
+            order.save(update_fields=["payment_status", "payment_id", "updated_at"])
 
             return Response(
-                {
-                    "payment_status": "paid",
-                    "order":
-                        OrderSerializer(order).data
-                }
+                {"payment_status": "paid", "order": OrderSerializer(order).data}
             )
 
         if order_status in ("EXPIRED", "TERMINATED"):
             order.payment_status = "failed"
-            order.save(
-                update_fields=[
-                    "payment_status",
-                    "updated_at"
-                ]
-            )
+            order.save(update_fields=["payment_status", "updated_at"])
 
         return Response(
             {
-                "payment_status":
-                    order.payment_status,
-                "order_status":
-                    order_status,
-                "order":
-                    OrderSerializer(order).data
+                "payment_status": order.payment_status,
+                "order_status": order_status,
+                "order": OrderSerializer(order).data,
             }
         )
 
 
 class DriverInitiatePaymentView(APIView):
     """Driver requests/generates a native UPI Intent QR for COD to Online conversion."""
+
     permission_classes = [IsAdmin | IsDelivery]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if order.payment_status == "paid":
-            return Response({
-                "detail": "Order already paid.",
-                "upi_uri": "",
-                "amount": float(order.total_amount),
-                "order_number": order.order_number,
-                "payment_status": "paid"
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "detail": "Order already paid.",
+                    "upi_uri": "",
+                    "amount": float(order.total_amount),
+                    "order_number": order.order_number,
+                    "payment_status": "paid",
+                },
+                status=status.HTTP_200_OK,
+            )
 
         from app_config.models import SiteConfig
         import urllib.parse
+
         config = SiteConfig.get()
         merchant_upi_id = config.merchant_upi_id or "hdkfoods@axisbank"
-        
+
         # Clean amount representation
-        amount_str = f"{order.total_amount:.2f}".rstrip('0').rstrip('.')
+        amount_str = f"{order.total_amount:.2f}".rstrip("0").rstrip(".")
 
         # Construct dynamic upi://pay Intent URI
         params = {
@@ -643,43 +528,61 @@ class DriverInitiatePaymentView(APIView):
             "pn": "HDK Foods",
             "am": amount_str,
             "cu": "INR",
-            "tn": f"Order {order.order_number}"
+            "tn": f"Order {order.order_number}",
         }
-        upi_uri = f"upi://pay?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
+        upi_uri = (
+            f"upi://pay?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}"
+        )
 
         # Set payment method to online for tracking
         order.payment_method = "online"
         order.save(update_fields=["payment_method", "updated_at"])
 
-        return Response({
-            "upi_uri": upi_uri,
-            "amount": float(order.total_amount),
-            "order_number": order.order_number,
-            "payment_status": order.payment_status
-        })
+        return Response(
+            {
+                "upi_uri": upi_uri,
+                "amount": float(order.total_amount),
+                "order_number": order.order_number,
+                "payment_status": order.payment_status,
+            }
+        )
 
 
 class DriverVerifyPaymentView(APIView):
     """Driver marks payment as completed directly (bypassing UTR validation)."""
+
     permission_classes = [IsAdmin | IsDelivery]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         # Mark order as paid directly
         order.payment_status = "paid"
-        order.payment_id = f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
+        order.payment_id = (
+            f"verified_by_driver_{timezone.now().strftime('%Y%m%d%H%M%S')}"
+        )
         order.payment_method = "online"
-        order.save(update_fields=["payment_status", "payment_id", "payment_method", "updated_at"])
+        order.save(
+            update_fields=[
+                "payment_status",
+                "payment_id",
+                "payment_method",
+                "updated_at",
+            ]
+        )
 
-        return Response({
-            "payment_status": "paid",
-            "payment_id": order.payment_id,
-            "order": OrderSerializer(order).data
-        })
+        return Response(
+            {
+                "payment_status": "paid",
+                "payment_id": order.payment_id,
+                "order": OrderSerializer(order).data,
+            }
+        )
 
 
 class OrderPagination(PageNumberPagination):
@@ -690,30 +593,21 @@ class OrderPagination(PageNumberPagination):
 
 class OrderListView(generics.ListAPIView):
 
-    queryset = Order.objects.all().order_by(
-        "-created_at"
-    )
+    queryset = Order.objects.all().order_by("-created_at")
 
     serializer_class = OrderSerializer
     permission_classes = [IsAdmin]
     pagination_class = OrderPagination
 
 
-
 class MyOrdersView(generics.ListAPIView):
     serializer_class = OrderSerializer
     pagination_class = OrderPagination
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(
-            user=self.request.user
-        ).order_by(
-            "-created_at"
-        )
+        return Order.objects.filter(user=self.request.user).order_by("-created_at")
 
 
 class OrderDetailView(generics.RetrieveAPIView):
@@ -722,59 +616,38 @@ class OrderDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if hasattr(user, 'role') and user.role in ('admin', 'delivery'):
+        if hasattr(user, "role") and user.role in ("admin", "delivery"):
             return Order.objects.all()
         return Order.objects.filter(user=user)
-    
 
 
 class ConfirmOrderView(APIView):
 
-    permission_classes = [
-        IsAdmin
-    ]
+    permission_classes = [IsAdmin]
 
     def patch(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk
-            )
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = (
-            ConfirmOrderSerializer(
-                data=request.data
-            )
-        )
+        serializer = ConfirmOrderSerializer(data=request.data)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        serializer.is_valid(raise_exception=True)
 
-        prep_time = serializer.validated_data[
-            "estimated_preparation_time"
-        ]
+        prep_time = serializer.validated_data["estimated_preparation_time"]
 
         order.status = "confirmed"
 
-        order.confirmed_at = (
-            timezone.now()
-        )
+        order.confirmed_at = timezone.now()
 
-        order.estimated_preparation_time = (
-            prep_time
-        )
+        order.estimated_preparation_time = prep_time
 
-        order.estimated_delivery_time = (
-            timezone.now()
-            + timedelta(
-                minutes=prep_time + 15
-            )
+        order.estimated_delivery_time = timezone.now() + timedelta(
+            minutes=prep_time + 15
         )
 
         order.confirmed_by = request.user
@@ -792,46 +665,29 @@ class ConfirmOrderView(APIView):
 
         _broadcast_order(order)
 
-        return Response(
-            OrderSerializer(order).data
-        )
+        return Response(OrderSerializer(order).data)
 
 
 class RejectOrderView(APIView):
 
-    permission_classes = [
-        IsAdmin
-    ]
-    
+    permission_classes = [IsAdmin]
+
     def patch(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk
-            )
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = (
-            RejectOrderSerializer(
-                data=request.data
-            )
-        )
+        serializer = RejectOrderSerializer(data=request.data)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        serializer.is_valid(raise_exception=True)
 
         order.status = "rejected"
 
-        order.rejection_reason = (
-            serializer.validated_data[
-                "reason"
-            ]
-        )
+        order.rejection_reason = serializer.validated_data["reason"]
 
         order.save()
 
@@ -844,18 +700,12 @@ class RejectOrderView(APIView):
 
         _broadcast_order(order)
 
-        return Response(
-            OrderSerializer(order).data
-        )
-
-
+        return Response(OrderSerializer(order).data)
 
 
 class UpdateOrderStatusView(APIView):
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
 
@@ -863,8 +713,7 @@ class UpdateOrderStatusView(APIView):
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         serializer = UpdateStatusSerializer(data=request.data)
@@ -874,24 +723,24 @@ class UpdateOrderStatusView(APIView):
         user = request.user
 
         # Delivery staff: may only mark their own assigned order as delivered
-        if hasattr(user, 'role') and user.role == 'delivery':
-            if new_status != 'delivered':
+        if hasattr(user, "role") and user.role == "delivery":
+            if new_status != "delivered":
                 return Response(
                     {"detail": "Delivery staff can only mark orders as delivered."},
-                    status=status.HTTP_403_FORBIDDEN
+                    status=status.HTTP_403_FORBIDDEN,
                 )
             if order.assigned_delivery_id != user.id:
                 return Response(
                     {"detail": "You are not assigned to this order."},
-                    status=status.HTTP_403_FORBIDDEN
+                    status=status.HTTP_403_FORBIDDEN,
                 )
-        elif not (hasattr(user, 'role') and user.role == 'admin'):
+        elif not (hasattr(user, "role") and user.role == "admin"):
             return Response(
                 {"detail": "You do not have permission to perform this action."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
-        if new_status == 'delivered' and order.status != 'delivered':
+        if new_status == "delivered" and order.status != "delivered":
             block_reason = _delivery_block_reason(order)
             if block_reason:
                 return Response(
@@ -899,80 +748,67 @@ class UpdateOrderStatusView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             from app_config.models import SiteConfig
+
             percentage = SiteConfig.get().loyalty_coins_percentage
             earned = int((order.total_amount * percentage) // 100)
             if earned > 0:
                 customer = order.user
-                customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + earned
-                customer.save(update_fields=['loyalty_coins'])
+                customer.loyalty_coins = getattr(customer, "loyalty_coins", 0) + earned
+                customer.save(update_fields=["loyalty_coins"])
                 order.coins_earned = earned
 
         order.status = new_status
         order.save()
 
         _push_map = {
-            "preparing": ("Kitchen is preparing your order 👨‍🍳", "Your food is being freshly prepared!"),
-            "out_for_delivery": ("On the way! 🛵", f"Order #{order.order_number} is out for delivery."),
-            "delivered": ("Order Delivered! 🎉", "Rate your food and share your feedback ⭐"),
+            "preparing": (
+                "Kitchen is preparing your order 👨‍🍳",
+                "Your food is being freshly prepared!",
+            ),
+            "out_for_delivery": (
+                "On the way! 🛵",
+                f"Order #{order.order_number} is out for delivery.",
+            ),
+            "delivered": (
+                "Order Delivered! 🎉",
+                "Rate your food and share your feedback ⭐",
+            ),
         }
         if new_status in _push_map:
             title, body = _push_map[new_status]
-            send_push(order.user, title, body, {"order_id": str(order.id), "type": "order"})
+            send_push(
+                order.user, title, body, {"order_id": str(order.id), "type": "order"}
+            )
 
         _broadcast_order(order)
 
-        return Response(
-            OrderSerializer(order).data
-        )
-
+        return Response(OrderSerializer(order).data)
 
 
 class AssignDeliveryView(APIView):
 
-    permission_classes = [
-        IsAdmin
-    ]
+    permission_classes = [IsAdmin]
 
-    def patch(
-        self,
-        request,
-        pk
-    ):
+    def patch(self, request, pk):
 
         try:
-            order = Order.objects.get(
-                pk=pk
-            )
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = (
-            AssignDeliverySerializer(
-                data=request.data
-            )
-        )
+        serializer = AssignDeliverySerializer(data=request.data)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        serializer.is_valid(raise_exception=True)
 
         try:
             delivery_user = User.objects.get(
-                id=serializer.validated_data[
-                    "delivery_user_id"
-                ],
-                role="delivery"
+                id=serializer.validated_data["delivery_user_id"], role="delivery"
             )
         except User.DoesNotExist:
             return Response(
-                {
-                    "detail":
-                        "Delivery user not found."
-                },
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Delivery user not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         order.assigned_delivery = delivery_user
@@ -985,53 +821,33 @@ class AssignDeliveryView(APIView):
             {"order_id": str(order.id), "type": "order"},
         )
 
-        return Response(
-            OrderSerializer(order).data
-        )
-    
+        return Response(OrderSerializer(order).data)
+
 
 class DeliveryOrdersView(generics.ListAPIView):
 
-    serializer_class = (
-        OrderSerializer
-    )
+    serializer_class = OrderSerializer
 
-    permission_classes = [
-        IsDelivery
-    ]
+    permission_classes = [IsDelivery]
 
     def get_queryset(self):
 
-        return Order.objects.filter(
-            assigned_delivery=
-            self.request.user
-        ).order_by(
+        return Order.objects.filter(assigned_delivery=self.request.user).order_by(
             "-created_at"
         )
 
 
 class PendingOrdersView(generics.ListAPIView):
 
-    serializer_class = (
-        OrderSerializer
-    )
+    serializer_class = OrderSerializer
 
-    permission_classes = [
-        IsAdmin
-    ]
+    permission_classes = [IsAdmin]
 
     def get_queryset(self):
 
-        return Order.objects.filter(
-            status=
-            "pending_confirmation"
-        ).order_by(
+        return Order.objects.filter(status="pending_confirmation").order_by(
             "created_at"
         )
-
-
-
-
 
 
 class AdminDashboardView(APIView):
@@ -1054,21 +870,18 @@ class AdminDashboardView(APIView):
             period = "today"
             start_date = today
 
-        period_qs = Order.objects.filter(
-            created_at__date__gte=start_date
-        )
+        period_qs = Order.objects.filter(created_at__date__gte=start_date)
 
         total_orders = period_qs.count()
 
         revenue = (
-            period_qs.filter(payment_status="paid")
-            .aggregate(total=Sum("total_amount"))["total"]
+            period_qs.filter(payment_status="paid").aggregate(
+                total=Sum("total_amount")
+            )["total"]
             or 0
         )
 
-        delivered_count = period_qs.filter(
-            status="delivered"
-        ).count()
+        delivered_count = period_qs.filter(status="delivered").count()
 
         # Extra stats
         cancelled_count = period_qs.filter(status="cancelled").count()
@@ -1102,8 +915,7 @@ class AdminDashboardView(APIView):
 
         # Hourly distribution of orders in this period (to identify Peak Times)
         hourly_dist = (
-            period_qs
-            .annotate(hour=ExtractHour("created_at"))
+            period_qs.annotate(hour=ExtractHour("created_at"))
             .values("hour")
             .annotate(count=Count("id"))
             .order_by("hour")
@@ -1112,35 +924,33 @@ class AdminDashboardView(APIView):
         hourly_list = [{"hour": h, "count": hourly_data.get(h, 0)} for h in range(24)]
 
         # Always-live counts — current queue state, not date-filtered
-        pending_orders = Order.objects.filter(
-            status="pending_confirmation"
-        ).count()
+        pending_orders = Order.objects.filter(status="pending_confirmation").count()
 
-        active_deliveries = Order.objects.filter(
-            status="out_for_delivery"
-        ).count()
+        active_deliveries = Order.objects.filter(status="out_for_delivery").count()
 
         in_progress = Order.objects.filter(
             status__in=["confirmed", "preparing"]
         ).count()
 
-        return Response({
-            "period": period,
-            "start_date": str(start_date),
-            "total_orders": total_orders,
-            "revenue": float(revenue),
-            "delivered_count": delivered_count,
-            "pending_orders": pending_orders,
-            "active_deliveries": active_deliveries,
-            "in_progress": in_progress,
-            "cancelled_count": cancelled_count,
-            "rejected_count": rejected_count,
-            "average_order_value": aov,
-            "total_reviews": total_reviews,
-            "average_rating": avg_rating,
-            "top_products": top_products,
-            "hourly_distribution": hourly_list,
-        })
+        return Response(
+            {
+                "period": period,
+                "start_date": str(start_date),
+                "total_orders": total_orders,
+                "revenue": float(revenue),
+                "delivered_count": delivered_count,
+                "pending_orders": pending_orders,
+                "active_deliveries": active_deliveries,
+                "in_progress": in_progress,
+                "cancelled_count": cancelled_count,
+                "rejected_count": rejected_count,
+                "average_order_value": aov,
+                "total_reviews": total_reviews,
+                "average_rating": avg_rating,
+                "top_products": top_products,
+                "hourly_distribution": hourly_list,
+            }
+        )
 
 
 class DailyAnalyticsView(APIView):
@@ -1154,8 +964,7 @@ class DailyAnalyticsView(APIView):
         start_date = timezone.now().date() - timedelta(days=days - 1)
 
         rows = (
-            Order.objects
-            .filter(created_at__date__gte=start_date)
+            Order.objects.filter(created_at__date__gte=start_date)
             .annotate(day=TruncDate("created_at"))
             .values("day")
             .annotate(
@@ -1179,6 +988,7 @@ class DailyAnalyticsView(APIView):
 
 # ─── Coupon views ─────────────────────────────────────────────────────────────
 
+
 class CouponListCreateView(APIView):
     """Admin: list all coupons (GET) or create a new one (POST)."""
 
@@ -1192,7 +1002,9 @@ class CouponListCreateView(APIView):
         serializer = CouponWriteSerializer(data=request.data)
         if serializer.is_valid():
             coupon = serializer.save()
-            return Response(CouponSerializer(coupon).data, status=status.HTTP_201_CREATED)
+            return Response(
+                CouponSerializer(coupon).data, status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -1270,19 +1082,28 @@ class ValidateCouponView(APIView):
         order_total = request.data.get("order_total")
 
         if not code:
-            return Response({"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Coupon code required."}, status=status.HTTP_400_BAD_REQUEST
+            )
         if order_total is None:
-            return Response({"detail": "order_total required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "order_total required."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             order_total = Decimal(str(order_total))
         except Exception:
-            return Response({"detail": "Invalid order_total."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Invalid order_total."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             coupon = Coupon.objects.get(code__iexact=code, is_active=True)
         except Coupon.DoesNotExist:
-            return Response({"valid": False, "detail": "Invalid or inactive coupon."}, status=status.HTTP_200_OK)
+            return Response(
+                {"valid": False, "detail": "Invalid or inactive coupon."},
+                status=status.HTTP_200_OK,
+            )
 
         now = timezone.now()
         if coupon.valid_from and now < coupon.valid_from:
@@ -1292,22 +1113,23 @@ class ValidateCouponView(APIView):
         if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
             return Response({"valid": False, "detail": "Coupon usage limit reached."})
         if order_total < coupon.min_order_amount:
-            return Response({
-                "valid": False,
-                "detail": f"Minimum order amount is ₹{coupon.min_order_amount}.",
-            })
+            return Response(
+                {
+                    "valid": False,
+                    "detail": f"Minimum order amount is ₹{coupon.min_order_amount}.",
+                }
+            )
 
         discount = coupon.compute_discount(order_total)
 
-        return Response({
-            "valid": True,
-            "coupon": CouponSerializer(coupon).data,
-            "discount_amount": str(discount),
-            "final_total": str(order_total - discount),
-        })
-
-
-
+        return Response(
+            {
+                "valid": True,
+                "coupon": CouponSerializer(coupon).data,
+                "discount_amount": str(discount),
+                "final_total": str(order_total - discount),
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -1329,137 +1151,84 @@ class CashfreeWebhookView(APIView):
 
             data = request.data
 
-            logger.info(
-                "Webhook payload:\n%s",
-                json.dumps(data, indent=2)
-            )
+            logger.info("Webhook payload:\n%s", json.dumps(data, indent=2))
 
             event_type = data.get("type", "")
             event_data = data.get("data", {})
 
-            logger.info(
-                f"Webhook received: type={event_type}"
-            )
+            logger.info(f"Webhook received: type={event_type}")
 
             # -------------------------
             # PAYMENT SUCCESS
             # -------------------------
             if event_type == "PAYMENT_SUCCESS_WEBHOOK":
 
-                order_id_str = (
-                    event_data.get("order", {})
-                    .get("order_id", "")
-                )
+                order_id_str = event_data.get("order", {}).get("order_id", "")
 
-                cf_payment_id = (
-                    event_data.get("payment", {})
-                    .get("cf_payment_id", "")
-                )
+                cf_payment_id = event_data.get("payment", {}).get("cf_payment_id", "")
 
                 if not order_id_str:
-                    logger.warning(
-                        "PAYMENT_SUCCESS_WEBHOOK received without order_id"
-                    )
-                    return Response(
-                        {"status": "success"},
-                        status=status.HTTP_200_OK
-                    )
+                    logger.warning("PAYMENT_SUCCESS_WEBHOOK received without order_id")
+                    return Response({"status": "success"}, status=status.HTTP_200_OK)
 
                 try:
-                    order_number = "_".join(
-                        order_id_str.split("_")[:-1]
-                    )
+                    order_number = "_".join(order_id_str.split("_")[:-1])
 
-                    order = Order.objects.get(
-                        order_number=order_number
-                    )
+                    order = Order.objects.get(order_number=order_number)
 
                     order.payment_status = "paid"
                     order.payment_id = str(cf_payment_id)
 
                     order.save(
-                        update_fields=[
-                            "payment_status",
-                            "payment_id",
-                            "updated_at"
-                        ]
+                        update_fields=["payment_status", "payment_id", "updated_at"]
                     )
 
                     send_push_to_role(
-                        'admin',
-                        'Payment Received 💰',
-                        f'Order #{order.order_number} has been paid online.',
-                        {'order_id': str(order.id)},
+                        "admin",
+                        "Payment Received 💰",
+                        f"Order #{order.order_number} has been paid online.",
+                        {"order_id": str(order.id)},
                     )
 
                     logger.info(
-                        f"Order marked PAID via webhook: "
-                        f"{order.order_number}"
+                        f"Order marked PAID via webhook: " f"{order.order_number}"
                     )
 
                 except Order.DoesNotExist:
-                    logger.warning(
-                        f"Order not found: {order_id_str}"
-                    )
+                    logger.warning(f"Order not found: {order_id_str}")
 
             # -------------------------
             # PAYMENT FAILED
             # -------------------------
             elif event_type == "PAYMENT_FAILED_WEBHOOK":
 
-                order_id_str = (
-                    event_data.get("order", {})
-                    .get("order_id", "")
-                )
+                order_id_str = event_data.get("order", {}).get("order_id", "")
 
-                logger.warning(
-                    f"Payment failed for order: {order_id_str}"
-                )
+                logger.warning(f"Payment failed for order: {order_id_str}")
 
                 try:
-                    order_number = "_".join(
-                        order_id_str.split("_")[:-1]
-                    )
+                    order_number = "_".join(order_id_str.split("_")[:-1])
 
-                    order = Order.objects.get(
-                        order_number=order_number
-                    )
+                    order = Order.objects.get(order_number=order_number)
 
                     order.payment_status = "failed"
 
-                    order.save(
-                        update_fields=[
-                            "payment_status",
-                            "updated_at"
-                        ]
-                    )
+                    order.save(update_fields=["payment_status", "updated_at"])
 
                 except Order.DoesNotExist:
-                    logger.warning(
-                        f"Order not found: {order_id_str}"
-                    )
+                    logger.warning(f"Order not found: {order_id_str}")
 
             else:
-                logger.info(
-                    f"Ignoring webhook type: {event_type}"
-                )
+                logger.info(f"Ignoring webhook type: {event_type}")
 
-            return Response(
-                {"status": "success"},
-                status=status.HTTP_200_OK
-            )
+            return Response({"status": "success"}, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.exception(
-                f"Webhook processing failed: {str(e)}"
-            )
+            logger.exception(f"Webhook processing failed: {str(e)}")
 
             return Response(
-                {
-                    "status": "error",
-                    "message": str(e)
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -1477,14 +1246,13 @@ class ApplyDiscountView(APIView):
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         if order.status in ("delivered", "cancelled", "rejected"):
             return Response(
                 {"detail": "Cannot apply discount to a completed order."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = ApplyDiscountSerializer(data=request.data)
@@ -1501,18 +1269,23 @@ class ApplyDiscountView(APIView):
         if discount > subtotal:
             return Response(
                 {"detail": "Discount cannot exceed the original order total."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         order.discount_amount = discount
         order.discount_reason = reason
         order.total_amount = subtotal - discount
         order.is_modified_by_staff = True
-        order.save(update_fields=[
-            "discount_amount", "discount_reason",
-            "total_amount", "original_total",
-            "is_modified_by_staff", "updated_at"
-        ])
+        order.save(
+            update_fields=[
+                "discount_amount",
+                "discount_reason",
+                "total_amount",
+                "original_total",
+                "is_modified_by_staff",
+                "updated_at",
+            ]
+        )
 
         logger.info(
             f"Discount applied: order_id={order.id}, "
@@ -1537,8 +1310,7 @@ class AcknowledgeChangesView(APIView):
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         serializer = AcknowledgeChangesSerializer(data=request.data)
@@ -1553,10 +1325,14 @@ class AcknowledgeChangesView(APIView):
             order.status = "rejected"
             order.rejection_reason = "Customer rejected the modified order."
             order.is_modified_by_staff = False
-            order.save(update_fields=[
-                "status", "rejection_reason",
-                "is_modified_by_staff", "updated_at"
-            ])
+            order.save(
+                update_fields=[
+                    "status",
+                    "rejection_reason",
+                    "is_modified_by_staff",
+                    "updated_at",
+                ]
+            )
             logger.info(f"Customer rejected modified order: order_id={order.id}")
 
         return Response(OrderSerializer(order).data)
@@ -1576,21 +1352,20 @@ class EditOrderItemsView(APIView):
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"detail": "Order not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         if order.status != "pending_confirmation":
             return Response(
                 {"detail": "Items can only be edited before confirmation."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         items_data = request.data.get("items", [])
         if not items_data:
             return Response(
                 {"detail": "At least one item is required."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Snapshot original total before any modification.
@@ -1606,7 +1381,7 @@ class EditOrderItemsView(APIView):
             except Product.DoesNotExist:
                 return Response(
                     {"detail": f"Product {item['product_id']} not found."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             quantity = int(item.get("quantity", 1))
@@ -1643,10 +1418,16 @@ class EditOrderItemsView(APIView):
         order.original_total = total_amount
         order.total_amount = total_amount - discount_amount
         order.is_modified_by_staff = True
-        order.save(update_fields=[
-            "total_amount", "original_total", "discount_amount", "discount_reason",
-            "is_modified_by_staff", "updated_at"
-        ])
+        order.save(
+            update_fields=[
+                "total_amount",
+                "original_total",
+                "discount_amount",
+                "discount_reason",
+                "is_modified_by_staff",
+                "updated_at",
+            ]
+        )
 
         logger.info(
             f"Order items edited by staff: order_id={order.id}, "
@@ -1665,23 +1446,29 @@ class OrderReviewView(APIView):
         try:
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         try:
             review = order.review
             product_reviews = ProductReview.objects.filter(order=order)
             items_data = []
             for pr in product_reviews:
-                items_data.append({
-                    "product_id": pr.product_id,
-                    "rating": pr.rating,
-                    "comment": pr.comment,
-                })
-            return Response({
-                "rating": review.rating,
-                "comment": review.comment,
-                "submitted": True,
-                "items": items_data,
-            })
+                items_data.append(
+                    {
+                        "product_id": pr.product_id,
+                        "rating": pr.rating,
+                        "comment": pr.comment,
+                    }
+                )
+            return Response(
+                {
+                    "rating": review.rating,
+                    "comment": review.comment,
+                    "submitted": True,
+                    "items": items_data,
+                }
+            )
         except OrderReview.DoesNotExist:
             return Response({"submitted": False})
 
@@ -1694,12 +1481,17 @@ class OrderReviewView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         if hasattr(order, "review"):
-            return Response({"detail": "Review already submitted."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Review already submitted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         rating = request.data.get("rating")
         comment = request.data.get("comment", "")
         if not rating or not (1 <= int(rating) <= 5):
-            return Response({"detail": "Rating must be 1-5."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Rating must be 1-5."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         OrderReview.objects.create(
             order=order,
@@ -1715,6 +1507,7 @@ class OrderReviewView(APIView):
             p_comment = item_data.get("comment", "")
             if p_id and p_rating:
                 from products.models import Product
+
                 try:
                     product = Product.objects.get(pk=p_id)
                     ProductReview.objects.create(
@@ -1730,19 +1523,27 @@ class OrderReviewView(APIView):
         # Update product ratings based on all ProductReview instances for that product
         from products.models import Product
         from django.db.models import Avg
+
         for item in order.items.all():
-            avg = ProductReview.objects.filter(
-                product=item.product
-            ).aggregate(avg=Avg("rating"))["avg"]
+            avg = ProductReview.objects.filter(product=item.product).aggregate(
+                avg=Avg("rating")
+            )["avg"]
             if avg is not None:
                 Product.objects.filter(pk=item.product_id).update(rating=round(avg, 1))
             else:
-                avg_overall = OrderReview.objects.filter(
-                    order__items__product=item.product
-                ).aggregate(avg=Avg("rating"))["avg"] or 0
-                Product.objects.filter(pk=item.product_id).update(rating=round(avg_overall, 1))
+                avg_overall = (
+                    OrderReview.objects.filter(
+                        order__items__product=item.product
+                    ).aggregate(avg=Avg("rating"))["avg"]
+                    or 0
+                )
+                Product.objects.filter(pk=item.product_id).update(
+                    rating=round(avg_overall, 1)
+                )
 
-        return Response({"detail": "Review submitted. Thank you!"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"detail": "Review submitted. Thank you!"}, status=status.HTTP_201_CREATED
+        )
 
 
 class QueuePositionView(APIView):
@@ -1754,7 +1555,9 @@ class QueuePositionView(APIView):
         try:
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if order.status not in ("pending_confirmation", "confirmed"):
             return Response({"position": None, "ahead": 0})
@@ -1776,12 +1579,14 @@ class UpdateDeliveryLocationView(APIView):
         try:
             order = Order.objects.get(pk=pk, assigned_delivery=request.user)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if order.status != "out_for_delivery":
             return Response(
                 {"detail": "Location updates only allowed when out for delivery."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = UpdateDeliveryLocationSerializer(data=request.data)
@@ -1794,10 +1599,13 @@ class UpdateDeliveryLocationView(APIView):
             order.delivery_latitude = serializer.validated_data["latitude"]
             order.delivery_longitude = serializer.validated_data["longitude"]
             order.delivery_location_updated_at = timezone.now()
-            order.save(update_fields=[
-                "delivery_latitude", "delivery_longitude",
-                "delivery_location_updated_at"
-            ])
+            order.save(
+                update_fields=[
+                    "delivery_latitude",
+                    "delivery_longitude",
+                    "delivery_location_updated_at",
+                ]
+            )
 
         _broadcast_location(order)
 
@@ -1813,24 +1621,32 @@ class GetDeliveryLocationView(APIView):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         # RBAC Check: Only the placing customer, assigned driver, or admin can track the location
-        if not (request.user == order.user or request.user == order.assigned_delivery or request.user.role == "admin"):
+        if not (
+            request.user == order.user
+            or request.user == order.assigned_delivery
+            or request.user.role == "admin"
+        ):
             return Response(
                 {"detail": "You do not have permission to view this order's location."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         if order.delivery_latitude is None:
             return Response({"available": False})
 
-        return Response({
-            "available": True,
-            "latitude": str(order.delivery_latitude),
-            "longitude": str(order.delivery_longitude),
-            "updated_at": order.delivery_location_updated_at,
-        })
+        return Response(
+            {
+                "available": True,
+                "latitude": str(order.delivery_latitude),
+                "longitude": str(order.delivery_longitude),
+                "updated_at": order.delivery_location_updated_at,
+            }
+        )
 
 
 def normalize_phone_number(phone):
@@ -1849,15 +1665,18 @@ def normalize_phone_number(phone):
 
 class AdminCreateOrderView(APIView):
     """Admin manually places an order for a customer by their phone number."""
+
     permission_classes = [IsAdmin]
 
     def post(self, request):
         phone_number = request.data.get("phone_number", "").strip()
         customer_name = request.data.get("customer_name", "").strip()
-        delivery_type = request.data.get("delivery_type", "delivery") # delivery or pickup
+        delivery_type = request.data.get(
+            "delivery_type", "delivery"
+        )  # delivery or pickup
         address_text = request.data.get("address_text", "").strip()
         address_id = request.data.get("address_id")
-        
+
         # Split Address Fields
         house = request.data.get("house", "").strip()
         street = request.data.get("street", "").strip()
@@ -1866,24 +1685,30 @@ class AdminCreateOrderView(APIView):
         pincode = request.data.get("pincode", "").strip()
 
         items = request.data.get("items", [])
-        payment_method = request.data.get("payment_method", "cod") # cod or prepaid
+        payment_method = request.data.get("payment_method", "cod")  # cod or prepaid
         coupon_code = request.data.get("coupon_code", "").strip()
         delivery_notes = request.data.get("delivery_notes", "").strip()
 
         if not phone_number:
-            return Response({"detail": "Phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"detail": "Phone number is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not items:
-            return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "At least one item is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 1. Get or create the User
         normalized_phone = normalize_phone_number(phone_number)
         raw_10_digit = phone_number[-10:] if len(phone_number) >= 10 else phone_number
 
         user = User.objects.filter(
-            Q(phone_number=phone_number) |
-            Q(phone_number=normalized_phone) |
-            Q(phone_number__endswith=raw_10_digit)
+            Q(phone_number=phone_number)
+            | Q(phone_number=normalized_phone)
+            | Q(phone_number__endswith=raw_10_digit)
         ).first()
 
         if user:
@@ -1899,7 +1724,7 @@ class AdminCreateOrderView(APIView):
             user = User.objects.create_user(
                 phone_number=normalized_phone,
                 name=customer_name or "Guest Customer",
-                role="customer"
+                role="customer",
             )
 
         # 2. Get or create Address
@@ -1931,9 +1756,9 @@ class AdminCreateOrderView(APIView):
                 street=street_text,
                 landmark=landmark_text,
                 city=city_text,
-                pincode=pincode_text
+                pincode=pincode_text,
             ).first()
-            
+
             if not address:
                 address = Address.objects.create(
                     user=user,
@@ -1945,7 +1770,7 @@ class AdminCreateOrderView(APIView):
                     pincode=pincode_text,
                     latitude=Decimal("25.861129"),
                     longitude=Decimal("73.749306"),
-                    is_default=True
+                    is_default=True,
                 )
 
         # 3. Calculate total and check coupon
@@ -1955,7 +1780,10 @@ class AdminCreateOrderView(APIView):
             try:
                 coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
             except Coupon.DoesNotExist:
-                return Response({"detail": "Invalid or expired coupon code."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Invalid or expired coupon code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         order = Order.objects.create(
             user=user,
@@ -1964,18 +1792,21 @@ class AdminCreateOrderView(APIView):
             payment_status="paid" if payment_method == "prepaid" else "pending",
             delivery_notes=delivery_notes,
             total_amount=Decimal("0.00"),
-            status="confirmed" # Admin-placed order is auto-confirmed
+            status="confirmed",  # Admin-placed order is auto-confirmed
         )
 
         for item in items:
             product_id = item.get("product_id")
             quantity = int(item.get("quantity", 1))
-            
+
             try:
                 product = Product.objects.get(id=product_id)
             except Product.DoesNotExist:
                 order.delete()
-                return Response({"detail": f"Product with ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": f"Product with ID {product_id} not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             item_price = product.price
             customization_price = Decimal("0.00")
@@ -1988,10 +1819,7 @@ class AdminCreateOrderView(APIView):
             total_amount += final_price * quantity
 
             OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                price=final_price
+                order=order, product=product, quantity=quantity, price=final_price
             )
 
         order.total_amount = total_amount
@@ -2001,23 +1829,39 @@ class AdminCreateOrderView(APIView):
             now = timezone.now()
             if coupon.valid_from and now < coupon.valid_from:
                 order.delete()
-                return Response({"detail": "Coupon is not yet valid."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Coupon is not yet valid."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if coupon.valid_until and now > coupon.valid_until:
                 order.delete()
-                return Response({"detail": "Coupon has expired."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Coupon has expired."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
                 order.delete()
-                return Response({"detail": "Coupon usage limit reached."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Coupon usage limit reached."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if total_amount < coupon.min_order_amount:
                 order.delete()
-                return Response({"detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response(
+                    {
+                        "detail": f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             discount = coupon.compute_discount(total_amount)
             order.discount_amount = discount
             order.discount_reason = f"Coupon: {coupon.code}"
             order.original_total = total_amount
             order.total_amount = total_amount - discount
-            Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
+            Coupon.objects.filter(pk=coupon.pk).update(
+                usage_count=coupon.usage_count + 1
+            )
 
         order.save()
 
@@ -2025,9 +1869,9 @@ class AdminCreateOrderView(APIView):
         try:
             send_push(
                 user,
-                'Order Placed 🛍️',
-                f'An order has been placed for you: Order #{order.order_number}',
-                {'order_id': str(order.id), 'type': 'order'}
+                "Order Placed 🛍️",
+                f"An order has been placed for you: Order #{order.order_number}",
+                {"order_id": str(order.id), "type": "order"},
             )
         except Exception as e:
             logger.warning(f"Could not send push notification: {e}")
@@ -2040,6 +1884,7 @@ class AdminCreateOrderView(APIView):
 
 class AdminReviewsListView(generics.ListAPIView):
     """Admin: list all reviews submitted by customers (paginated)."""
+
     permission_classes = [IsAdmin]
     pagination_class = OrderPagination
 
@@ -2056,6 +1901,7 @@ class AdminReviewsListView(generics.ListAPIView):
 
 class AdminProductReviewsListView(generics.ListAPIView):
     """Admin: list all product/dish reviews submitted by customers (paginated)."""
+
     permission_classes = [IsAdmin]
     pagination_class = OrderPagination
 
@@ -2072,6 +1918,7 @@ class AdminProductReviewsListView(generics.ListAPIView):
 
 def initiate_cashfree_refund(order, reason):
     import uuid
+
     if not order.cashfree_order_id:
         return False
     refund_id = f"ref_{order.order_number}_{uuid.uuid4().hex[:6]}"
@@ -2081,12 +1928,12 @@ def initiate_cashfree_refund(order, reason):
             "x-client-id": settings.CASHFREE_APP_ID,
             "x-client-secret": settings.CASHFREE_SECRET_KEY,
             "x-api-version": settings.CASHFREE_API_VERSION,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         payload = {
             "refund_amount": float(order.total_amount),
             "refund_id": refund_id,
-            "refund_note": reason or "Cancellation refund"
+            "refund_note": reason or "Cancellation refund",
         }
         res = requests.post(url, json=payload, headers=headers, timeout=10)
         if res.status_code in [200, 201]:
@@ -2098,25 +1945,28 @@ def initiate_cashfree_refund(order, reason):
 
 class RequestCancellationView(APIView):
     """Customer: Request cancellation for an order."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk, user=request.user)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if order.status in ["delivered", "cancelled", "rejected"]:
             return Response(
                 {"detail": "Cannot request cancellation for this order."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         reason = request.data.get("reason", "").strip()
         if not reason:
             return Response(
                 {"detail": "Cancellation reason is required."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         order.cancellation_requested = True
@@ -2132,21 +1982,24 @@ class RequestCancellationView(APIView):
 
 class AdminHandleCancellationView(APIView):
     """Admin: Approve or decline a cancellation request."""
+
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        action = request.data.get("action", "").strip() # "approve" or "reject"
+        action = request.data.get("action", "").strip()  # "approve" or "reject"
         reason = request.data.get("reason", "").strip()
 
         if action not in ["approve", "reject"]:
             return Response(
                 {"detail": "Action must be either 'approve' or 'reject'."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if action == "approve":
@@ -2157,12 +2010,16 @@ class AdminHandleCancellationView(APIView):
 
             if order.coins_redeemed > 0:
                 customer = order.user
-                customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + order.coins_redeemed
-                customer.save(update_fields=['loyalty_coins'])
+                customer.loyalty_coins = (
+                    getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
+                )
+                customer.save(update_fields=["loyalty_coins"])
 
             # Initiate Cashfree Refund if paid online
             if order.payment_method == "online" and order.payment_status == "paid":
-                success = initiate_cashfree_refund(order, reason or "Customer Cancellation Request Approved")
+                success = initiate_cashfree_refund(
+                    order, reason or "Customer Cancellation Request Approved"
+                )
                 if success:
                     order.refund_status = "initiated"
                     order.payment_status = "refunded"
@@ -2176,19 +2033,21 @@ class AdminHandleCancellationView(APIView):
                     order.user,
                     "Order Cancelled 🚫",
                     f"Your cancellation request for order #{order.order_number} has been approved.",
-                    {"order_id": str(order.id), "type": "order"}
+                    {"order_id": str(order.id), "type": "order"},
                 )
             except Exception as e:
                 logger.warning(f"Could not send push notification: {e}")
         else:
             order.cancellation_approved = False
-            order.cancellation_requested = False # reset so they can request again if needed
+            order.cancellation_requested = (
+                False  # reset so they can request again if needed
+            )
             try:
                 send_push(
                     order.user,
                     "Cancellation Request Declined ⚠️",
                     f"Your cancellation request for order #{order.order_number} was declined.",
-                    {"order_id": str(order.id), "type": "order"}
+                    {"order_id": str(order.id), "type": "order"},
                 )
             except Exception as e:
                 logger.warning(f"Could not send push notification: {e}")
@@ -2201,19 +2060,22 @@ class AdminHandleCancellationView(APIView):
 
 class AdminCancelOrderView(APIView):
     """Admin: Cancel order directly at any stage."""
+
     permission_classes = [IsAdmin]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         reason = request.data.get("reason", "").strip()
         if not reason:
             return Response(
                 {"detail": "Cancellation reason is required."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         order.status = "cancelled"
@@ -2222,8 +2084,10 @@ class AdminCancelOrderView(APIView):
 
         if order.coins_redeemed > 0:
             customer = order.user
-            customer.loyalty_coins = getattr(customer, 'loyalty_coins', 0) + order.coins_redeemed
-            customer.save(update_fields=['loyalty_coins'])
+            customer.loyalty_coins = (
+                getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
+            )
+            customer.save(update_fields=["loyalty_coins"])
 
         # Initiate Cashfree Refund if paid online
         if order.payment_method == "online" and order.payment_status == "paid":
@@ -2244,7 +2108,7 @@ class AdminCancelOrderView(APIView):
                 order.user,
                 "Order Cancelled 🚫",
                 f"Your order #{order.order_number} has been cancelled by the kitchen: {reason}",
-                {"order_id": str(order.id), "type": "order"}
+                {"order_id": str(order.id), "type": "order"},
             )
         except Exception as e:
             logger.warning(f"Could not send push notification: {e}")
@@ -2255,6 +2119,7 @@ class AdminCancelOrderView(APIView):
 from .models import OrderMessage
 from .serializers import OrderMessageSerializer
 
+
 class OrderMessageListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -2262,10 +2127,18 @@ class OrderMessageListCreateView(APIView):
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        if request.user.role != "admin" and order.user != request.user and order.assigned_delivery != request.user:
-            return Response({"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN)
+        if (
+            request.user.role != "admin"
+            and order.user != request.user
+            and order.assigned_delivery != request.user
+        ):
+            return Response(
+                {"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN
+            )
 
         messages = OrderMessage.objects.filter(order=order).order_by("created_at")
         serializer = OrderMessageSerializer(messages, many=True)
@@ -2275,22 +2148,30 @@ class OrderMessageListCreateView(APIView):
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        if request.user.role != "admin" and order.user != request.user and order.assigned_delivery != request.user:
-            return Response({"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN)
+        if (
+            request.user.role != "admin"
+            and order.user != request.user
+            and order.assigned_delivery != request.user
+        ):
+            return Response(
+                {"error": "Unauthorized access"}, status=status.HTTP_403_FORBIDDEN
+            )
 
         from authentication.utils import sanitize_text
+
         message_text = sanitize_text(request.data.get("message", "").strip())
         if not message_text:
-            return Response({"error": "Message cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Message cannot be empty"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
-        is_admin = (request.user.role == "admin")
+        is_admin = request.user.role == "admin"
         msg = OrderMessage.objects.create(
-            order=order,
-            sender=request.user,
-            message=message_text,
-            is_admin=is_admin
+            order=order, sender=request.user, message=message_text, is_admin=is_admin
         )
 
         try:
@@ -2299,10 +2180,7 @@ class OrderMessageListCreateView(APIView):
                 data = OrderMessageSerializer(msg).data
                 payload = {
                     "type": "order_update",
-                    "data": {
-                        "type": "chat_message",
-                        "message": data
-                    }
+                    "data": {"type": "chat_message", "message": data},
                 }
                 async_to_sync(channel_layer.group_send)(f"order_{order.id}", payload)
         except Exception as e:
@@ -2318,12 +2196,14 @@ class OrderMessageListCreateView(APIView):
                         "type": "chat",
                         "order_id": order.id,
                         "order_number": order.order_number,
-                    }
+                    },
                 )
         except Exception as e:
             logger.warning(f"Could not send chat push notification: {e}")
 
-        return Response(OrderMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+        return Response(
+            OrderMessageSerializer(msg).data, status=status.HTTP_201_CREATED
+        )
 
 
 class ReportNotReceivedView(APIView):
@@ -2331,16 +2211,21 @@ class ReportNotReceivedView(APIView):
     Customer reports that their order was marked delivered but they
     didn't actually receive it. Flags the order and notifies admin.
     """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if order.user != request.user:
-            return Response({"detail": "Not your order."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Not your order."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         if order.status != "delivered":
             return Response(
@@ -2349,7 +2234,9 @@ class ReportNotReceivedView(APIView):
             )
 
         if order.not_received_reported:
-            return Response({"detail": "Already reported."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Already reported."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         order.not_received_reported = True
         order.not_received_reported_at = timezone.now()
@@ -2379,10 +2266,14 @@ class AdminPaymentMethodView(APIView):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if not (hasattr(request.user, "role") and request.user.role == "admin"):
-            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         serializer = AdminPaymentMethodSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2411,11 +2302,18 @@ class AdminPaymentMethodView(APIView):
         if action == "send_notification":
             if order.payment_method != "online" or order.payment_status != "pending":
                 return Response(
-                    {"detail": "Payment notification is only for Online | Pending orders."},
+                    {
+                        "detail": "Payment notification is only for Online | Pending orders."
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             _send_pending_online_payment_reminder(order.id)
-            return Response({"detail": "Payment notification sent.", "order": OrderSerializer(order).data})
+            return Response(
+                {
+                    "detail": "Payment notification sent.",
+                    "order": OrderSerializer(order).data,
+                }
+            )
 
         method = serializer.validated_data.get("payment_method")
         if not method:
@@ -2434,13 +2332,15 @@ class AdminPaymentMethodView(APIView):
         if method == "cod":
             order.cashfree_order_id = ""
             order.payment_session_id = ""
-        order.save(update_fields=[
-            "payment_method",
-            "payment_status",
-            "cashfree_order_id",
-            "payment_session_id",
-            "updated_at",
-        ])
+        order.save(
+            update_fields=[
+                "payment_method",
+                "payment_status",
+                "cashfree_order_id",
+                "payment_session_id",
+                "updated_at",
+            ]
+        )
         _broadcast_order(order)
         return Response(OrderSerializer(order).data)
 
@@ -2455,16 +2355,21 @@ class AdminOverrideStatusView(APIView):
     - If overriding AWAY from 'delivered': reverses any coins earned.
     - If overriding TO 'delivered' from a non-delivered state: awards coins.
     """
+
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if not (hasattr(request.user, "role") and request.user.role == "admin"):
-            return Response({"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Admin access required."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         new_status = request.data.get("status", "").strip()
         valid_statuses = [s[0] for s in Order.STATUS_CHOICES]
@@ -2481,7 +2386,9 @@ class AdminOverrideStatusView(APIView):
         if old_status == "delivered" and new_status != "delivered":
             if order.coins_earned > 0:
                 customer = order.user
-                customer.loyalty_coins = max(0, getattr(customer, "loyalty_coins", 0) - order.coins_earned)
+                customer.loyalty_coins = max(
+                    0, getattr(customer, "loyalty_coins", 0) - order.coins_earned
+                )
                 customer.save(update_fields=["loyalty_coins"])
                 order.coins_earned = 0
 
@@ -2494,6 +2401,7 @@ class AdminOverrideStatusView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             from app_config.models import SiteConfig
+
             percentage = SiteConfig.get().loyalty_coins_percentage
             earned = int((order.total_amount * percentage) // 100)
             if earned > 0:
@@ -2513,14 +2421,28 @@ class AdminOverrideStatusView(APIView):
 
         # Push notification to customer
         _push_map = {
-            "preparing": ("Kitchen is preparing your order 👨‍🍳", "Your food is being freshly prepared!"),
-            "out_for_delivery": ("On the way! 🛵", f"Order #{order.order_number} is out for delivery."),
-            "delivered": ("Order Delivered! 🎉", "Rate your food and share your feedback ⭐"),
-            "confirmed": ("Order Confirmed ✅", f"Your order #{order.order_number} has been confirmed."),
+            "preparing": (
+                "Kitchen is preparing your order 👨‍🍳",
+                "Your food is being freshly prepared!",
+            ),
+            "out_for_delivery": (
+                "On the way! 🛵",
+                f"Order #{order.order_number} is out for delivery.",
+            ),
+            "delivered": (
+                "Order Delivered! 🎉",
+                "Rate your food and share your feedback ⭐",
+            ),
+            "confirmed": (
+                "Order Confirmed ✅",
+                f"Your order #{order.order_number} has been confirmed.",
+            ),
         }
         if new_status in _push_map:
             title, body = _push_map[new_status]
-            send_push(order.user, title, body, {"order_id": str(order.id), "type": "order"})
+            send_push(
+                order.user, title, body, {"order_id": str(order.id), "type": "order"}
+            )
 
         _broadcast_order(order)
 
@@ -2529,6 +2451,7 @@ class AdminOverrideStatusView(APIView):
 
 class PredictPrepTimeView(APIView):
     """Returns predicted preparation time and delivery time for a set of product IDs before ordering."""
+
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -2536,29 +2459,37 @@ class PredictPrepTimeView(APIView):
         if not product_ids_str:
             return Response(
                 {"detail": "product_ids query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
-            product_ids = [int(pid.strip()) for pid in product_ids_str.split(",") if pid.strip().isdigit()]
+            product_ids = [
+                int(pid.strip())
+                for pid in product_ids_str.split(",")
+                if pid.strip().isdigit()
+            ]
         except ValueError:
             return Response(
                 {"detail": "Invalid product_ids format."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         from .utils import calculate_predicted_prep_time
+
         prep_minutes = calculate_predicted_prep_time(product_ids)
         delivery_minutes = prep_minutes + 15
 
-        return Response({
-            "predicted_preparation_time": prep_minutes,
-            "predicted_delivery_time_minutes": delivery_minutes
-        })
+        return Response(
+            {
+                "predicted_preparation_time": prep_minutes,
+                "predicted_delivery_time_minutes": delivery_minutes,
+            }
+        )
 
 
 class PrepConfigView(APIView):
     """View and update global preparation configuration settings. Admin only."""
+
     permission_classes = [IsAdmin]
 
     def get(self, request):
@@ -2571,4 +2502,3 @@ class PrepConfigView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-

@@ -16,7 +16,6 @@ import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 
-
 load_dotenv()  # Load environment variables from .env file
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,17 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-&)it&i=k95m4jz0n^_drp_8)6so2(&c0ly^ssky+5es72x8k3v"
+    "SECRET_KEY", "django-insecure-&)it&i=k95m4jz0n^_drp_8)6so2(&c0ly^ssky+5es72x8k3v"
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1"
-).split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # If running on Azure App Service, automatically add WEBSITE_HOSTNAME and handle internal health check IPs
 if os.getenv("WEBSITE_INSTANCE_ID"):
@@ -49,6 +44,7 @@ if os.getenv("WEBSITE_INSTANCE_ID"):
     class AzureAllowedHosts(list):
         def __iter__(self):
             import inspect
+
             frame = inspect.currentframe()
             try:
                 while frame:
@@ -71,10 +67,11 @@ if os.getenv("WEBSITE_INSTANCE_ID"):
 
     ALLOWED_HOSTS = AzureAllowedHosts(ALLOWED_HOSTS)
 
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    "CSRF_TRUSTED_ORIGINS",
-    ""
-).split(",") if os.getenv("CSRF_TRUSTED_ORIGINS") else []
+CSRF_TRUSTED_ORIGINS = (
+    os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if os.getenv("CSRF_TRUSTED_ORIGINS")
+    else []
+)
 
 # Application definition
 
@@ -85,29 +82,29 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'accounts',
-    'products',
-    'orders',
+    "accounts",
+    "products",
+    "orders",
     "authentication",
-    'app_config',
-    'payments',
-    'notifications',
-    'delivery',
-    'analytics',
-    'offers',
-    'loyalty',
-    'support',
-    'reviews',
-    'rest_framework',
-    'corsheaders',
-    'channels',
-    'rest_framework_simplejwt.token_blacklist',
+    "app_config",
+    "payments",
+    "notifications",
+    "delivery",
+    "analytics",
+    "offers",
+    "loyalty",
+    "support",
+    "reviews",
+    "rest_framework",
+    "corsheaders",
+    "channels",
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -144,7 +141,7 @@ if redis_url:
             "CONFIG": {
                 "hosts": [redis_url],
                 "capacity": 1500,  # limit max messages in a channel before dropping
-                "expiry": 10,      # message expiry in seconds
+                "expiry": 10,  # message expiry in seconds
             },
         }
     }
@@ -173,9 +170,7 @@ except dj_database_url.ParseError:
 if _parsed_database.get("ENGINE") == "django.db.backends.postgresql":
     _parsed_database["DISABLE_SERVER_SIDE_CURSORS"] = True
 
-DATABASES = {
-    "default": _parsed_database
-}
+DATABASES = {"default": _parsed_database}
 
 
 # Password validation
@@ -223,22 +218,16 @@ else:
     MEDIA_ROOT = BASE_DIR / "media"
 
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv(
-    "CORS_ALLOW_ALL_ORIGINS",
-    "False"
-) == "True"
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
 
-CORS_ALLOWED_ORIGINS = os.getenv(
-    "CORS_ALLOWED_ORIGINS",
-    ""
-).split(",") if os.getenv(
-    "CORS_ALLOWED_ORIGINS",
-    ""
-) else []
+CORS_ALLOWED_ORIGINS = (
+    os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if os.getenv("CORS_ALLOWED_ORIGINS", "")
+    else []
+)
 
 
-AUTH_USER_MODEL = 'accounts.User'
-
+AUTH_USER_MODEL = "accounts.User"
 
 
 REST_FRAMEWORK = {
@@ -269,10 +258,7 @@ CASHFREE_BASE_URL = (
     else "https://sandbox.cashfree.com/pg"
 )
 
-CASHFREE_WEBHOOK_SECRET = os.getenv(
-    "CASHFREE_WEBHOOK_SECRET",
-    ""
-)
+CASHFREE_WEBHOOK_SECRET = os.getenv("CASHFREE_WEBHOOK_SECRET", "")
 
 LOGGING = {
     "version": 1,
@@ -305,4 +291,3 @@ LOGGING = {
         },
     },
 }
-

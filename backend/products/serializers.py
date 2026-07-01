@@ -15,6 +15,7 @@ class CategorySerializer(serializers.ModelSerializer):
                 ret["image"] = request.build_absolute_uri(ret["image"])
             else:
                 from django.conf import settings
+
                 domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
                 ret["image"] = domain.rstrip("/") + "/" + ret["image"].lstrip("/")
         return ret
@@ -34,7 +35,7 @@ class ProductSerializer(serializers.ModelSerializer):
             override.modifier_option_id: override.extra_price
             for override in obj.price_overrides.all()
         }
-        
+
         serialized_groups = []
         for group in groups:
             group_data = {
@@ -46,19 +47,21 @@ class ProductSerializer(serializers.ModelSerializer):
                 "max_selection": group.max_selection,
                 "display_order": group.display_order,
                 "description": group.description,
-                "options": []
+                "options": [],
             }
             options = group.options.filter(is_available=True).order_by("sort_order")
             for option in options:
                 price = overrides.get(option.id, option.extra_price)
-                group_data["options"].append({
-                    "id": option.id,
-                    "name": option.name,
-                    "extra_price": float(price),
-                    "is_available": option.is_available,
-                    "image": option.image or "",
-                    "sort_order": option.sort_order
-                })
+                group_data["options"].append(
+                    {
+                        "id": option.id,
+                        "name": option.name,
+                        "extra_price": float(price),
+                        "is_available": option.is_available,
+                        "image": option.image or "",
+                        "sort_order": option.sort_order,
+                    }
+                )
             serialized_groups.append(group_data)
         return serialized_groups
 
@@ -70,6 +73,7 @@ class ProductSerializer(serializers.ModelSerializer):
                 ret["image"] = request.build_absolute_uri(ret["image"])
             else:
                 from django.conf import settings
+
                 domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
                 ret["image"] = domain.rstrip("/") + "/" + ret["image"].lstrip("/")
         return ret
@@ -77,13 +81,24 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductWriteSerializer(serializers.ModelSerializer):
     """Used for create/update — accepts category as a PK."""
+
     class Meta:
         model = Product
         fields = [
-            "id", "category", "name", "description",
-            "price", "image", "is_available", "is_featured",
-            "is_addon", "preparation_time", "rating",
-            "promo_tag", "strike_price", "modifier_groups",
+            "id",
+            "category",
+            "name",
+            "description",
+            "price",
+            "image",
+            "is_available",
+            "is_featured",
+            "is_addon",
+            "preparation_time",
+            "rating",
+            "promo_tag",
+            "strike_price",
+            "modifier_groups",
         ]
 
     def to_representation(self, instance):
@@ -94,6 +109,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
                 ret["image"] = request.build_absolute_uri(ret["image"])
             else:
                 from django.conf import settings
+
                 domain = getattr(settings, "SITE_DOMAIN", "https://api.hdkfoods.in")
                 ret["image"] = domain.rstrip("/") + "/" + ret["image"].lstrip("/")
         return ret

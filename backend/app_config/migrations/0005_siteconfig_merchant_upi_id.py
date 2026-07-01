@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0004_notification'),
+        ("app_config", "0004_notification"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='siteconfig',
-            name='merchant_upi_id',
-            field=models.CharField(default='hdkfoods@axisbank', help_text='Merchant UPI ID to receive direct payments', max_length=255),
+            model_name="siteconfig",
+            name="merchant_upi_id",
+            field=models.CharField(
+                default="hdkfoods@axisbank",
+                help_text="Merchant UPI ID to receive direct payments",
+                max_length=255,
+            ),
         ),
     ]

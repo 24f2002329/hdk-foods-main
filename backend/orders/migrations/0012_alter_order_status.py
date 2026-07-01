@@ -6,13 +6,25 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0011_coupon_model'),
+        ("orders", "0011_coupon_model"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(choices=[('pending_confirmation', 'Pending Confirmation'), ('confirmed', 'Confirmed'), ('preparing', 'Preparing'), ('out_for_delivery', 'Out For Delivery'), ('delivered', 'Delivered'), ('cancelled', 'Cancelled'), ('rejected', 'Rejected')], default='pending_confirmation', max_length=20),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("pending_confirmation", "Pending Confirmation"),
+                    ("confirmed", "Confirmed"),
+                    ("preparing", "Preparing"),
+                    ("out_for_delivery", "Out For Delivery"),
+                    ("delivered", "Delivered"),
+                    ("cancelled", "Cancelled"),
+                    ("rejected", "Rejected"),
+                ],
+                default="pending_confirmation",
+                max_length=20,
+            ),
         ),
     ]

@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0018_prepconfig'),
+        ("orders", "0018_prepconfig"),
     ]
 
     operations = [
@@ -14,53 +14,52 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.DeleteModel(
-                    name='Coupon',
+                    name="Coupon",
                 ),
                 migrations.RemoveField(
-                    model_name='ordermessage',
-                    name='order',
+                    model_name="ordermessage",
+                    name="order",
                 ),
                 migrations.RemoveField(
-                    model_name='ordermessage',
-                    name='sender',
+                    model_name="ordermessage",
+                    name="sender",
                 ),
                 migrations.RemoveField(
-                    model_name='orderreview',
-                    name='customer',
+                    model_name="orderreview",
+                    name="customer",
                 ),
                 migrations.RemoveField(
-                    model_name='orderreview',
-                    name='order',
+                    model_name="orderreview",
+                    name="order",
                 ),
                 migrations.DeleteModel(
-                    name='PrepConfig',
+                    name="PrepConfig",
                 ),
                 migrations.AlterUniqueTogether(
-                    name='productreview',
+                    name="productreview",
                     unique_together=None,
                 ),
                 migrations.RemoveField(
-                    model_name='productreview',
-                    name='customer',
+                    model_name="productreview",
+                    name="customer",
                 ),
                 migrations.RemoveField(
-                    model_name='productreview',
-                    name='order',
+                    model_name="productreview",
+                    name="order",
                 ),
                 migrations.RemoveField(
-                    model_name='productreview',
-                    name='product',
+                    model_name="productreview",
+                    name="product",
                 ),
                 migrations.DeleteModel(
-                    name='OrderMessage',
+                    name="OrderMessage",
                 ),
                 migrations.DeleteModel(
-                    name='OrderReview',
+                    name="OrderReview",
                 ),
                 migrations.DeleteModel(
-                    name='ProductReview',
+                    name="ProductReview",
                 ),
-            ]
+            ],
         )
     ]
-

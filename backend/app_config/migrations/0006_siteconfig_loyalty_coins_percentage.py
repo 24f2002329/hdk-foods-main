@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0005_siteconfig_merchant_upi_id'),
+        ("app_config", "0005_siteconfig_merchant_upi_id"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='siteconfig',
-            name='loyalty_coins_percentage',
-            field=models.PositiveIntegerField(default=10, help_text='Loyalty coins percentage of order value (e.g. 5 means 5%)'),
+            model_name="siteconfig",
+            name="loyalty_coins_percentage",
+            field=models.PositiveIntegerField(
+                default=10,
+                help_text="Loyalty coins percentage of order value (e.g. 5 means 5%)",
+            ),
         ),
     ]

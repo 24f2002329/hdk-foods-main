@@ -6,7 +6,7 @@ from .views import (
     VerifyOTPView,
     SendSMSView,
     CookieTokenRefreshView,
-    LogoutView
+    LogoutView,
 )
 
 urlpatterns = [

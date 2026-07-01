@@ -1,10 +1,11 @@
 from decimal import Decimal
 from django.db import models
 
+
 class Coupon(models.Model):
     DISCOUNT_TYPE_CHOICES = [
-        ('percentage', 'Percentage'),
-        ('flat', 'Flat'),
+        ("percentage", "Percentage"),
+        ("flat", "Flat"),
     ]
 
     code = models.CharField(max_length=50, unique=True)
@@ -28,11 +29,9 @@ class Coupon(models.Model):
         return self.code
 
     def compute_discount(self, order_total):
-        if self.discount_type == 'flat':
+        if self.discount_type == "flat":
             return min(self.discount_value, order_total)
-        amount = (order_total * self.discount_value / 100).quantize(
-            Decimal("0.01")
-        )
+        amount = (order_total * self.discount_value / 100).quantize(Decimal("0.01"))
         if self.max_discount_amount:
             amount = min(amount, self.max_discount_amount)
         return amount

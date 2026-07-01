@@ -6,23 +6,37 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0006_siteconfig_loyalty_coins_percentage'),
+        ("app_config", "0006_siteconfig_loyalty_coins_percentage"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='siteconfig',
-            name='kitchen_latitude',
-            field=models.DecimalField(decimal_places=7, default='25.9233000', help_text='Kitchen GPS latitude', max_digits=10),
+            model_name="siteconfig",
+            name="kitchen_latitude",
+            field=models.DecimalField(
+                decimal_places=7,
+                default="25.9233000",
+                help_text="Kitchen GPS latitude",
+                max_digits=10,
+            ),
         ),
         migrations.AddField(
-            model_name='siteconfig',
-            name='kitchen_longitude',
-            field=models.DecimalField(decimal_places=7, default='73.6646000', help_text='Kitchen GPS longitude', max_digits=10),
+            model_name="siteconfig",
+            name="kitchen_longitude",
+            field=models.DecimalField(
+                decimal_places=7,
+                default="73.6646000",
+                help_text="Kitchen GPS longitude",
+                max_digits=10,
+            ),
         ),
         migrations.AddField(
-            model_name='siteconfig',
-            name='kitchen_name',
-            field=models.CharField(default='HDK Foods Kitchen', help_text='Display name for the kitchen on maps', max_length=100),
+            model_name="siteconfig",
+            name="kitchen_name",
+            field=models.CharField(
+                default="HDK Foods Kitchen",
+                help_text="Display name for the kitchen on maps",
+                max_length=100,
+            ),
         ),
     ]

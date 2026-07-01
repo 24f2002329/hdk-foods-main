@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('orders', '0016_productreview'),
+        ("orders", "0016_productreview"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='not_received_reported',
+            model_name="order",
+            name="not_received_reported",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='order',
-            name='not_received_reported_at',
+            model_name="order",
+            name="not_received_reported_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

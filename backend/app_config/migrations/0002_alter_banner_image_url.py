@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_config', '0001_feature_expansion'),
+        ("app_config", "0001_feature_expansion"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='banner',
-            name='image_url',
-            field=models.URLField(blank=True, default=''),
+            model_name="banner",
+            name="image_url",
+            field=models.URLField(blank=True, default=""),
         ),
     ]
