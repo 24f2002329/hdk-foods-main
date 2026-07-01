@@ -3,9 +3,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../orders/presentation/screens/home_router.dart';
-import '../../../orders/data/repositories/order_service.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../../../orders/data/repositories/order_repository.dart';
 
 const _kRed = Color(0xFFFF1E1E);
 const _kSurface = Color(0xFF050505);
@@ -24,7 +22,7 @@ class PaymentCollectionScreen extends StatefulWidget {
 }
 
 class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderRepository = OrderRepository();
   bool _busy = false;
   String? _error;
 
@@ -53,7 +51,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     });
 
     try {
-      final res = await _orderService.driverInitiatePayment(widget.order.id);
+      final res = await _orderRepository.driverInitiatePayment(widget.order.id);
       setState(() {
         _paymentSession = res;
         _isOnlinePaymentMode = true;
@@ -80,7 +78,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     });
 
     try {
-      final res = await _orderService.driverVerifyPayment(widget.order.id);
+      final res = await _orderRepository.driverVerifyPayment(widget.order.id);
       if (res['payment_status'] == 'paid') {
         setState(() {
           _paymentCompleted = true;
@@ -120,7 +118,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       await _recordFinalLocation();
 
       // Step 2: Mark order as delivered (must succeed)
-      await _orderService.updateStatus(widget.order.id, 'delivered');
+      await _orderRepository.updateStatus(widget.order.id, 'delivered');
 
       if (!mounted) return;
 
@@ -153,22 +151,13 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         ),
       ).timeout(const Duration(seconds: 8));
 
-      final token = await TokenStorage.getAccessToken();
-      if (token == null) return;
-
-      await http
+      await ApiClient()
           .post(
-            Uri.parse(
-              '${ApiConfig.baseUrl}/orders/${widget.order.id}/delivery-location/',
-            ),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
+            'orders/${widget.order.id}/delivery-location/',
+            {
               'latitude': pos.latitude,
               'longitude': pos.longitude,
-            }),
+            },
           )
           .timeout(const Duration(seconds: 8));
     } catch (_) {

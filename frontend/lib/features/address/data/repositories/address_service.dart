@@ -1,18 +1,13 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
-
 import 'package:hdk_core/hdk_core.dart';
 import '../models/customer_address.dart';
 
 class AddressService {
-  static final String baseUrl = "${ApiConfig.baseUrl}/addresses";
+  final ApiClient _apiClient = ApiClient();
 
   Future<List<CustomerAddress>> getAddresses() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/'),
-      headers: await _headers(),
-    );
+    final response = await _apiClient.get('addresses/');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List;
@@ -23,11 +18,7 @@ class AddressService {
   }
 
   Future<CustomerAddress> createAddress(CustomerAddress address) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/'),
-      headers: await _headers(),
-      body: jsonEncode(address.toJson()),
-    );
+    final response = await _apiClient.post('addresses/', address.toJson());
 
     if (response.statusCode == 201) {
       return CustomerAddress.fromJson(jsonDecode(response.body));
@@ -43,11 +34,7 @@ class AddressService {
       throw Exception('Address id is required');
     }
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/$id/'),
-      headers: await _headers(),
-      body: jsonEncode(address.toJson()),
-    );
+    final response = await _apiClient.put('addresses/$id/', address.toJson());
 
     if (response.statusCode == 200) {
       return CustomerAddress.fromJson(jsonDecode(response.body));
@@ -63,26 +50,10 @@ class AddressService {
       throw Exception('Address id is required');
     }
 
-    final response = await http.delete(
-      Uri.parse('$baseUrl/$id/'),
-      headers: await _headers(),
-    );
+    final response = await _apiClient.delete('addresses/$id/');
 
     if (response.statusCode != 204) {
       throw Exception('Failed to delete address');
     }
-  }
-
-  Future<Map<String, String>> _headers() async {
-    final token = await TokenStorage.getAccessToken();
-
-    if (token == null) {
-      throw Exception('Please login again');
-    }
-
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
   }
 }

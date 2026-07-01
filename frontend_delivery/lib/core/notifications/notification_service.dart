@@ -3,11 +3,9 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
-
 import 'package:hdk_core/hdk_core.dart';
 import '../../features/orders/presentation/screens/order_detail_screen.dart';
-import '../../features/orders/data/repositories/order_service.dart';
+import '../../features/orders/data/repositories/order_repository.dart';
 
 const _kChannelId = 'hdkfoods_orders';
 const _kChannelName = 'Order Alerts';
@@ -56,16 +54,7 @@ class NotificationService {
 
   static Future<void> _postToken(String token) async {
     try {
-      final access = await TokenStorage.getAccessToken();
-      if (access == null) return;
-      await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/fcm-token/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $access',
-        },
-        body: jsonEncode({'fcm_token': token}),
-      );
+      await ApiClient().post('fcm-token/', {'fcm_token': token});
     } catch (_) {}
   }
 
@@ -77,7 +66,7 @@ class NotificationService {
     final ctx = navigatorKey?.currentContext;
     if (ctx == null) return;
     try {
-      final order = await OrderService().getOrder(orderId);
+      final order = await OrderRepository().getOrder(orderId);
       if (!ctx.mounted) return;
       Navigator.of(ctx).push(
         MaterialPageRoute(

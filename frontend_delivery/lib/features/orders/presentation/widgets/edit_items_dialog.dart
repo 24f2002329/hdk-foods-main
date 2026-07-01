@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import '../../../products/data/repositories/product_service.dart';
 
 const _red = Color(0xFFFF1E1E);
@@ -11,7 +11,7 @@ const _stroke = Color(0xFF2A2A2A);
 
 class EditItemsDialog extends StatefulWidget {
   final Order order;
-  final OrderService service;
+  final OrderRepository service;
   const EditItemsDialog({super.key, required this.order, required this.service});
 
   @override

@@ -1,9 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-
 import 'package:hdk_core/hdk_core.dart';
 
 class LocationTrackingService {
@@ -26,21 +22,11 @@ class LocationTrackingService {
     required Position pos,
   }) async {
     try {
-      final token = await TokenStorage.getAccessToken();
-      if (token == null) return;
-
       final body = heartbeat
           ? {'heartbeat': true}
           : {'latitude': pos.latitude, 'longitude': pos.longitude};
 
-      await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/orders/$orderId/delivery-location/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
+      await ApiClient().post('orders/$orderId/delivery-location/', body);
     } catch (_) {}
   }
 

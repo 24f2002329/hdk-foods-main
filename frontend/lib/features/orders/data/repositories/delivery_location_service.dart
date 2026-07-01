@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 import 'package:hdk_core/hdk_core.dart';
 
@@ -16,22 +15,10 @@ class DeliveryLocation {
 }
 
 class DeliveryLocationService {
-  static final String _base = "${ApiConfig.baseUrl}/orders";
-
-  Future<Map<String, String>> _headers() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Not logged in');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
+  final ApiClient _apiClient = ApiClient();
 
   Future<DeliveryLocation?> getDeliveryLocation(int orderId) async {
-    final response = await http.get(
-      Uri.parse('$_base/$orderId/delivery-location/get/'),
-      headers: await _headers(),
-    );
+    final response = await _apiClient.get('orders/$orderId/delivery-location/get/');
 
     if (response.statusCode != 200) return null;
 

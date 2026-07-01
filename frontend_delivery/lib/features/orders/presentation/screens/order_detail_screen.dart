@@ -7,7 +7,7 @@ import 'package:hdk_core/hdk_core.dart';
 import '../../../../core/services/location_tracking_service.dart';
 import '../../../navigation/presentation/screens/delivery_navigation_screen.dart';
 import '../../../navigation/presentation/screens/payment_collection_screen.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import '../../../delivery_staff/data/models/delivery_staff.dart';
 import '../../../delivery_staff/data/repositories/delivery_staff_service.dart';
 import '../widgets/edit_items_dialog.dart';
@@ -30,7 +30,7 @@ class OrderDetailScreen extends StatefulWidget {
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   late Order _order;
-  final OrderService _orderService = OrderService();
+  final OrderRepository _orderService = OrderRepository();
   final DeliveryStaffService _deliveryService = DeliveryStaffService();
   bool _busy = false;
   LocationTrackingService? _locationTracker;

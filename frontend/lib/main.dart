@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -30,8 +28,7 @@ Future<void> _initFCM() async {
   final token = await messaging.getToken();
   if (token != null && await TokenStorage.isLoggedIn()) {
     try {
-      final access = await TokenStorage.getAccessToken();
-      await _uploadFcmToken(token, access!);
+      await _uploadFcmToken(token);
     } catch (_) {}
   }
 
@@ -39,23 +36,15 @@ Future<void> _initFCM() async {
   messaging.onTokenRefresh.listen((newToken) async {
     if (await TokenStorage.isLoggedIn()) {
       try {
-        final access = await TokenStorage.getAccessToken();
-        await _uploadFcmToken(newToken, access!);
+        await _uploadFcmToken(newToken);
       } catch (_) {}
     }
   });
 }
 
-Future<void> _uploadFcmToken(String fcmToken, String accessToken) async {
+Future<void> _uploadFcmToken(String fcmToken) async {
   try {
-    await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/fcm-token/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
-      body: jsonEncode({'fcm_token': fcmToken}),
-    );
+    await ApiClient().post('fcm-token/', {'fcm_token': fcmToken});
   } catch (_) {}
 }
 

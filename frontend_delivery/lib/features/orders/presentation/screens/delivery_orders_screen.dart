@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/services/order_websocket_service.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../data/repositories/order_service.dart';
+import '../../data/repositories/order_repository.dart';
 import '../../../navigation/presentation/screens/delivery_navigation_screen.dart';
 import 'order_detail_screen.dart';
 import '../../data/repositories/notification_service.dart';
@@ -24,7 +24,7 @@ class DeliveryOrdersScreen extends StatefulWidget {
 }
 
 class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
-  final OrderService _service = OrderService();
+  final OrderRepository _service = OrderRepository();
   List<Order> _orders = [];
   bool _loading = true;
   Timer? _timer;

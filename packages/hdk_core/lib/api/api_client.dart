@@ -43,16 +43,26 @@ class ApiClient {
         ),
       );
 
+  Future<http.Response> put(String path, Map<String, dynamic> body) =>
+      _withRefresh(
+        () async => http.put(
+          Uri.parse(_url(path)),
+          headers: await _authHeaders(),
+          body: jsonEncode(body),
+        ),
+      );
+
   Future<http.Response> delete(String path) => _withRefresh(
     () async =>
         http.delete(Uri.parse(_url(path)), headers: await _authHeaders()),
   );
 
-  String _url(String path) => path.startsWith('http')
-      ? path
-      : '${ApiConfig.baseUrl}/$path'
-            .replaceAll('//', '/')
-            .replaceAll('://', '://');
+  String _url(String path) {
+    if (path.startsWith('http')) return path;
+    final base = ApiConfig.baseUrl;
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    return base.endsWith('/') ? '$base$normalizedPath' : '$base/$normalizedPath';
+  }
 
   Future<http.Response> _withRefresh(
     Future<http.Response> Function() call,
