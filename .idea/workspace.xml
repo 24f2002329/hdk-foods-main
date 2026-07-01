@@ -5,17 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ddabd169-5153-45d5-8f2f-e569670e66c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/delivery_staff/services/delivery_staff_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/delivery_staff/services/delivery_staff_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/admin_home.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/admin_home.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/kds_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/kds_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/sentiment_dashboard_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/screens/sentiment_dashboard_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/orders/services/order_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/orders/services/order_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/products/services/product_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/products/services/product_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/screens/admin_reviews_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/screens/admin_reviews_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/config_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/config_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/notification_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/settings/services/notification_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend_admin/lib/features/users/services/customer_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend_admin/lib/features/users/services/customer_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packages/hdk_core/lib/hdk_core.dart" beforeDir="false" afterPath="$PROJECT_DIR$/packages/hdk_core/lib/hdk_core.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
