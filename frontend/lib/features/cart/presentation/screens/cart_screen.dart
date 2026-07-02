@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
-import '../../../checkout/presentation/screens/kitchen_closed_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../home/data/repositories/config_service.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../data/models/cart_item.dart';
@@ -575,27 +574,20 @@ class _CartSummary extends StatelessWidget {
             ),
             onPressed: isClosed
                 ? () {
-                    Navigator.push(
+                    AppRoutes.pushKitchenClosed(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => KitchenClosedScreen(
-                          closedMessage: closedMessage,
-                          openTime: openTime,
-                          closeTime: closeTime,
-                        ),
-                      ),
+                      closedMessage: closedMessage,
+                      openTime: openTime,
+                      closeTime: closeTime,
                     );
                   }
                 : () async {
                     final loggedIn = await TokenStorage.isLoggedIn();
                     if (!context.mounted) return;
                     if (loggedIn) {
-                      Navigator.pushNamed(context, '/checkout');
+                      AppRoutes.pushCheckout(context);
                     } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
+                      AppRoutes.pushLogin(context);
                     }
                   },
             child: Text(

@@ -15,14 +15,12 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 import '../../../../core/services/order_websocket_service.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../data/repositories/delivery_location_service.dart';
 import '../../data/repositories/order_repository.dart';
 import '../widgets/modified_order_dialog.dart';
-import 'order_chat_screen.dart';
-import 'premium_review_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -142,14 +140,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                     TextButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        Navigator.push(
+                        AppRoutes.pushOrderChat(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderChatScreen(
-                              orderId: widget.orderId,
-                              orderNumber: _order?.orderNumber ?? '',
-                            ),
-                          ),
+                          orderId: widget.orderId,
+                          orderNumber: _order?.orderNumber ?? '',
                         );
                       },
                       child: const Text(
@@ -365,10 +359,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         );
       }
       if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CartScreen()),
-      );
+      AppRoutes.pushCart(context);
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Could not reorder. Please try again.')),
@@ -679,11 +670,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               order: order,
               submitted: _reviewSubmitted,
               onTap: () async {
-                final result = await Navigator.push(
+                final result = await AppRoutes.pushPremiumReview(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => PremiumReviewScreen(order: order),
-                  ),
+                  order: order,
                 );
                 if (result == true) {
                   setState(() {
@@ -2319,14 +2308,10 @@ class _NeedHelpSheet extends StatelessWidget {
             subtitle: 'Message support in real-time',
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(
+              AppRoutes.pushOrderChat(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => OrderChatScreen(
-                    orderId: order.id,
-                    orderNumber: order.orderNumber,
-                  ),
-                ),
+                orderId: order.id,
+                orderNumber: order.orderNumber,
               );
             },
           ),

@@ -11,7 +11,7 @@ import '../../../../shared/widgets/fly_to_cart.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../../home/data/repositories/config_service.dart';
-import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 // Brand colors
 const _brandRed = Color(0xFFFF1E1E);
@@ -529,10 +529,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   size: 24,
                 ),
                 onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+                  AppRoutes.pushCart(context, rootNavigator: true);
                 },
               ),
               if (cart.itemCount > 0)
@@ -1465,9 +1462,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const CartScreen()),
-                        );
+                        AppRoutes.pushCart(context, rootNavigator: true);
                       },
                       child: const Row(
                         children: [

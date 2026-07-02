@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../home/presentation/screens/home_screen.dart';
-import 'login_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -87,12 +86,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Future<void> _completeOnboarding({bool goToLogin = false}) async {
     await TokenStorage.setOnboardingComplete();
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => goToLogin ? const LoginScreen() : const HomeScreen(),
-      ),
-    );
+    if (goToLogin) {
+      AppRoutes.pushReplacementLogin(context);
+    } else {
+      AppRoutes.pushReplacementHome(context);
+    }
   }
 
   void _nextPage() {

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../accounts/data/repositories/user_service.dart';
-import '../../../home/presentation/screens/home_screen.dart';
-import 'name_collection_screen.dart';
-import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,28 +26,24 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    Widget nextScreen;
     if (token != null) {
       // Returning user — check if they have a name yet.
       try {
         final user = await UserService().getCurrentUser();
-        nextScreen = user.name.trim().isEmpty
-            ? const NameCollectionScreen()
-            : const HomeScreen();
+        if (!mounted) return;
+        if (user.name.trim().isEmpty) {
+          AppRoutes.pushReplacementNameCollection(context);
+        } else {
+          AppRoutes.pushReplacementHome(context);
+        }
       } catch (_) {
-        nextScreen = const HomeScreen();
+        if (mounted) AppRoutes.pushReplacementHome(context);
       }
     } else if (!hasCompletedOnboarding) {
-      nextScreen = const OnboardingScreen();
+      AppRoutes.pushReplacementOnboarding(context);
     } else {
-      nextScreen = const HomeScreen();
+      AppRoutes.pushReplacementHome(context);
     }
-
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => nextScreen),
-    );
   }
 
   @override

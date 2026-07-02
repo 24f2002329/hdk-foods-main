@@ -4,10 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../orders/data/repositories/order_repository.dart';
-import '../../../orders/presentation/screens/order_tracking_screen.dart';
 import '../../../orders/presentation/widgets/modified_order_dialog.dart';
-import 'order_status_screens.dart';
-import 'payment_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 const _surface = Color(0xFF050505);
 const _deepText = Colors.white;
@@ -87,17 +85,13 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         _pollingTimer?.cancel();
 
         if (mounted) {
-          Navigator.pushReplacement(
+          AppRoutes.pushReplacementOrderRejected(
             context,
-            MaterialPageRoute(
-              builder: (_) => OrderRejectedScreen(
-                orderNumber: order.orderNumber,
-                reason: order.cancellationReason,
-                isOnlinePaid:
-                    order.paymentMethod == 'online' &&
-                    order.paymentStatus == 'paid',
-              ),
-            ),
+            orderNumber: order.orderNumber,
+            reason: order.cancellationReason,
+            isOnlinePaid:
+                order.paymentMethod == 'online' &&
+                order.paymentStatus == 'paid',
           );
         }
       }
@@ -166,36 +160,29 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         debugPrint("Error registering COD payment: $e");
       }
       if (!mounted) return;
-      Navigator.pushReplacement(
+      AppRoutes.pushReplacementOrderConfirmed(
         context,
-        MaterialPageRoute(
-          builder: (_) => OrderConfirmedScreen(
-            orderNumber: currentOrder.orderNumber,
-            isOnlinePayment: false,
-            nextScreenBuilder: (_) =>
-                OrderTrackingScreen(orderId: currentOrder.id),
-          ),
-        ),
+        orderNumber: currentOrder.orderNumber,
+        isOnlinePayment: false,
+        nextRouteName: AppRoutes.orderTracking,
+        nextRouteArgs: {'orderId': currentOrder.id},
       );
       return;
     }
 
     // Online -> celebrate, then collect payment via Cashfree.
     if (!mounted) return;
-    Navigator.pushReplacement(
+    AppRoutes.pushReplacementOrderConfirmed(
       context,
-      MaterialPageRoute(
-        builder: (_) => OrderConfirmedScreen(
-          orderNumber: currentOrder.orderNumber,
-          isOnlinePayment: true,
-          nextScreenBuilder: (_) => PaymentScreen(
-            orderId: currentOrder.id,
-            orderNumber: currentOrder.orderNumber,
-            totalAmount: currentOrder.totalAmount,
-            lockedMethod: 'online',
-          ),
-        ),
-      ),
+      orderNumber: currentOrder.orderNumber,
+      isOnlinePayment: true,
+      nextRouteName: AppRoutes.payment,
+      nextRouteArgs: {
+        'orderId': currentOrder.id,
+        'orderNumber': currentOrder.orderNumber,
+        'totalAmount': currentOrder.totalAmount,
+        'lockedMethod': 'online',
+      },
     );
   }
 

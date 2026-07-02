@@ -4,7 +4,7 @@ import 'package:smart_auth/smart_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/repositories/auth_service.dart';
-import 'otp_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -85,13 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            OtpScreen(verificationId: verificationId, phoneNumber: phone),
-      ),
-    );
+    AppRoutes.pushOtp(context, verificationId: verificationId, phoneNumber: phone);
   }
 
   @override
@@ -259,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: TextButton(
                   onPressed: _loading
                       ? null
-                      : () => Navigator.pushReplacementNamed(context, "/home"),
+                      : () => AppRoutes.pushReplacementHome(context),
                   child: const Text(
                     "Skip for now",
                     style: TextStyle(

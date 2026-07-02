@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../data/models/customer_address.dart';
 import '../../data/repositories/address_service.dart';
 import 'location_picker_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 const _brandOrange = Color(0xFFFF1E1E);
@@ -430,17 +431,13 @@ class _AddressFormSheetState extends State<_AddressFormSheet> {
     });
 
     try {
-      final result = await Navigator.push<LocationPickerResult>(
+      final result = await AppRoutes.pushLocationPicker<LocationPickerResult>(
         context,
-        MaterialPageRoute(
-          builder: (_) => LocationPickerScreen(
-            initialLocation: LatLng(
-              double.tryParse(_latitudeController.text.trim()) ?? 0,
-              double.tryParse(_longitudeController.text.trim()) ?? 0,
-            ),
-            initialAddress: _streetController.text.trim(),
-          ),
+        initialLocation: LatLng(
+          double.tryParse(_latitudeController.text.trim()) ?? 0,
+          double.tryParse(_longitudeController.text.trim()) ?? 0,
         ),
+        initialAddress: _streetController.text.trim(),
       );
 
       if (result == null) {

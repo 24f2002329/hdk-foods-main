@@ -8,7 +8,7 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 import '../../../orders/data/repositories/order_repository.dart';
-import '../../../orders/presentation/screens/order_tracking_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -52,12 +52,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _goToTracking() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OrderTrackingScreen(orderId: widget.orderId),
-      ),
-    );
+    AppRoutes.pushReplacementOrderTracking(context, orderId: widget.orderId);
   }
 
   /// Cashfree invokes this when the checkout flow finishes. It hands back the

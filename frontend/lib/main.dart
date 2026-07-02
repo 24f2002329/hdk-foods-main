@@ -5,15 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import 'core/navigation/app_routes.dart';
-import 'features/address/presentation/screens/address_screen.dart';
-import 'features/auth/presentation/screens/login_screen.dart';
-import 'features/auth/presentation/screens/splash_screen.dart';
 import 'features/cart/presentation/providers/cart_provider.dart';
 import 'features/home/presentation/providers/home_provider.dart';
-import 'features/home/presentation/screens/home_screen.dart';
-import 'features/checkout/presentation/screens/checkout_screen.dart';
-import 'features/orders/presentation/screens/order_chat_screen.dart';
-import 'features/orders/presentation/screens/order_tracking_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -108,11 +101,12 @@ class _MyAppState extends State<MyApp> {
       if (orderIdStr != null) {
         final orderId = int.tryParse(orderIdStr.toString());
         if (orderId != null) {
-          _navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  OrderChatScreen(orderId: orderId, orderNumber: orderNumber),
-            ),
+          _navigatorKey.currentState?.pushNamed(
+            AppRoutes.orderChat,
+            arguments: {
+              'orderId': orderId,
+              'orderNumber': orderNumber,
+            },
           );
         }
       }
@@ -121,10 +115,9 @@ class _MyAppState extends State<MyApp> {
       if (orderIdStr != null) {
         final orderId = int.tryParse(orderIdStr.toString());
         if (orderId != null) {
-          _navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (_) => OrderTrackingScreen(orderId: orderId),
-            ),
+          _navigatorKey.currentState?.pushNamed(
+            AppRoutes.orderTracking,
+            arguments: orderId,
           );
         }
       }
@@ -145,15 +138,8 @@ class _MyAppState extends State<MyApp> {
         navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: HdkTheme.darkTheme,
-
-        routes: {
-          AppRoutes.addresses: (_) => const AddressScreen(),
-          AppRoutes.login: (_) => const LoginScreen(),
-          AppRoutes.home: (_) => const HomeScreen(),
-          AppRoutes.checkout: (_) => const CheckoutScreen(),
-        },
-
-        home: const SplashScreen(),
+        onGenerateRoute: AppRoutes.onGenerateRoute,
+        initialRoute: AppRoutes.splash,
       ),
     );
   }

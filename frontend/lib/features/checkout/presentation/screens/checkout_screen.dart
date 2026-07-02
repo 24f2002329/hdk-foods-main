@@ -3,12 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../../accounts/data/repositories/user_service.dart';
 import '../../../address/data/models/customer_address.dart';
-import '../../../address/presentation/screens/address_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../address/data/repositories/address_service.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../orders/data/repositories/order_repository.dart';
-import 'kitchen_closed_screen.dart';
-import 'waiting_room_screen.dart';
 import '../../../../shared/widgets/congratulations_overlay.dart';
 import 'package:hdk_core/hdk_core.dart';
 
@@ -77,11 +75,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _pickAddress() async {
-    final picked = await Navigator.push<CustomerAddress>(
+    final picked = await AppRoutes.pushAddresses<CustomerAddress>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AddressScreen(selectionMode: true),
-      ),
+      selectionMode: true,
     );
     if (picked != null && mounted) {
       setState(() => _selectedAddress = picked);
@@ -217,31 +213,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       cart.clearCart();
 
       if (mounted) {
-        Navigator.pushReplacement(
+        AppRoutes.pushReplacementWaitingRoom(
           context,
-          MaterialPageRoute(
-            builder: (_) => WaitingRoomScreen(
-              orderId: order.id,
-              orderNumber: order.orderNumber,
-              paymentMethod: _selectedPaymentMethod,
-            ),
-          ),
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          paymentMethod: _selectedPaymentMethod,
         );
       }
     } catch (e) {
       if (mounted) {
         final errorMsg = e.toString().toLowerCase();
         if (errorMsg.contains('closed') || errorMsg.contains('kitchen')) {
-          Navigator.pushReplacement(
+          AppRoutes.pushReplacementKitchenClosed(
             context,
-            MaterialPageRoute(
-              builder: (_) => KitchenClosedScreen(
-                closedMessage: e
-                    .toString()
-                    .replaceAll('Exception: ', '')
-                    .replaceAll('Error: ', ''),
-              ),
-            ),
+            closedMessage: e
+                .toString()
+                .replaceAll('Exception: ', '')
+                .replaceAll('Error: ', ''),
           );
         } else {
           ScaffoldMessenger.of(

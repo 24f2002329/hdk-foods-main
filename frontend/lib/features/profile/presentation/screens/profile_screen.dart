@@ -5,10 +5,7 @@ import 'package:hdk_core/hdk_core.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../shared/widgets/login_prompt_widget.dart';
 import '../../../accounts/data/repositories/user_service.dart';
-import '../../../orders/presentation/screens/orders_screen.dart';
-import '../../../address/presentation/screens/address_screen.dart';
 import '../../../home/data/repositories/config_service.dart';
-import 'coins_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -328,10 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CoinsScreen()),
-                      ).then((_) {
+                       AppRoutes.pushCoins(context).then((_) {
                         _loadUser();
                       });
                     },
@@ -425,18 +419,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _ProfileTile(
                   icon: Icons.receipt_long_rounded,
                   label: 'My Orders',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const OrdersScreen()),
-                  ),
+                  onTap: () => AppRoutes.pushOrders(context),
                 ),
                 _ProfileTile(
                   icon: Icons.location_on_rounded,
                   label: 'Saved Addresses',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddressScreen()),
-                  ),
+                  onTap: () => AppRoutes.pushAddresses(context),
                 ),
                 _ProfileTile(
                   icon: Icons.help_outline_rounded,

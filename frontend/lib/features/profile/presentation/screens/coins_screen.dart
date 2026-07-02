@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hdk_core/hdk_core.dart';
 import '../../../accounts/data/repositories/user_service.dart';
-import '../../../orders/presentation/screens/order_tracking_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -287,11 +287,9 @@ class _CoinsScreenState extends State<CoinsScreen> {
                                         child: InkWell(
                                           onTap: () {
                                             HapticFeedback.lightImpact();
-                                            Navigator.push(
+                                            AppRoutes.pushOrderTracking(
                                               context,
-                                              MaterialPageRoute(
-                                                builder: (_) => OrderTrackingScreen(orderId: tx.orderId),
-                                              ),
+                                              orderId: tx.orderId,
                                             );
                                           },
                                           child: Padding(

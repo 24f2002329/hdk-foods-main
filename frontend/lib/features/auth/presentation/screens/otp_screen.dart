@@ -5,7 +5,7 @@ import 'package:smart_auth/smart_auth.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../accounts/data/repositories/user_service.dart';
-import './name_collection_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../data/repositories/auth_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -171,15 +171,12 @@ class _OtpScreenState extends State<OtpScreen> {
       final user = await UserService().getCurrentUser();
       if (!mounted) return;
       if (user.name.trim().isEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const NameCollectionScreen()),
-        );
+        AppRoutes.pushReplacementNameCollection(context);
         return;
       }
     } catch (_) {}
 
-    Navigator.pushReplacementNamed(context, "/home");
+    AppRoutes.pushReplacementHome(context);
   }
 
   @override

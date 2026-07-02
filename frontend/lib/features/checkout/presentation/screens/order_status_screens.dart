@@ -15,13 +15,17 @@ const _mutedText = Color(0xFFB8B8B8);
 class OrderConfirmedScreen extends StatefulWidget {
   final String orderNumber;
   final bool isOnlinePayment;
-  final WidgetBuilder nextScreenBuilder;
+  final WidgetBuilder? nextScreenBuilder;
+  final String? nextRouteName;
+  final Map<String, dynamic>? nextRouteArgs;
 
   const OrderConfirmedScreen({
     super.key,
     required this.orderNumber,
-    required this.nextScreenBuilder,
+    this.nextScreenBuilder,
     this.isOnlinePayment = false,
+    this.nextRouteName,
+    this.nextRouteArgs,
   });
 
   @override
@@ -57,10 +61,18 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen>
   }
 
   void _continue() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: widget.nextScreenBuilder),
-    );
+    if (widget.nextRouteName != null) {
+      Navigator.pushReplacementNamed(
+        context,
+        widget.nextRouteName!,
+        arguments: widget.nextRouteArgs,
+      );
+    } else if (widget.nextScreenBuilder != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: widget.nextScreenBuilder!),
+      );
+    }
   }
 
   @override

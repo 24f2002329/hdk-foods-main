@@ -7,19 +7,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../address/presentation/screens/address_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../address/data/models/customer_address.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
-import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../address/presentation/screens/address_screen.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../shared/widgets/fly_to_cart.dart';
-import '../../../menu/presentation/screens/menu_screen.dart';
-import '../../../orders/presentation/screens/orders_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../data/repositories/product_service.dart';
 import '../../data/repositories/config_service.dart';
 import '../providers/home_provider.dart';
-import './notification_screen.dart';
 
 // Styling constants
 const _brandRed = Color(0xFFFF1E1E);
@@ -86,20 +82,11 @@ class HomeScreen extends StatelessWidget {
             if (index == 0) {
               homeProvider.setActiveTab(0);
             } else if (index == 1) {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const MenuScreen()));
+              AppRoutes.pushMenu(context, rootNavigator: true);
             } else if (index == 2) {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+              AppRoutes.pushCart(context, rootNavigator: true);
             } else if (index == 3) {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
+              AppRoutes.pushOrders(context, rootNavigator: true);
             } else if (index == 4) {
               homeProvider.setActiveTab(1);
             }
@@ -169,12 +156,7 @@ class HomeTab extends StatelessWidget {
                             unreadNotificationCount: homeProvider.unreadNotificationCount,
                             onSelectAddress: () => _selectAddress(context, homeProvider),
                             onLoginPressed: () {
-                              Navigator.of(context, rootNavigator: true)
-                                  .push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                  )
+                              AppRoutes.pushLogin(context, rootNavigator: true)
                                   .then((_) {
                                     homeProvider.reload();
                                   });
@@ -190,12 +172,7 @@ class HomeTab extends StatelessWidget {
                         delegate: _StickySearchDelegate(
                           child: _StickyGlassmorphicSearchBar(
                             onTap: () {
-                              Navigator.of(context, rootNavigator: true).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const MenuScreen(autofocusSearch: true),
-                                ),
-                              );
+                              AppRoutes.pushMenu(context, autofocusSearch: true, rootNavigator: true);
                             },
                           ),
                         ),
@@ -329,10 +306,7 @@ class HomeTab extends StatelessWidget {
   }
 
   Future<void> _openNotifications(BuildContext context, HomeProvider homeProvider) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const NotificationScreen()),
-    );
+    await AppRoutes.pushNotifications(context);
     homeProvider.loadUserData();
   }
 
@@ -341,12 +315,11 @@ class HomeTab extends StatelessWidget {
       _promptLogin(context, homeProvider);
       return;
     }
-    final result = await Navigator.of(context, rootNavigator: true)
-        .push<CustomerAddress>(
-          MaterialPageRoute(
-            builder: (_) => const AddressScreen(selectionMode: true),
-          ),
-        );
+    final result = await AppRoutes.pushAddresses<CustomerAddress>(
+      context,
+      selectionMode: true,
+      rootNavigator: true,
+    );
     if (result != null) {
       homeProvider.setSelectedAddress(result);
     }
@@ -376,8 +349,7 @@ class HomeTab extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.of(context, rootNavigator: true)
-                  .push(MaterialPageRoute(builder: (_) => const LoginScreen()))
+              AppRoutes.pushLogin(context, rootNavigator: true)
                   .then((_) {
                     homeProvider.reload();
                   });
@@ -1045,10 +1017,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 
               return ScaleOnTap(
                 onTap: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).push(MaterialPageRoute(builder: (_) => const MenuScreen()));
+                  AppRoutes.pushMenu(context, rootNavigator: true);
                 },
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1220,9 +1189,7 @@ class _CategoriesSection extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(builder: (_) => const MenuScreen()),
-                      );
+                      AppRoutes.pushMenu(context, rootNavigator: true);
                     },
                     child: Text(
                       'See All',
@@ -1251,11 +1218,10 @@ class _CategoriesSection extends StatelessWidget {
                     margin: const EdgeInsets.only(right: 12),
                     child: ScaleOnTap(
                       onTap: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                MenuScreen(initialCategoryId: cat.id),
-                          ),
+                        AppRoutes.pushMenu(
+                          context,
+                          initialCategoryId: cat.id,
+                          rootNavigator: true,
                         );
                       },
                       child: Container(
@@ -1357,13 +1323,11 @@ class _SpecialsSection extends StatelessWidget {
 
                   return ScaleOnTap(
                     onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) => MenuScreen(
-                            initialCategoryId: p.categoryId,
-                            initialProductId: p.id,
-                          ),
-                        ),
+                      AppRoutes.pushMenu(
+                        context,
+                        initialCategoryId: p.categoryId,
+                        initialProductId: p.id,
+                        rootNavigator: true,
                       );
                     },
                     child: Container(
@@ -1665,13 +1629,11 @@ class _BestSellersGrid extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: ScaleOnTap(
                   onTap: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => MenuScreen(
-                          initialCategoryId: p.categoryId,
-                          initialProductId: p.id,
-                        ),
-                      ),
+                    AppRoutes.pushMenu(
+                      context,
+                      initialCategoryId: p.categoryId,
+                      initialProductId: p.id,
+                      rootNavigator: true,
                     );
                   },
                   child: Container(
@@ -2008,13 +1970,11 @@ class _ComboOffersSectionState extends State<_ComboOffersSection> {
 
                   return ScaleOnTap(
                     onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) => MenuScreen(
-                            initialCategoryId: p.categoryId,
-                            initialProductId: p.id,
-                          ),
-                        ),
+                      AppRoutes.pushMenu(
+                        context,
+                        initialCategoryId: p.categoryId,
+                        initialProductId: p.id,
+                        rootNavigator: true,
                       );
                     },
                     child: Container(
@@ -2447,13 +2407,11 @@ class _TrendingAndNewSection extends StatelessWidget {
 
                     return ScaleOnTap(
                       onTap: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => MenuScreen(
-                              initialCategoryId: p.categoryId,
-                              initialProductId: p.id,
-                            ),
-                          ),
+                        AppRoutes.pushMenu(
+                          context,
+                          initialCategoryId: p.categoryId,
+                          initialProductId: p.id,
+                          rootNavigator: true,
                         );
                       },
                       child: Container(
@@ -2618,13 +2576,11 @@ class _TrendingAndNewSection extends StatelessWidget {
 
                   return ScaleOnTap(
                     onTap: () {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) => MenuScreen(
-                            initialCategoryId: p.categoryId,
-                            initialProductId: p.id,
-                          ),
-                        ),
+                      AppRoutes.pushMenu(
+                        context,
+                        initialCategoryId: p.categoryId,
+                        initialProductId: p.id,
+                        rootNavigator: true,
                       );
                     },
                     child: Container(
@@ -2984,10 +2940,7 @@ class _FloatingCartSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScaleOnTap(
       onTap: () {
-        Navigator.of(
-          context,
-          rootNavigator: true,
-        ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
+        AppRoutes.pushCart(context, rootNavigator: true);
       },
       child: Container(
         height: 60,

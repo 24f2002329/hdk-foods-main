@@ -5,11 +5,10 @@ import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../../shared/widgets/login_prompt_widget.dart';
-import '../../../cart/presentation/screens/cart_screen.dart';
+import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../data/repositories/order_repository.dart';
-import 'order_tracking_screen.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -166,10 +165,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         );
       }
       if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const CartScreen()),
-      );
+      AppRoutes.pushCart(context);
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Could not reorder. Please try again.')),
@@ -520,11 +516,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   }
                   final order = _orders[index];
                   return GestureDetector(
-                    onTap: () => Navigator.push(
+                    onTap: () => AppRoutes.pushOrderTracking(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => OrderTrackingScreen(orderId: order.id),
-                      ),
+                      orderId: order.id,
                     ),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
