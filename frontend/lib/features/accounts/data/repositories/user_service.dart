@@ -25,4 +25,24 @@ class UserService {
 
     throw Exception('Failed to update name');
   }
+
+  /// Fetch the coin transactions for the current user.
+  Future<Map<String, dynamic>> getCoinTransactions() async {
+    final response = await _apiClient.get('me/coins/transactions/');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final list = data['transactions'] as List?;
+      final transactions = list
+          ?.map((x) => CoinTransaction.fromJson(x as Map<String, dynamic>))
+          .toList() ??
+          [];
+      return {
+        'loyalty_coins': data['loyalty_coins'] ?? 0,
+        'transactions': transactions,
+      };
+    }
+
+    throw Exception('Failed to load coin transactions');
+  }
 }

@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import 'core/navigation/app_routes.dart';
 import 'features/address/presentation/screens/address_screen.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
@@ -129,7 +130,7 @@ class _MyAppState extends State<MyApp> {
       }
     } else {
       // Default: Go to active orders list / home
-      _navigatorKey.currentState?.pushNamed('/home');
+      _navigatorKey.currentState?.pushNamed(AppRoutes.home);
     }
   }
 
@@ -146,10 +147,10 @@ class _MyAppState extends State<MyApp> {
         theme: HdkTheme.darkTheme,
 
         routes: {
-          '/addresses': (_) => const AddressScreen(),
-          '/login': (_) => const LoginScreen(),
-          '/home': (_) => const HomeScreen(),
-          '/checkout': (_) => const CheckoutScreen(),
+          AppRoutes.addresses: (_) => const AddressScreen(),
+          AppRoutes.login: (_) => const LoginScreen(),
+          AppRoutes.home: (_) => const HomeScreen(),
+          AppRoutes.checkout: (_) => const CheckoutScreen(),
         },
 
         home: const SplashScreen(),

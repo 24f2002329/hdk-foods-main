@@ -191,6 +191,14 @@ def reject_order(order: Order, reason: str) -> Order:
 
     order.status = "rejected"
     order.rejection_reason = reason
+
+    if order.coins_redeemed > 0:
+        customer = order.user
+        customer.loyalty_coins = (
+            getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
+        )
+        customer.save(update_fields=["loyalty_coins"])
+
     order.save()
 
     notify_order_rejected(order, reason)

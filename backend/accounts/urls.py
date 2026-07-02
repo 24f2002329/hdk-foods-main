@@ -13,10 +13,12 @@ from .views import (
     SetDefaultDeliveryView,
     ToggleCustomerStatusView,
     AdminCustomerInfoView,
+    CoinTransactionsView,
 )
 
 urlpatterns = [
     path("me/", CurrentUserView.as_view()),
+    path("me/coins/transactions/", CoinTransactionsView.as_view()),
     path("addresses/", AddressListCreateView.as_view()),
     path("addresses/<int:pk>/", AddressDetailView.as_view()),
     path("delivery-staff/", DeliveryStaffListView.as_view()),

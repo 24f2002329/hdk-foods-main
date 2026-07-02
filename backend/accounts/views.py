@@ -341,3 +341,82 @@ class AdminCustomerInfoView(APIView):
                 "addresses": addresses_data,
             }
         )
+
+
+class CoinTransactionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from orders.models import Order
+
+        user = request.user
+
+        # Query orders where coins were redeemed or earned
+        orders = (
+            Order.objects.filter(user=user)
+            .filter(Q(coins_redeemed__gt=0) | Q(coins_earned__gt=0))
+            .order_by("-created_at")
+        )
+
+        transactions = []
+        for order in orders:
+            # 1. Earned transaction (only if order is delivered)
+            if order.coins_earned > 0 and order.status == "delivered":
+                transactions.append(
+                    {
+                        "id": f"earn_{order.id}",
+                        "order_id": order.id,
+                        "order_number": order.order_number,
+                        "amount": order.coins_earned,
+                        "type": "earned",
+                        "description": f"Earned from order {order.order_number}",
+                        "created_at": (
+                            order.updated_at.isoformat()
+                            if order.updated_at
+                            else order.created_at.isoformat()
+                        ),
+                    }
+                )
+
+            # 2. Redeemed transaction
+            if order.coins_redeemed > 0:
+                transactions.append(
+                    {
+                        "id": f"redeem_{order.id}",
+                        "order_id": order.id,
+                        "order_number": order.order_number,
+                        "amount": -order.coins_redeemed,
+                        "type": "redeemed",
+                        "description": f"Redeemed on order {order.order_number}",
+                        "created_at": order.created_at.isoformat(),
+                    }
+                )
+
+                # 3. Refunded transaction (if order cancelled/rejected and coins returned)
+                if order.status in ("cancelled", "rejected"):
+                    transactions.append(
+                        {
+                            "id": f"refund_{order.id}",
+                            "order_id": order.id,
+                            "order_number": order.order_number,
+                            "amount": order.coins_redeemed,
+                            "type": "refunded",
+                            "description": (
+                                f"Refunded for cancelled order {order.order_number}"
+                                if order.status == "cancelled"
+                                else f"Refunded for rejected order {order.order_number}"
+                            ),
+                            "created_at": (
+                                order.updated_at.isoformat()
+                                if order.updated_at
+                                else order.created_at.isoformat()
+                            ),
+                        }
+                    )
+
+        # Sort transactions by created_at descending
+        transactions.sort(key=lambda t: t["created_at"], reverse=True)
+
+        return Response(
+            {"loyalty_coins": user.loyalty_coins, "transactions": transactions}
+        )

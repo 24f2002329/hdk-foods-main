@@ -10,6 +10,7 @@ export 'models/modifier.dart';
 export 'models/product.dart';
 export 'models/order.dart';
 export 'models/user.dart';
+export 'models/coin_transaction.dart';
 export 'storage/token_storage.dart';
 export 'theme/hdk_theme.dart';
 export 'widgets/buttons/hdk_button.dart';
