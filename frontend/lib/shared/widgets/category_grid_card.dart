@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import 'shimmer_image_placeholder.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -45,15 +46,8 @@ class CategoryGridCard extends StatelessWidget {
                     : CachedNetworkImage(
                         imageUrl: category.image,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: _brandRed,
-                            ),
-                          ),
+                        placeholder: (context, url) => const ShimmerImagePlaceholder(
+                          borderRadius: 0,
                         ),
                         errorWidget: (context, url, error) =>
                             const _CategoryImageFallback(),

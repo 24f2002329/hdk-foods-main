@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import 'shimmer_image_placeholder.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -43,15 +44,8 @@ class CategoryCard extends StatelessWidget {
                   : CachedNetworkImage(
                       imageUrl: category.image,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: _brandRed,
-                          ),
-                        ),
+                      placeholder: (context, url) => const ShimmerImagePlaceholder(
+                        shape: BoxShape.circle,
                       ),
                       errorWidget: (context, url, error) => const ColoredBox(
                         color: Color(0xFF1E1E1E),

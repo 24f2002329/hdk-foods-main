@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../shared/widgets/product_card.dart';
 import '../../data/repositories/product_service.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
@@ -30,7 +31,7 @@ class _HomeProductsSectionState extends State<HomeProductsSection> {
 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: HdkPreloader(width: 100, height: 100));
+          return const _ProductSectionSkeleton();
         }
 
         if (snapshot.hasError) {
@@ -72,6 +73,36 @@ class _HomeProductsSectionState extends State<HomeProductsSection> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProductSectionSkeleton extends StatelessWidget {
+  const _ProductSectionSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF111111),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: SizedBox(
+        height: 320,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 3,
+          itemBuilder: (context, index) {
+            return Container(
+              width: 240,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

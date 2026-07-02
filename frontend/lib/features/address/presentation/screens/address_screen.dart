@@ -5,7 +5,7 @@ import '../../data/models/customer_address.dart';
 import '../../data/repositories/address_service.dart';
 import 'location_picker_screen.dart';
 import '../../../../core/navigation/app_routes.dart';
-import 'package:hdk_core/hdk_core.dart';
+import 'package:shimmer/shimmer.dart';
 
 const _brandOrange = Color(0xFFFF1E1E);
 const _deepText = Colors.white;
@@ -124,7 +124,7 @@ class _AddressScreenState extends State<AddressScreen> {
         future: _addressesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: HdkPreloader());
+            return const _AddressScreenSkeleton();
           }
 
           if (snapshot.hasError) {
@@ -852,6 +852,33 @@ class _AddressEmptyState extends StatelessWidget {
             ElevatedButton(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AddressScreenSkeleton extends StatelessWidget {
+  const _AddressScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF111111),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          return Container(
+            height: 110,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        },
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hdk_core/hdk_core.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../shared/widgets/login_prompt_widget.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
@@ -471,7 +472,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   'Login to view your order history and track deliveries.',
             )
           : _orders.isEmpty && _loading
-          ? const Center(child: HdkPreloader())
+          ? const _OrdersScreenSkeleton()
           : _orders.isEmpty && _error != null
           ? Center(
               child: Column(
@@ -509,9 +510,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 itemCount: _orders.length + (_hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == _orders.length) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(child: HdkPreloader(width: 50, height: 50)),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Shimmer.fromColors(
+                        baseColor: const Color(0xFF111111),
+                        highlightColor: const Color(0xFF2A2A2A),
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     );
                   }
                   final order = _orders[index];
@@ -594,6 +605,33 @@ class _OrderCardReorderButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OrdersScreenSkeleton extends StatelessWidget {
+  const _OrdersScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF111111),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Container(
+            height: 120,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        },
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hdk_core/hdk_core.dart';
 import '../../../accounts/data/repositories/user_service.dart';
 import '../../../../core/navigation/app_routes.dart';
+import 'package:shimmer/shimmer.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -83,7 +84,7 @@ class _CoinsScreenState extends State<CoinsScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: HdkPreloader())
+          ? const _CoinsScreenSkeleton()
           : _error != null
               ? ErrorRetryWidget(error: _error!, onRetry: _loadData)
               : RefreshIndicator(
@@ -385,6 +386,54 @@ class _CoinsScreenState extends State<CoinsScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+}
+
+class _CoinsScreenSkeleton extends StatelessWidget {
+  const _CoinsScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF111111),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              width: 150,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(4, (index) {
+              return Container(
+                height: 70,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 }

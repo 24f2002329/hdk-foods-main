@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/repositories/notification_service.dart';
-import 'package:hdk_core/hdk_core.dart';
+import 'package:shimmer/shimmer.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF0D0D0D);
@@ -212,7 +212,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: HdkPreloader())
+          ? const _NotificationScreenSkeleton()
           : _error != null
           ? Center(
               child: Column(
@@ -371,6 +371,33 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 },
               ),
             ),
+    );
+  }
+}
+
+class _NotificationScreenSkeleton extends StatelessWidget {
+  const _NotificationScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF111111),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          return Container(
+            height: 80,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        },
+      ),
     );
   }
 }
