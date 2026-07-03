@@ -73,11 +73,23 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  bool _redirecting = false;
 
   @override
   void initState() {
     super.initState();
     _setupNotificationClickHandling();
+    ApiClient().onAuthFailure = () {
+      if (_redirecting) return;
+      _redirecting = true;
+      _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
+      Future.delayed(const Duration(seconds: 2), () {
+        _redirecting = false;
+      });
+    };
   }
 
   void _setupNotificationClickHandling() {

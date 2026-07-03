@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 import 'core/notifications/notification_service.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 
 import 'package:flutter/foundation.dart';
@@ -32,6 +33,20 @@ Future<void> main() async {
 
   // Log App Open
   await HdkAnalytics.logAppOpen();
+
+  // Register auth failure callback
+  bool redirecting = false;
+  ApiClient().onAuthFailure = () {
+    if (redirecting) return;
+    redirecting = true;
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+      (route) => false,
+    );
+    Future.delayed(const Duration(seconds: 2), () {
+      redirecting = false;
+    });
+  };
 
   runApp(HDKAdminApp(navigatorKey: navigatorKey));
 }

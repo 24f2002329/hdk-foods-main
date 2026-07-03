@@ -12,6 +12,9 @@ class ApiClient {
   ApiClient._();
   factory ApiClient() => _instance;
 
+  /// Callback triggered when an API request fails due to authentication issues (401 and refresh fails).
+  void Function()? onAuthFailure;
+
   Future<Map<String, String>> _authHeaders() async {
     final token = await TokenStorage.getAccessToken();
     final headers = {'Content-Type': 'application/json'};
@@ -74,10 +77,11 @@ class ApiClient {
       if (response.statusCode != 401) return response;
       // Try to refresh the token
       final refreshed = await _tryRefresh();
-      if (!refreshed) throw _AuthException();
+      if (!refreshed) throw const AuthException();
       return await call(); // Retry with new token
-    } on _AuthException {
+    } on AuthException {
       await TokenStorage.logout();
+      onAuthFailure?.call();
       rethrow;
     }
   }
@@ -104,6 +108,10 @@ class ApiClient {
   }
 }
 
-class _AuthException implements Exception {
-  const _AuthException();
+class AuthException implements Exception {
+  final String message;
+  const AuthException([this.message = 'Unauthorized']);
+
+  @override
+  String toString() => message;
 }
