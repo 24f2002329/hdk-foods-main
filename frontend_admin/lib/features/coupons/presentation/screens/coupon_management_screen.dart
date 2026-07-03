@@ -36,17 +36,19 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
     });
     try {
       final coupons = await _svc.getCoupons();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _coupons = coupons;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 

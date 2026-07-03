@@ -208,7 +208,7 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _red.withOpacity(0.15),
+                                color: _red.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -238,14 +238,26 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                   ),
                   child: Column(
                     children: [
-                      _infoRow('Vehicle Model', 'Hero Splendor Plus',
-                          icon: Icons.motorcycle_rounded),
-                      _infoRow('Plate Number', 'MH-12-XY-4321',
-                          icon: Icons.pin_rounded),
-                      _infoRow('License No', 'DL-202493021948',
-                          icon: Icons.badge_rounded),
-                      _infoRow('Insurance status', 'Active (Dec 2026)',
-                          icon: Icons.verified_user_rounded),
+                      _infoRow(
+                        'Vehicle Model',
+                        'Hero Splendor Plus',
+                        icon: Icons.motorcycle_rounded,
+                      ),
+                      _infoRow(
+                        'Plate Number',
+                        'MH-12-XY-4321',
+                        icon: Icons.pin_rounded,
+                      ),
+                      _infoRow(
+                        'License No',
+                        'DL-202493021948',
+                        icon: Icons.badge_rounded,
+                      ),
+                      _infoRow(
+                        'Insurance status',
+                        'Active (Dec 2026)',
+                        icon: Icons.verified_user_rounded,
+                      ),
                     ],
                   ),
                 ),
@@ -261,14 +273,26 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                   ),
                   child: Column(
                     children: [
-                      _infoRow('Bank Name', 'State Bank of India',
-                          icon: Icons.account_balance_rounded),
-                      _infoRow('Account Number', '•••• •••• 5678',
-                          icon: Icons.numbers_rounded),
-                      _infoRow('IFSC Code', 'SBIN0004321',
-                          icon: Icons.code_rounded),
-                      _infoRow('Salary UPI ID', 'devendra@okaxis',
-                          icon: Icons.alternate_email_rounded),
+                      _infoRow(
+                        'Bank Name',
+                        'State Bank of India',
+                        icon: Icons.account_balance_rounded,
+                      ),
+                      _infoRow(
+                        'Account Number',
+                        '•••• •••• 5678',
+                        icon: Icons.numbers_rounded,
+                      ),
+                      _infoRow(
+                        'IFSC Code',
+                        'SBIN0004321',
+                        icon: Icons.code_rounded,
+                      ),
+                      _infoRow(
+                        'Salary UPI ID',
+                        'devendra@okaxis',
+                        icon: Icons.alternate_email_rounded,
+                      ),
                     ],
                   ),
                 ),
@@ -284,10 +308,16 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                   ),
                   child: Column(
                     children: [
-                      _infoRow('Contact Name', 'Sunita (Wife)',
-                          icon: Icons.person_outline_rounded),
-                      _infoRow('Phone Number', '+91 98234 56789',
-                          icon: Icons.phone_android_rounded),
+                      _infoRow(
+                        'Contact Name',
+                        'Sunita (Wife)',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      _infoRow(
+                        'Phone Number',
+                        '+91 98234 56789',
+                        icon: Icons.phone_android_rounded,
+                      ),
                     ],
                   ),
                 ),

@@ -32,11 +32,12 @@ class _BannersScreenState extends State<BannersScreen> {
   Future<void> _load() async {
     try {
       final list = await _svc.getBanners();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _banners = list.cast<Map<String, dynamic>>();
           _loading = false;
         });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
@@ -88,10 +89,11 @@ class _BannersScreenState extends State<BannersScreen> {
         await _svc.deleteBanner(id);
         _load();
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     }
   }
@@ -363,16 +365,18 @@ class _BannerFormScreenState extends State<_BannerFormScreen> {
 
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _saving = false;
           _uploadingImage = false;
         });
+      }
     }
   }
 

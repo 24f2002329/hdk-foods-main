@@ -970,7 +970,7 @@ class _AssignDriverDialogState extends State<_AssignDriverDialog> {
       ),
       content: DropdownButtonFormField<DeliveryStaff>(
         dropdownColor: _card,
-        value: selected,
+        initialValue: selected,
         items: widget.staffList
             .map(
               (s) => DropdownMenuItem(

@@ -59,18 +59,24 @@ class _AdminHomeState extends State<AdminHome> {
   void initState() {
     super.initState();
     _loadCounts();
-    _countTimer = Timer.periodic(const Duration(seconds: 25), (_) => _loadCounts());
+    _countTimer = Timer.periodic(
+      const Duration(seconds: 25),
+      (_) => _loadCounts(),
+    );
 
     _ws = AdminOrderWebSocketService();
     _ws!.connect();
     _ws!.stream.listen((msg) {
       _loadCounts();
-      if (msg['type'] == 'new_order' || msg['status'] == 'pending_confirmation') {
+      if (msg['type'] == 'new_order' ||
+          msg['status'] == 'pending_confirmation') {
         playAlertSound();
         if (mounted) {
           setState(() {
             _bannerOrderNumber = msg['order_number']?.toString();
-            _bannerOrderId = msg['id'] is int ? msg['id'] as int : int.tryParse(msg['id']?.toString() ?? '');
+            _bannerOrderId = msg['id'] is int
+                ? msg['id'] as int
+                : int.tryParse(msg['id']?.toString() ?? '');
           });
           _bannerTimer?.cancel();
           _bannerTimer = Timer(const Duration(seconds: 10), () {
@@ -93,12 +99,19 @@ class _AdminHomeState extends State<AdminHome> {
       final list = await OrderService().getAllOrders();
       if (mounted) {
         setState(() {
-          _pendingCount = list.where((o) => o.status == 'pending_confirmation').length;
-          _kdsCount = list.where((o) => ['confirmed', 'preparing'].contains(o.status)).length;
-          _dispatchCount = list.where((o) => o.status == 'out_for_delivery').length;
+          _pendingCount = list
+              .where((o) => o.status == 'pending_confirmation')
+              .length;
+          _kdsCount = list
+              .where((o) => ['confirmed', 'preparing'].contains(o.status))
+              .length;
+          _dispatchCount = list
+              .where((o) => o.status == 'out_for_delivery')
+              .length;
         });
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _fetchingCounts = false;
     }
   }
@@ -135,7 +148,10 @@ class _AdminHomeState extends State<AdminHome> {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E0A0A),
                     borderRadius: BorderRadius.circular(12),
@@ -150,7 +166,11 @@ class _AdminHomeState extends State<AdminHome> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.notifications_active, color: _red, size: 24),
+                      const Icon(
+                        Icons.notifications_active,
+                        color: _red,
+                        size: 24,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -168,7 +188,7 @@ class _AdminHomeState extends State<AdminHome> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Order #${_bannerOrderNumber}',
+                              'Order #$_bannerOrderNumber',
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -192,7 +212,8 @@ class _AdminHomeState extends State<AdminHome> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AdminOrderDetailScreen(orderId: oid),
+                                builder: (_) =>
+                                    AdminOrderDetailScreen(orderId: oid),
                               ),
                             );
                           }
@@ -359,11 +380,12 @@ class _DashboardTabState extends State<_DashboardTab>
   int _unreadNotificationCount = 0;
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent)
+    if (!silent) {
       setState(() {
         _loading = true;
         _error = null;
       });
+    }
     try {
       final data = await _svc.getDashboard(period: _period);
       int unread = 0;
@@ -607,8 +629,9 @@ class _DashboardTabState extends State<_DashboardTab>
                     interval: 4,
                     getTitlesWidget: (v, _) {
                       final hour = v.toInt();
-                      if (hour < 0 || hour >= 24)
+                      if (hour < 0 || hour >= 24) {
                         return const SizedBox.shrink();
+                      }
                       final suffix = hour >= 12 ? 'PM' : 'AM';
                       final disp = hour == 0
                           ? 12
@@ -1148,7 +1171,8 @@ class _DashboardTabState extends State<_DashboardTab>
                       Expanded(
                         child: _InsightCard(
                           label: 'Avg Prep Time',
-                          value: '${_data?['avg_prep_time_minutes'] ?? 0.0} mins',
+                          value:
+                              '${_data?['avg_prep_time_minutes'] ?? 0.0} mins',
                           icon: Icons.timer_outlined,
                           color: Colors.tealAccent,
                         ),
@@ -1157,7 +1181,8 @@ class _DashboardTabState extends State<_DashboardTab>
                       Expanded(
                         child: _InsightCard(
                           label: 'Avg Delivery Time',
-                          value: '${_data?['avg_delivery_time_minutes'] ?? 0.0} mins',
+                          value:
+                              '${_data?['avg_delivery_time_minutes'] ?? 0.0} mins',
                           icon: Icons.directions_run_rounded,
                           color: Colors.purpleAccent,
                         ),
@@ -1214,7 +1239,10 @@ class _DashboardTabState extends State<_DashboardTab>
                                 children: [
                                   Text(
                                     'Today\'s Revenue',
-                                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -1236,7 +1264,10 @@ class _DashboardTabState extends State<_DashboardTab>
                                 children: [
                                   Text(
                                     'This Month\'s Revenue',
-                                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -1263,15 +1294,21 @@ class _DashboardTabState extends State<_DashboardTab>
                         ),
                         const SizedBox(height: 8),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'COD: ${_data?['cod_percentage'] ?? 0}%',
-                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
                             ),
                             Text(
                               'Online: ${_data?['online_percentage'] ?? 0}%',
-                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
@@ -1280,27 +1317,63 @@ class _DashboardTabState extends State<_DashboardTab>
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: (() {
-                              final cod = double.tryParse('${_data?['cod_percentage']}') ?? 0.0;
-                              final online = double.tryParse('${_data?['online_percentage']}') ?? 0.0;
+                              final cod =
+                                  double.tryParse(
+                                    '${_data?['cod_percentage']}',
+                                  ) ??
+                                  0.0;
+                              final online =
+                                  double.tryParse(
+                                    '${_data?['online_percentage']}',
+                                  ) ??
+                                  0.0;
                               final total = cod + online;
                               if (total == 0) return 0.5;
                               return online / total;
                             })(),
                             backgroundColor: Colors.amberAccent,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.blueAccent,
+                            ),
                             minHeight: 8,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.amberAccent, shape: BoxShape.circle)),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.amberAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 4),
-                            Text('COD', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
+                            Text(
+                              'COD',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey,
+                                fontSize: 10,
+                              ),
+                            ),
                             const SizedBox(width: 16),
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle)),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.blueAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 4),
-                            Text('Online', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
+                            Text(
+                              'Online',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey,
+                                fontSize: 10,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -1606,17 +1679,19 @@ class _DashboardOrdersScreenState extends State<DashboardOrdersScreen> {
         }
         return true;
       }).toList();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _orders = filtered;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -1742,11 +1817,12 @@ class _OrdersTabState extends State<_OrdersTab>
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent)
+    if (!silent) {
       setState(() {
         _loading = true;
         _error = null;
       });
+    }
     try {
       final orders = await _svc.getAllOrders();
       if (mounted) {
@@ -1763,11 +1839,12 @@ class _OrdersTabState extends State<_OrdersTab>
         });
       }
     } catch (e) {
-      if (mounted && !silent)
+      if (mounted && !silent) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -1817,9 +1894,9 @@ class _OrdersTabState extends State<_OrdersTab>
       _load(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1855,9 +1932,9 @@ class _OrdersTabState extends State<_OrdersTab>
       _load(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1868,9 +1945,9 @@ class _OrdersTabState extends State<_OrdersTab>
       _load(silent: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -1999,10 +2076,18 @@ class _OrdersTabState extends State<_OrdersTab>
               decoration: InputDecoration(
                 hintText: 'Search order number, name or phone...',
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Colors.grey,
+                  size: 20,
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+                        icon: const Icon(
+                          Icons.clear,
+                          color: Colors.grey,
+                          size: 18,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -2013,7 +2098,10 @@ class _OrdersTabState extends State<_OrdersTab>
                     : null,
                 filled: true,
                 fillColor: _card,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: _stroke),
@@ -2065,13 +2153,15 @@ class _OrdersTabState extends State<_OrdersTab>
                                 onReject: () => _quickReject(order),
                                 onStartCooking: () => _quickStartCooking(order),
                                 onMarkReady: () => _quickMarkReady(order),
-                                onMarkDelivered: () => _quickMarkDelivered(order),
+                                onMarkDelivered: () =>
+                                    _quickMarkDelivered(order),
                                 onTap: () async {
                                   await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          AdminOrderDetailScreen(orderId: order.id),
+                                      builder: (_) => AdminOrderDetailScreen(
+                                        orderId: order.id,
+                                      ),
                                     ),
                                   );
                                   _load();
@@ -2163,11 +2253,12 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent)
+    if (!silent) {
       setState(() {
         _loading = true;
         _error = null;
       });
+    }
     try {
       final all = await _svc.getAllOrders();
       if (mounted) {
@@ -2179,11 +2270,12 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
         });
       }
     } catch (e) {
-      if (mounted && !silent)
+      if (mounted && !silent) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -2205,10 +2297,11 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
       await _svc.confirmOrder(order.id, prepTime);
       _load(silent: true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -2222,10 +2315,11 @@ class _ActiveOrdersTabState extends State<_ActiveOrdersTab>
       await _svc.rejectOrder(order.id, reason);
       _load(silent: true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -2530,11 +2624,12 @@ class _ProductsTabState extends State<_ProductsTab>
         });
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -2782,17 +2877,19 @@ class _DeliveryStaffManagementScreenState
     });
     try {
       final list = await _svc.getDeliveryStaff();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _staff = list;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -2971,11 +3068,12 @@ class _ProfileTabState extends State<_ProfileTab> {
   Future<void> _load() async {
     try {
       final data = await OrderService().getMe();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _profile = data;
           _loading = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -3308,7 +3406,10 @@ class _OrderCard extends StatelessWidget {
                     ),
                     child: const Text(
                       'Start Cooking 🍳',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   )
                 else if (order.status == 'preparing' && onMarkReady != null)
@@ -3322,10 +3423,14 @@ class _OrderCard extends StatelessWidget {
                     ),
                     child: const Text(
                       'Mark Ready (Assign Driver) 🛵',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   )
-                else if (order.status == 'out_for_delivery' && onMarkDelivered != null)
+                else if (order.status == 'out_for_delivery' &&
+                    onMarkDelivered != null)
                   ElevatedButton(
                     onPressed: onMarkDelivered,
                     style: ElevatedButton.styleFrom(
@@ -3336,7 +3441,10 @@ class _OrderCard extends StatelessWidget {
                     ),
                     child: const Text(
                       'Mark Delivered ✅',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -4066,11 +4174,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _saving = false;
           _uploadingImage = false;
         });
+      }
     }
   }
 

@@ -360,7 +360,7 @@ class _ModifierGroupEditorScreenState extends State<ModifierGroupEditorScreen> {
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   value: available,
-                  activeColor: _red,
+                  activeThumbColor: _red,
                   contentPadding: EdgeInsets.zero,
                   onChanged: (val) => setDialogState(() => available = val),
                 ),
@@ -518,7 +518,7 @@ class _ModifierGroupEditorScreenState extends State<ModifierGroupEditorScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectionType,
+              initialValue: _selectionType,
               dropdownColor: _panel,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
@@ -552,7 +552,7 @@ class _ModifierGroupEditorScreenState extends State<ModifierGroupEditorScreen> {
                 style: TextStyle(color: Colors.white),
               ),
               value: _required,
-              activeColor: _red,
+              activeThumbColor: _red,
               tileColor: _panel,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

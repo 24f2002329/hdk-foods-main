@@ -124,6 +124,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       final prefs = await SharedPreferences.getInstance();
       final strList = _acceptedOrderIds.map((e) => e.toString()).toList();
       await prefs.setStringList('accepted_order_ids', strList);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Order accepted! Head to the kitchen to pick up.'),
@@ -137,6 +138,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
     setState(() => _loading = true);
     try {
       await _service.updateStatus(id, 'out_for_delivery');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Order picked up! Drive safely.'),
@@ -145,6 +147,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
       );
       _load();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to update status: $e'),
@@ -186,7 +189,8 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         );
         _load(silent: true);
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       setState(() => _syncingOffline = false);
     }
   }
@@ -452,7 +456,8 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
 
     for (var o in todayDelivered) {
       if (o.address?.latitude != null && o.address?.longitude != null) {
-        total += Geolocator.distanceBetween(
+        total +=
+            Geolocator.distanceBetween(
               kitchenLat,
               kitchenLng,
               o.address!.latitude!,
@@ -477,20 +482,24 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
   // Active / Current Orders (Online mode only)
   List<Order> get _activeOrders {
     return _orders
-        .where((o) =>
-            o.status != 'delivered' &&
-            o.status != 'cancelled' &&
-            o.status != 'rejected')
+        .where(
+          (o) =>
+              o.status != 'delivered' &&
+              o.status != 'cancelled' &&
+              o.status != 'rejected',
+        )
         .toList();
   }
 
   // Past Orders with filter logic
   List<Order> get _filteredHistoryOrders {
     final history = _orders
-        .where((o) =>
-            o.status == 'delivered' ||
-            o.status == 'cancelled' ||
-            o.status == 'rejected')
+        .where(
+          (o) =>
+              o.status == 'delivered' ||
+              o.status == 'cancelled' ||
+              o.status == 'rejected',
+        )
         .toList();
 
     return history.where((o) {
@@ -605,9 +614,13 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                       final pos = await Geolocator.getCurrentPosition();
                       final mapsUrl =
                           'https://maps.google.com/?q=${pos.latitude},${pos.longitude}';
-                      await launchUrl(Uri.parse(
-                          'sms:?body=Emergency! Here is my live location: $mapsUrl'));
+                      await launchUrl(
+                        Uri.parse(
+                          'sms:?body=Emergency! Here is my live location: $mapsUrl',
+                        ),
+                      );
                     } catch (_) {
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Could not access current location.'),
@@ -620,11 +633,13 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child:
-                    const Text('Close', style: TextStyle(color: Colors.grey)),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -665,9 +680,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: _red.withOpacity(0.12),
+                    color: _red.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _red.withOpacity(0.3)),
+                    border: Border.all(color: _red.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     _achievementLevel,
@@ -695,10 +710,12 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                       boxShadow: _isOnline
                           ? [
                               BoxShadow(
-                                color: Colors.greenAccent.withOpacity(0.5),
+                                color: Colors.greenAccent.withValues(
+                                  alpha: 0.5,
+                                ),
                                 blurRadius: 6,
                                 spreadRadius: 2,
-                              )
+                              ),
                             ]
                           : null,
                     ),
@@ -719,10 +736,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                 scale: 0.8,
                 child: Switch(
                   value: _isOnline,
-                  activeColor: Colors.greenAccent,
-                  activeTrackColor: Colors.greenAccent.withOpacity(0.2),
+                  activeThumbColor: Colors.greenAccent,
+                  activeTrackColor: Colors.greenAccent.withValues(alpha: 0.2),
                   inactiveThumbColor: Colors.grey,
-                  inactiveTrackColor: Colors.grey.withOpacity(0.2),
+                  inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
                   onChanged: _toggleOnlineStatus,
                 ),
               ),
@@ -802,10 +819,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          sub,
-          style: const TextStyle(color: Colors.grey, fontSize: 9),
-        ),
+        Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 9)),
       ],
     );
   }
@@ -823,12 +837,12 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDelivered
-              ? Colors.greenAccent.withOpacity(0.3)
+              ? Colors.greenAccent.withValues(alpha: 0.3)
               : isCancelled
-                  ? Colors.redAccent.withOpacity(0.3)
-                  : isAccepted
-                      ? Colors.blueAccent.withOpacity(0.5)
-                      : _stroke,
+              ? Colors.redAccent.withValues(alpha: 0.3)
+              : isAccepted
+              ? Colors.blueAccent.withValues(alpha: 0.5)
+              : _stroke,
         ),
       ),
       child: Column(
@@ -849,32 +863,33 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: (isDelivered
-                          ? Colors.greenAccent
-                          : isCancelled
+                  color:
+                      (isDelivered
+                              ? Colors.greenAccent
+                              : isCancelled
                               ? Colors.redAccent
                               : o.status == 'out_for_delivery'
-                                  ? Colors.blueAccent
-                                  : Colors.orangeAccent)
-                      .withOpacity(0.15),
+                              ? Colors.blueAccent
+                              : Colors.orangeAccent)
+                          .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   isDelivered
                       ? 'Delivered'
                       : isCancelled
-                          ? 'Cancelled'
-                          : o.status == 'out_for_delivery'
-                              ? 'Out for Delivery'
-                              : 'Assigned',
+                      ? 'Cancelled'
+                      : o.status == 'out_for_delivery'
+                      ? 'Out for Delivery'
+                      : 'Assigned',
                   style: TextStyle(
                     color: isDelivered
                         ? Colors.greenAccent
                         : isCancelled
-                            ? Colors.redAccent
-                            : o.status == 'out_for_delivery'
-                                ? Colors.blueAccent
-                                : Colors.orangeAccent,
+                        ? Colors.redAccent
+                        : o.status == 'out_for_delivery'
+                        ? Colors.blueAccent
+                        : Colors.orangeAccent,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -899,9 +914,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
               padding: const EdgeInsets.all(10),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.08),
+                color: Colors.amber.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -931,8 +946,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on_outlined,
-                    color: _red, size: 14),
+                const Icon(Icons.location_on_outlined, color: _red, size: 14),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -954,7 +968,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: _stroke),
                   ),
@@ -972,9 +986,11 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                         onPressed: () {
                           if (o.address?.latitude != null &&
                               o.address?.longitude != null) {
-                            launchUrl(Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=${o.address!.latitude},${o.address!.longitude}',
-                            ));
+                            launchUrl(
+                              Uri.parse(
+                                'https://www.google.com/maps/search/?api=1&query=${o.address!.latitude},${o.address!.longitude}',
+                              ),
+                            );
                           }
                         },
                       ),
@@ -988,8 +1004,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                         ),
                         onPressed: () {
                           if (o.customerPhone.isNotEmpty) {
-                            launchUrl(
-                                Uri.parse('tel:${o.customerPhone}'));
+                            launchUrl(Uri.parse('tel:${o.customerPhone}'));
                           }
                         },
                       ),
@@ -1050,7 +1065,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.12),
+                color: Colors.orangeAccent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -1085,8 +1100,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: _red,
             foregroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           icon: const Icon(Icons.check_circle_outline, size: 18),
           label: const Text(
@@ -1100,8 +1116,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueAccent,
             foregroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           icon: const Icon(Icons.takeout_dining_rounded, size: 18),
           label: const Text(
@@ -1116,8 +1133,9 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.greenAccent,
           foregroundColor: Colors.black,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
         icon: const Icon(Icons.sports_motorsports_rounded, size: 18),
         label: const Text(
@@ -1149,7 +1167,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
               Icon(
                 Icons.power_off_rounded,
                 size: 64,
-                color: Colors.grey.withOpacity(0.5),
+                color: Colors.grey.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -1192,7 +1210,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
               Icon(
                 Icons.delivery_dining_rounded,
                 size: 64,
-                color: Colors.grey.withOpacity(0.5),
+                color: Colors.grey.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -1237,26 +1255,44 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             child: Row(
               children: [
                 // Time Filters
-                _buildFilterChip('Time: All', _timeFilter == 'All',
-                    () => setState(() => _timeFilter = 'All')),
+                _buildFilterChip(
+                  'Time: All',
+                  _timeFilter == 'All',
+                  () => setState(() => _timeFilter = 'All'),
+                ),
                 const SizedBox(width: 6),
-                _buildFilterChip('Time: Today', _timeFilter == 'Today',
-                    () => setState(() => _timeFilter = 'Today')),
+                _buildFilterChip(
+                  'Time: Today',
+                  _timeFilter == 'Today',
+                  () => setState(() => _timeFilter = 'Today'),
+                ),
                 const SizedBox(width: 6),
-                _buildFilterChip('Time: Yesterday', _timeFilter == 'Yesterday',
-                    () => setState(() => _timeFilter = 'Yesterday')),
+                _buildFilterChip(
+                  'Time: Yesterday',
+                  _timeFilter == 'Yesterday',
+                  () => setState(() => _timeFilter = 'Yesterday'),
+                ),
                 const SizedBox(width: 12),
                 Container(width: 1, height: 18, color: _stroke),
                 const SizedBox(width: 12),
                 // Payment Filters
-                _buildFilterChip('Pay: All', _paymentFilter == 'All',
-                    () => setState(() => _paymentFilter = 'All')),
+                _buildFilterChip(
+                  'Pay: All',
+                  _paymentFilter == 'All',
+                  () => setState(() => _paymentFilter = 'All'),
+                ),
                 const SizedBox(width: 6),
-                _buildFilterChip('Pay: Cash', _paymentFilter == 'Cash',
-                    () => setState(() => _paymentFilter = 'Cash')),
+                _buildFilterChip(
+                  'Pay: Cash',
+                  _paymentFilter == 'Cash',
+                  () => setState(() => _paymentFilter = 'Cash'),
+                ),
                 const SizedBox(width: 6),
-                _buildFilterChip('Pay: Online', _paymentFilter == 'Online',
-                    () => setState(() => _paymentFilter = 'Online')),
+                _buildFilterChip(
+                  'Pay: Online',
+                  _paymentFilter == 'Online',
+                  () => setState(() => _paymentFilter = 'Online'),
+                ),
               ],
             ),
           ),
@@ -1275,7 +1311,7 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                         Icon(
                           Icons.history_toggle_off_rounded,
                           size: 48,
-                          color: Colors.grey.withOpacity(0.4),
+                          color: Colors.grey.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -1402,38 +1438,38 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
             _loading
                 ? const Center(child: HdkPreloader())
                 : _error != null
-                    ? ErrorRetryWidget(error: _error!, onRetry: _load)
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            _buildGreetingCard(),
-                            const SizedBox(height: 12),
-                            if (_isOnline) ...[
-                              _buildStatsRow(),
-                              const SizedBox(height: 16),
-                            ],
-                            const Text(
-                              'Current Deliveries',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            _buildActiveTab(),
-                            const SizedBox(height: 48),
-                          ],
+                ? ErrorRetryWidget(error: _error!, onRetry: _load)
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _buildGreetingCard(),
+                        const SizedBox(height: 12),
+                        if (_isOnline) ...[
+                          _buildStatsRow(),
+                          const SizedBox(height: 16),
+                        ],
+                        const Text(
+                          'Current Deliveries',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        _buildActiveTab(),
+                        const SizedBox(height: 48),
+                      ],
+                    ),
+                  ),
             // Tab 2: History
             _loading
                 ? const Center(child: HdkPreloader())
                 : _error != null
-                    ? ErrorRetryWidget(error: _error!, onRetry: _load)
-                    : _buildHistoryTab(),
+                ? ErrorRetryWidget(error: _error!, onRetry: _load)
+                : _buildHistoryTab(),
           ],
         ),
       ),

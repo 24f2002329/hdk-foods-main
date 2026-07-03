@@ -305,7 +305,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                       children: [
                         _sectionHeader('Delivery & Payment Details'),
                         DropdownButtonFormField<String>(
-                          value: _deliveryType,
+                          initialValue: _deliveryType,
                           dropdownColor: _card,
                           style: const TextStyle(color: Colors.white),
                           decoration: _inputDec('Delivery Type'),
@@ -346,7 +346,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                             const SizedBox(height: 12),
                             DropdownButtonFormField<int?>(
                               isExpanded: true,
-                              value: _selectedAddressId,
+                              initialValue: _selectedAddressId,
                               dropdownColor: _card,
                               style: const TextStyle(
                                 color: Colors.white,
@@ -480,7 +480,7 @@ class _AdminCreateOrderScreenState extends State<AdminCreateOrderScreen> {
                         ],
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: _paymentMethod,
+                          initialValue: _paymentMethod,
                           dropdownColor: _card,
                           style: const TextStyle(color: Colors.white),
                           decoration: _inputDec('Payment Method'),
@@ -958,41 +958,48 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                               ),
                             ),
                           ),
-                        ...group.options.map((opt) {
-                          final isSelected = selectedList.contains(opt);
-                          if (group.isSingleSelect) {
-                            return RadioListTile<ModifierOption>(
-                              value: opt,
-                              groupValue: selectedList.isNotEmpty
-                                  ? selectedList.first
-                                  : null,
-                              title: Text(
-                                opt.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              subtitle: opt.extraPrice > 0
-                                  ? Text(
-                                      '+₹${opt.extraPrice.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                        color: _red,
-                                        fontSize: 11,
-                                      ),
-                                    )
-                                  : null,
-                              activeColor: _red,
-                              contentPadding: EdgeInsets.zero,
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setDialogState(() {
-                                    tempSelections[group.id] = [val];
-                                  });
-                                }
-                              },
-                            );
-                          } else {
+                        if (group.isSingleSelect)
+                          RadioGroup<ModifierOption>(
+                            groupValue: selectedList.isNotEmpty
+                                ? selectedList.first
+                                : null,
+                            onChanged: (val) {
+                              if (val != null) {
+                                setDialogState(() {
+                                  tempSelections[group.id] = [val];
+                                });
+                              }
+                            },
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: group.options.map((opt) {
+                                return RadioListTile<ModifierOption>(
+                                  value: opt,
+                                  title: Text(
+                                    opt.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  subtitle: opt.extraPrice > 0
+                                      ? Text(
+                                          '+₹${opt.extraPrice.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            color: _red,
+                                            fontSize: 11,
+                                          ),
+                                        )
+                                      : null,
+                                  activeColor: _red,
+                                  contentPadding: EdgeInsets.zero,
+                                );
+                              }).toList(),
+                            ),
+                          )
+                        else
+                          ...group.options.map((opt) {
+                            final isSelected = selectedList.contains(opt);
                             return CheckboxListTile(
                               value: isSelected,
                               title: Text(
@@ -1032,8 +1039,7 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
                                 });
                               },
                             );
-                          }
-                        }),
+                          }),
                         const Divider(color: _stroke),
                       ],
                     );

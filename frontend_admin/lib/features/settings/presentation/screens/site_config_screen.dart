@@ -101,7 +101,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
       if (token == null) {
         if (mounted) setState(() => _wsStatus = 'Unauthorized');
       } else {
-        final uri = Uri.parse('${ApiConfig.wsBaseUrl}/ws/admin/orders/?token=$token');
+        final uri = Uri.parse(
+          '${ApiConfig.wsBaseUrl}/ws/admin/orders/?token=$token',
+        );
         final channel = WebSocketChannel.connect(uri);
         // Wait for connection with a 3-second timeout
         await channel.ready.timeout(const Duration(seconds: 3));
@@ -163,11 +165,12 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         });
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -181,15 +184,17 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         'loyalty_coins_percentage':
             int.tryParse(_loyaltyCoinsPercentage.text.trim()) ?? 10,
       });
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Settings saved ✅')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -720,10 +725,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
         Row(
           children: [
             if (trailing != null) ...[

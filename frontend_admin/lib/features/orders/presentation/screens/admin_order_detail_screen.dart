@@ -391,8 +391,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
     final result = await showDialog<ReadyResult>(
       context: context,
-      builder: (_) =>
-          AssignAndReadyDialog(staff: staff, initial: defaultStaff),
+      builder: (_) => AssignAndReadyDialog(staff: staff, initial: defaultStaff),
     );
     if (result == null) return;
 
@@ -1555,80 +1554,120 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
   Widget _buildTimeline(Order o) {
     final List<_TimelineStep> steps = [];
     if (o.status == 'rejected') {
-      steps.add(_TimelineStep(
-        title: 'Order Placed',
-        subtitle: 'Order received by the system',
-        timestamp: o.createdAt,
-        isCompleted: true,
-      ));
-      steps.add(_TimelineStep(
-        title: 'Order Rejected',
-        subtitle: o.rejectionReason.isNotEmpty ? o.rejectionReason : 'Rejected by store staff',
-        timestamp: o.rejectedAt ?? o.createdAt,
-        isCompleted: true,
-        isFailed: true,
-      ));
-    } else if (o.status == 'cancelled') {
-      steps.add(_TimelineStep(
-        title: 'Order Placed',
-        subtitle: 'Order received by the system',
-        timestamp: o.createdAt,
-        isCompleted: true,
-      ));
-      if (o.confirmedAt != null) {
-        steps.add(_TimelineStep(
-          title: 'Order Confirmed',
-          subtitle: 'Confirmed by kitchen',
-          timestamp: o.confirmedAt,
+      steps.add(
+        _TimelineStep(
+          title: 'Order Placed',
+          subtitle: 'Order received by the system',
+          timestamp: o.createdAt,
           isCompleted: true,
-        ));
+        ),
+      );
+      steps.add(
+        _TimelineStep(
+          title: 'Order Rejected',
+          subtitle: o.rejectionReason.isNotEmpty
+              ? o.rejectionReason
+              : 'Rejected by store staff',
+          timestamp: o.rejectedAt ?? o.createdAt,
+          isCompleted: true,
+          isFailed: true,
+        ),
+      );
+    } else if (o.status == 'cancelled') {
+      steps.add(
+        _TimelineStep(
+          title: 'Order Placed',
+          subtitle: 'Order received by the system',
+          timestamp: o.createdAt,
+          isCompleted: true,
+        ),
+      );
+      if (o.confirmedAt != null) {
+        steps.add(
+          _TimelineStep(
+            title: 'Order Confirmed',
+            subtitle: 'Confirmed by kitchen',
+            timestamp: o.confirmedAt,
+            isCompleted: true,
+          ),
+        );
       }
-      steps.add(_TimelineStep(
-        title: 'Order Cancelled',
-        subtitle: o.cancellationReason.isNotEmpty ? o.cancellationReason : 'Order cancelled',
-        timestamp: o.cancelledAt ?? o.createdAt,
-        isCompleted: true,
-        isFailed: true,
-      ));
+      steps.add(
+        _TimelineStep(
+          title: 'Order Cancelled',
+          subtitle: o.cancellationReason.isNotEmpty
+              ? o.cancellationReason
+              : 'Order cancelled',
+          timestamp: o.cancelledAt ?? o.createdAt,
+          isCompleted: true,
+          isFailed: true,
+        ),
+      );
     } else {
-      final isConfirmed = o.confirmedAt != null ||
-          ['confirmed', 'preparing', 'out_for_delivery', 'delivered'].contains(o.status);
-      final isPreparing = o.preparingAt != null ||
+      final isConfirmed =
+          o.confirmedAt != null ||
+          [
+            'confirmed',
+            'preparing',
+            'out_for_delivery',
+            'delivered',
+          ].contains(o.status);
+      final isPreparing =
+          o.preparingAt != null ||
           ['preparing', 'out_for_delivery', 'delivered'].contains(o.status);
-      final isOutForDelivery = o.outForDeliveryAt != null ||
+      final isOutForDelivery =
+          o.outForDeliveryAt != null ||
           ['out_for_delivery', 'delivered'].contains(o.status);
       final isDelivered = o.deliveredAt != null || o.status == 'delivered';
 
-      steps.add(_TimelineStep(
-        title: 'Order Placed',
-        subtitle: 'Order received by the system',
-        timestamp: o.createdAt,
-        isCompleted: true,
-      ));
-      steps.add(_TimelineStep(
-        title: 'Order Confirmed',
-        subtitle: isConfirmed ? 'Confirmed by kitchen' : 'Waiting for kitchen confirmation',
-        timestamp: o.confirmedAt,
-        isCompleted: isConfirmed,
-      ));
-      steps.add(_TimelineStep(
-        title: 'Preparing',
-        subtitle: isPreparing ? 'Kitchen is preparing food' : 'Waiting to start cooking',
-        timestamp: o.preparingAt,
-        isCompleted: isPreparing,
-      ));
-      steps.add(_TimelineStep(
-        title: 'Out for Delivery',
-        subtitle: isOutForDelivery ? 'Driver on the way' : 'Waiting to dispatch driver',
-        timestamp: o.outForDeliveryAt,
-        isCompleted: isOutForDelivery,
-      ));
-      steps.add(_TimelineStep(
-        title: 'Delivered',
-        subtitle: isDelivered ? 'Delivered successfully' : 'Waiting for delivery confirmation',
-        timestamp: o.deliveredAt,
-        isCompleted: isDelivered,
-      ));
+      steps.add(
+        _TimelineStep(
+          title: 'Order Placed',
+          subtitle: 'Order received by the system',
+          timestamp: o.createdAt,
+          isCompleted: true,
+        ),
+      );
+      steps.add(
+        _TimelineStep(
+          title: 'Order Confirmed',
+          subtitle: isConfirmed
+              ? 'Confirmed by kitchen'
+              : 'Waiting for kitchen confirmation',
+          timestamp: o.confirmedAt,
+          isCompleted: isConfirmed,
+        ),
+      );
+      steps.add(
+        _TimelineStep(
+          title: 'Preparing',
+          subtitle: isPreparing
+              ? 'Kitchen is preparing food'
+              : 'Waiting to start cooking',
+          timestamp: o.preparingAt,
+          isCompleted: isPreparing,
+        ),
+      );
+      steps.add(
+        _TimelineStep(
+          title: 'Out for Delivery',
+          subtitle: isOutForDelivery
+              ? 'Driver on the way'
+              : 'Waiting to dispatch driver',
+          timestamp: o.outForDeliveryAt,
+          isCompleted: isOutForDelivery,
+        ),
+      );
+      steps.add(
+        _TimelineStep(
+          title: 'Delivered',
+          subtitle: isDelivered
+              ? 'Delivered successfully'
+              : 'Waiting for delivery confirmation',
+          timestamp: o.deliveredAt,
+          isCompleted: isDelivered,
+        ),
+      );
     }
 
     return Container(
@@ -1655,13 +1694,16 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             final step = steps[index];
             final isLast = index == steps.length - 1;
             bool isActive = false;
-            if (o.status == 'pending_confirmation' && step.title == 'Order Confirmed') {
+            if (o.status == 'pending_confirmation' &&
+                step.title == 'Order Confirmed') {
               isActive = true;
             } else if (o.status == 'confirmed' && step.title == 'Preparing') {
               isActive = true;
-            } else if (o.status == 'preparing' && step.title == 'Out for Delivery') {
+            } else if (o.status == 'preparing' &&
+                step.title == 'Out for Delivery') {
               isActive = true;
-            } else if (o.status == 'out_for_delivery' && step.title == 'Delivered') {
+            } else if (o.status == 'out_for_delivery' &&
+                step.title == 'Delivered') {
               isActive = true;
             }
             return _buildTimelineStepWidget(step, isLast, isActive);
@@ -1671,14 +1713,18 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     );
   }
 
-  Widget _buildTimelineStepWidget(_TimelineStep step, bool isLast, bool isActive) {
+  Widget _buildTimelineStepWidget(
+    _TimelineStep step,
+    bool isLast,
+    bool isActive,
+  ) {
     final dotColor = step.isFailed
         ? Colors.red
         : step.isCompleted
-            ? Colors.green
-            : isActive
-                ? _red
-                : Colors.grey[700]!;
+        ? Colors.green
+        : isActive
+        ? _red
+        : Colors.grey[700]!;
 
     final timeStr = step.timestamp != null
         ? DateFormat('hh:mm a').format(step.timestamp!.toLocal())
@@ -1702,7 +1748,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                           color: dotColor.withValues(alpha: 0.4),
                           blurRadius: 6,
                           spreadRadius: 2,
-                        )
+                        ),
                       ]
                     : null,
               ),
@@ -1730,14 +1776,18 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     step.title,
                     style: GoogleFonts.poppins(
                       color: step.isCompleted ? Colors.white : Colors.grey[600],
-                      fontWeight: step.isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: step.isCompleted
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                       fontSize: 13,
                     ),
                   ),
                   Text(
                     timeStr,
                     style: GoogleFonts.poppins(
-                      color: step.timestamp != null ? Colors.grey : Colors.transparent,
+                      color: step.timestamp != null
+                          ? Colors.grey
+                          : Colors.transparent,
                       fontSize: 11,
                     ),
                   ),

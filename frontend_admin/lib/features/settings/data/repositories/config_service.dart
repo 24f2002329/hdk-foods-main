@@ -10,27 +10,32 @@ class AdminConfigService {
 
   Future<Map<String, dynamic>> getConfig() async {
     final response = await ApiClient().get('$_base/config/');
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
+    }
     throw Exception('Failed to load config');
   }
 
   Future<void> updateConfig(Map<String, dynamic> data) async {
     final response = await ApiClient().patch('$_base/config/', data);
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Failed to update: ${response.body}');
+    }
   }
 
   Future<List<dynamic>> getBanners() async {
     final response = await ApiClient().get('$_base/config/banners/');
-    if (response.statusCode == 200) return jsonDecode(response.body) as List;
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List;
+    }
     throw Exception('Failed to load banners');
   }
 
   Future<Map<String, dynamic>> createBanner(Map<String, dynamic> data) async {
     final response = await ApiClient().post('$_base/config/banners/', data);
-    if (response.statusCode == 201)
+    if (response.statusCode == 201) {
       return jsonDecode(response.body) as Map<String, dynamic>;
+    }
     throw Exception('Failed to create banner: ${response.body}');
   }
 
@@ -39,12 +44,16 @@ class AdminConfigService {
       '$_base/config/banners/$id/',
       data,
     );
-    if (response.statusCode != 200) throw Exception('Failed to update banner');
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update banner');
+    }
   }
 
   Future<void> deleteBanner(int id) async {
     final response = await ApiClient().delete('$_base/config/banners/$id/');
-    if (response.statusCode != 204) throw Exception('Failed to delete banner');
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete banner');
+    }
   }
 
   Future<int> broadcastNotification(String title, String body) async {
@@ -101,8 +110,9 @@ class AdminConfigService {
 
   Future<Map<String, dynamic>> getPrepConfig() async {
     final response = await ApiClient().get('$_base/orders/admin/prep-config/');
-    if (response.statusCode == 200)
+    if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
+    }
     throw Exception('Failed to load prep config');
   }
 
@@ -111,7 +121,8 @@ class AdminConfigService {
       '$_base/orders/admin/prep-config/',
       data,
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Failed to update prep config: ${response.body}');
+    }
   }
 }

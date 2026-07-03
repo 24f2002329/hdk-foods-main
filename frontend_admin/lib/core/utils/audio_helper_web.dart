@@ -1,8 +1,11 @@
-import 'dart:js' as js;
+import 'dart:js_interop';
+
+@JS('eval')
+external void _eval(String code);
 
 void playAlertSound() {
   try {
-    js.context.callMethod('eval', ["""
+    _eval("""
       (function() {
         try {
           var context = new (window.AudioContext || window.webkitAudioContext)();
@@ -26,7 +29,7 @@ void playAlertSound() {
           console.error('Failed to synthesize chime:', e);
         }
       })()
-    """]);
+    """);
   } catch (e) {
     // Fallback/Silent in environments where js interop fails
   }

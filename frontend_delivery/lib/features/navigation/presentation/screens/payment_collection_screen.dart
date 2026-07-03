@@ -154,7 +154,8 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       if (!mounted) return;
 
       final errStr = e.toString().toLowerCase();
-      bool isOfflineError = errStr.contains('socketexception') ||
+      bool isOfflineError =
+          errStr.contains('socketexception') ||
           errStr.contains('failed host lookup') ||
           errStr.contains('network') ||
           errStr.contains('timeout') ||
@@ -169,10 +170,13 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             pending.add(widget.order.id.toString());
             await prefs.setStringList('pending_delivered_orders', pending);
           }
+          if (!mounted) return;
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Offline mode: Delivery saved locally. Will sync when online.'),
+              content: Text(
+                'Offline mode: Delivery saved locally. Will sync when online.',
+              ),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 4),
             ),
@@ -822,15 +826,18 @@ class _ProofOfDeliveryBottomSheetState
     }
 
     final last4Phone = widget.order.customerPhone.length >= 4
-        ? widget.order.customerPhone
-            .substring(widget.order.customerPhone.length - 4)
+        ? widget.order.customerPhone.substring(
+            widget.order.customerPhone.length - 4,
+          )
         : "";
     final last4OrderNum = widget.order.orderNumber.length >= 4
-        ? widget.order.orderNumber
-            .substring(widget.order.orderNumber.length - 4)
+        ? widget.order.orderNumber.substring(
+            widget.order.orderNumber.length - 4,
+          )
         : "";
 
-    final isValid = val == "1234" ||
+    final isValid =
+        val == "1234" ||
         (last4Phone.isNotEmpty && val == last4Phone) ||
         (last4OrderNum.isNotEmpty && val == last4OrderNum);
 
@@ -860,9 +867,7 @@ class _ProofOfDeliveryBottomSheetState
       decoration: const BoxDecoration(
         color: _kPanel,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: _kStroke, width: 1.5),
-        ),
+        border: Border(top: BorderSide(color: _kStroke, width: 1.5)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: Column(
@@ -891,10 +896,7 @@ class _ProofOfDeliveryBottomSheetState
           const SizedBox(height: 6),
           const Text(
             'Confirm receipt using OTP or photo capture',
-            style: TextStyle(
-              color: _kMuted,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: _kMuted, fontSize: 13),
           ),
           const SizedBox(height: 20),
           Row(
@@ -991,7 +993,7 @@ class _ProofOfDeliveryBottomSheetState
                 errorText: _otpError,
                 errorStyle: const TextStyle(color: _kRed),
                 filled: true,
-                fillColor: Colors.black.withOpacity(0.3),
+                fillColor: Colors.black.withValues(alpha: 0.3),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: _kRed, width: 1.5),
@@ -1038,7 +1040,7 @@ class _ProofOfDeliveryBottomSheetState
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                         border: Border.all(color: _kStroke),
                       ),
@@ -1090,10 +1092,11 @@ class _ProofOfDeliveryBottomSheetState
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                  border: Border.all(
+                    color: Colors.greenAccent.withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -1134,10 +1137,7 @@ class _ProofOfDeliveryBottomSheetState
                   onPressed: () => Navigator.pop(context, true),
                   child: const Text(
                     'Submit Photo & Complete',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                   ),
                 ),
               ),

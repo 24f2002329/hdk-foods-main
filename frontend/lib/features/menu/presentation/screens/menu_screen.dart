@@ -1647,8 +1647,9 @@ class _MenuScreenState extends State<MenuScreen> {
                           const SizedBox(height: 24),
 
                           ...product.modifierGroups.map((group) {
-                            if (group.options.isEmpty)
+                            if (group.options.isEmpty) {
                               return const SizedBox.shrink();
+                            }
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

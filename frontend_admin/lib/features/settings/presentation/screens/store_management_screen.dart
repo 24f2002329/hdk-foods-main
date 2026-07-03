@@ -275,8 +275,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                       context,
                       _scheduledStart,
                     );
-                    if (picked != null)
+                    if (picked != null) {
                       setState(() => _scheduledStart = picked);
+                    }
                   },
                   onClear: _scheduledStart != null
                       ? () => setState(() => _scheduledStart = null)
@@ -288,7 +289,9 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                   _scheduledEnd,
                   () async {
                     final picked = await _pickDateTime(context, _scheduledEnd);
-                    if (picked != null) setState(() => _scheduledEnd = picked);
+                    if (picked != null) {
+                      setState(() => _scheduledEnd = picked);
+                    }
                   },
                   onClear: _scheduledEnd != null
                       ? () => setState(() => _scheduledEnd = null)

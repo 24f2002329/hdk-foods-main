@@ -1337,8 +1337,9 @@ class _SpecialsSection extends StatelessWidget {
     return FutureBuilder<List<Product>>(
       future: productsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
         final products = snapshot.data ?? [];
         if (products.isEmpty) return const SizedBox.shrink();
 
@@ -1657,8 +1658,9 @@ class _BestSellersGrid extends StatelessWidget {
         }
 
         final products = snapshot.data ?? [];
-        if (products.isEmpty)
+        if (products.isEmpty) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
 
         // Filter products for dynamic best sellers: rating >= 4.0
         final bestSellers = products.where((p) => p.rating >= 4.0).toList();
@@ -1974,8 +1976,9 @@ class _ComboOffersSectionState extends State<_ComboOffersSection> {
     return FutureBuilder<List<dynamic>>(
       future: _combosFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
         if (!snapshot.hasData) return const SizedBox.shrink();
 
         final products = snapshot.data![0] as List<Product>;
@@ -2208,8 +2211,9 @@ class _CouponsSection extends StatelessWidget {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: activeCouponsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
         final coupons = snapshot.data ?? [];
         // Hide if admin has configured no coupons
         if (coupons.isEmpty) return const SizedBox.shrink();
@@ -2426,8 +2430,9 @@ class _TrendingAndNewSection extends StatelessWidget {
     return FutureBuilder<List<Product>>(
       future: productsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
         final products = snapshot.data ?? [];
         if (products.isEmpty) return const SizedBox.shrink();
 
@@ -2867,8 +2872,9 @@ class _RecentlyOrderedSectionState extends State<_RecentlyOrderedSection> {
     return FutureBuilder<List<Order>>(
       future: widget.ordersFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
         final orders = snapshot.data ?? [];
         if (orders.isEmpty) return const SizedBox.shrink();
 

@@ -127,8 +127,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     setState(() => _isResolving = true);
     try {
       await _checkLocationPermission();
-      if (!_hasLocationPermission)
+      if (!_hasLocationPermission) {
         throw Exception('Location permission is required');
+      }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,

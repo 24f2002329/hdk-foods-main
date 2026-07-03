@@ -47,10 +47,11 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
         _body.clear();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
