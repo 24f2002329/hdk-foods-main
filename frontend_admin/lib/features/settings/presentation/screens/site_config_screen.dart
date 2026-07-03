@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -44,11 +45,18 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   final _loyaltyCoinsPercentage = TextEditingController();
   bool _showRatings = true;
 
+  // System Health
+  bool _checkingHealth = false;
+  int? _apiLatencyMs;
+  String _backendHealthStatus = 'Unknown';
+  String _wsStatus = 'Unknown';
+
   @override
   void initState() {
     super.initState();
     _load();
     _loadProfile();
+    _checkHealth();
   }
 
   Future<void> _loadProfile() async {
@@ -56,6 +64,67 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
       final data = await OrderService().getMe();
       if (mounted) setState(() => _profile = data);
     } catch (_) {}
+  }
+
+  Future<void> _checkHealth() async {
+    if (_checkingHealth) return;
+    setState(() {
+      _checkingHealth = true;
+      _backendHealthStatus = 'Checking...';
+      _wsStatus = 'Checking...';
+    });
+
+    // 1. Check API Latency & Backend Health
+    final stopwatch = Stopwatch()..start();
+    try {
+      await _svc.getConfig();
+      stopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _apiLatencyMs = stopwatch.elapsedMilliseconds;
+          _backendHealthStatus = 'Healthy';
+        });
+      }
+    } catch (e) {
+      stopwatch.stop();
+      if (mounted) {
+        setState(() {
+          _apiLatencyMs = null;
+          _backendHealthStatus = 'Unreachable';
+        });
+      }
+    }
+
+    // 2. Check WebSocket Status
+    try {
+      final token = await TokenStorage.getAccessToken();
+      if (token == null) {
+        if (mounted) setState(() => _wsStatus = 'Unauthorized');
+      } else {
+        final uri = Uri.parse('${ApiConfig.wsBaseUrl}/ws/admin/orders/?token=$token');
+        final channel = WebSocketChannel.connect(uri);
+        // Wait for connection with a 3-second timeout
+        await channel.ready.timeout(const Duration(seconds: 3));
+        if (mounted) {
+          setState(() {
+            _wsStatus = 'Operational';
+          });
+        }
+        await channel.sink.close();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _wsStatus = 'Offline';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _checkingHealth = false;
+        });
+      }
+    }
   }
 
   Future<void> _logout() async {
@@ -173,6 +242,10 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                _sectionHeader('System Health'),
+                _buildSystemHealthPanel(),
+                const SizedBox(height: 24),
+
                 // Quick links
                 _sectionHeader('Quick Actions'),
                 Row(
@@ -559,4 +632,127 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           ],
         ),
       );
+
+  Widget _buildSystemHealthPanel() {
+    Color getStatusColor(String status) {
+      switch (status) {
+        case 'Healthy':
+        case 'Operational':
+          return Colors.greenAccent;
+        case 'Checking...':
+          return Colors.amberAccent;
+        case 'Unknown':
+          return Colors.grey;
+        default:
+          return Colors.redAccent;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.analytics_outlined, color: _red, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'System Health Monitor',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (_checkingHealth)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(_red),
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.grey, size: 18),
+                  onPressed: _checkHealth,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _healthRow(
+            label: 'Backend API Status',
+            status: _backendHealthStatus,
+            statusColor: getStatusColor(_backendHealthStatus),
+            trailing: _apiLatencyMs != null ? '${_apiLatencyMs}ms' : null,
+          ),
+          const Divider(color: _stroke, height: 16),
+          _healthRow(
+            label: 'WebSocket Gateway',
+            status: _wsStatus,
+            statusColor: getStatusColor(_wsStatus),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _healthRow({
+    required String label,
+    required String status,
+    required Color statusColor,
+    String? trailing,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+        Row(
+          children: [
+            if (trailing != null) ...[
+              Text(
+                trailing,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              status,
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }

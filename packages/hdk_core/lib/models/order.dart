@@ -88,6 +88,11 @@ class Order {
   final int? estimatedPreparationTime;
   final DateTime? estimatedDeliveryTime;
   final DateTime? confirmedAt;
+  final DateTime? preparingAt;
+  final DateTime? outForDeliveryAt;
+  final DateTime? deliveredAt;
+  final DateTime? rejectedAt;
+  final DateTime? cancelledAt;
   final String rejectionReason;
   final int? confirmedBy;
   final int? assignedDelivery;
@@ -129,6 +134,11 @@ class Order {
     this.estimatedPreparationTime,
     this.estimatedDeliveryTime,
     this.confirmedAt,
+    this.preparingAt,
+    this.outForDeliveryAt,
+    this.deliveredAt,
+    this.rejectedAt,
+    this.cancelledAt,
     this.rejectionReason = '',
     this.confirmedBy,
     this.assignedDelivery,
@@ -177,6 +187,21 @@ class Order {
           : null,
       confirmedAt: json['confirmed_at'] != null
           ? DateTime.tryParse(json['confirmed_at'])
+          : null,
+      preparingAt: json['preparing_at'] != null
+          ? DateTime.tryParse(json['preparing_at'])
+          : null,
+      outForDeliveryAt: json['out_for_delivery_at'] != null
+          ? DateTime.tryParse(json['out_for_delivery_at'])
+          : null,
+      deliveredAt: json['delivered_at'] != null
+          ? DateTime.tryParse(json['delivered_at'])
+          : null,
+      rejectedAt: json['rejected_at'] != null
+          ? DateTime.tryParse(json['rejected_at'])
+          : null,
+      cancelledAt: json['cancelled_at'] != null
+          ? DateTime.tryParse(json['cancelled_at'])
           : null,
       rejectionReason: json['rejection_reason'] ?? '',
       confirmedBy: json['confirmed_by'],

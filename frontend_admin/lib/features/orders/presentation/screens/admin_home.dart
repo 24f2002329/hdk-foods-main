@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/services/order_websocket_service.dart';
+import '../../../../core/utils/audio_helper.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -41,21 +42,186 @@ class AdminHome extends StatefulWidget {
 
 class _AdminHomeState extends State<AdminHome> {
   int _index = 0;
+  AdminOrderWebSocketService? _ws;
+  String? _bannerOrderNumber;
+  int? _bannerOrderId;
+  Timer? _bannerTimer;
+  Timer? _countTimer;
+
+  int _pendingCount = 0;
+  int _kdsCount = 0;
+  int _dispatchCount = 0;
+  bool _fetchingCounts = false;
 
   void _onNavTap(int i) => setState(() => _index = i);
 
   @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+    _countTimer = Timer.periodic(const Duration(seconds: 25), (_) => _loadCounts());
+
+    _ws = AdminOrderWebSocketService();
+    _ws!.connect();
+    _ws!.stream.listen((msg) {
+      _loadCounts();
+      if (msg['type'] == 'new_order' || msg['status'] == 'pending_confirmation') {
+        playAlertSound();
+        if (mounted) {
+          setState(() {
+            _bannerOrderNumber = msg['order_number']?.toString();
+            _bannerOrderId = msg['id'] is int ? msg['id'] as int : int.tryParse(msg['id']?.toString() ?? '');
+          });
+          _bannerTimer?.cancel();
+          _bannerTimer = Timer(const Duration(seconds: 10), () {
+            if (mounted) {
+              setState(() {
+                _bannerOrderNumber = null;
+                _bannerOrderId = null;
+              });
+            }
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _loadCounts() async {
+    if (_fetchingCounts) return;
+    _fetchingCounts = true;
+    try {
+      final list = await OrderService().getAllOrders();
+      if (mounted) {
+        setState(() {
+          _pendingCount = list.where((o) => o.status == 'pending_confirmation').length;
+          _kdsCount = list.where((o) => ['confirmed', 'preparing'].contains(o.status)).length;
+          _dispatchCount = list.where((o) => o.status == 'out_for_delivery').length;
+        });
+      }
+    } catch (_) {} finally {
+      _fetchingCounts = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ws?.dispose();
+    _bannerTimer?.cancel();
+    _countTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: const [
-          _DashboardTab(),
-          KdsScreen(),
-          DispatchScreen(),
-          _OrdersTab(),
-          _ProductsTab(),
-          SiteConfigScreen(),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _index,
+            children: const [
+              _DashboardTab(),
+              KdsScreen(),
+              DispatchScreen(),
+              _OrdersTab(),
+              _ProductsTab(),
+              SiteConfigScreen(),
+            ],
+          ),
+          if (_bannerOrderNumber != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 16,
+              right: 16,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E0A0A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _red, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.notifications_active, color: _red, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'NEW ORDER RECEIVED',
+                              style: GoogleFonts.poppins(
+                                color: _red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Order #${_bannerOrderNumber}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: () {
+                          final oid = _bannerOrderId;
+                          setState(() {
+                            _bannerOrderNumber = null;
+                            _bannerOrderId = null;
+                          });
+                          _bannerTimer?.cancel();
+                          if (oid != null) {
+                            setState(() => _index = 3);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AdminOrderDetailScreen(orderId: oid),
+                              ),
+                            );
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: _red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('VIEW'),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _bannerOrderNumber = null;
+                            _bannerOrderId = null;
+                          });
+                          _bannerTimer?.cancel();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -63,33 +229,48 @@ class _AdminHomeState extends State<AdminHome> {
         indicatorColor: _red.withValues(alpha: 0.15),
         selectedIndex: _index,
         onDestinationSelected: _onNavTap,
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard, color: _red),
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(Icons.soup_kitchen_outlined),
-            selectedIcon: Icon(Icons.soup_kitchen, color: _red),
+            icon: _kdsCount > 0
+                ? Badge(
+                    label: Text('$_kdsCount'),
+                    child: const Icon(Icons.soup_kitchen_outlined),
+                  )
+                : const Icon(Icons.soup_kitchen_outlined),
+            selectedIcon: const Icon(Icons.soup_kitchen, color: _red),
             label: 'KDS',
           ),
           NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping, color: _red),
+            icon: _dispatchCount > 0
+                ? Badge(
+                    label: Text('$_dispatchCount'),
+                    child: const Icon(Icons.local_shipping_outlined),
+                  )
+                : const Icon(Icons.local_shipping_outlined),
+            selectedIcon: const Icon(Icons.local_shipping, color: _red),
             label: 'Dispatch',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long, color: _red),
+            icon: _pendingCount > 0
+                ? Badge(
+                    label: Text('$_pendingCount'),
+                    child: const Icon(Icons.receipt_long_outlined),
+                  )
+                : const Icon(Icons.receipt_long_outlined),
+            selectedIcon: const Icon(Icons.receipt_long, color: _red),
             label: 'Orders',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.fastfood_outlined),
             selectedIcon: Icon(Icons.fastfood, color: _red),
             label: 'Products',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.tune_outlined),
             selectedIcon: Icon(Icons.tune, color: _red),
             label: 'Settings',
@@ -961,6 +1142,170 @@ class _DashboardTabState extends State<_DashboardTab>
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Avg Prep Time',
+                          value: '${_data?['avg_prep_time_minutes'] ?? 0.0} mins',
+                          icon: Icons.timer_outlined,
+                          color: Colors.tealAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Avg Delivery Time',
+                          value: '${_data?['avg_delivery_time_minutes'] ?? 0.0} mins',
+                          icon: Icons.directions_run_rounded,
+                          color: Colors.purpleAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Peak Hour',
+                          value: '${_data?['peak_hour'] ?? 'N/A'}',
+                          icon: Icons.access_time_filled_rounded,
+                          color: Colors.orangeAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightCard(
+                          label: 'Repeat Customers',
+                          value: '${_data?['repeat_customers_count'] ?? 0}',
+                          icon: Icons.people_alt_rounded,
+                          color: Colors.pinkAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Payment splits & Revenue splits',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _stroke),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Today\'s Revenue',
+                                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${double.tryParse('${_data?['today_revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.greenAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, height: 40, color: _stroke),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'This Month\'s Revenue',
+                                    style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${double.tryParse('${_data?['month_revenue'] ?? 0}')?.toStringAsFixed(0) ?? '0'}',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.tealAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Payment Method Split',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.between,
+                          children: [
+                            Text(
+                              'COD: ${_data?['cod_percentage'] ?? 0}%',
+                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                            ),
+                            Text(
+                              'Online: ${_data?['online_percentage'] ?? 0}%',
+                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (() {
+                              final cod = double.tryParse('${_data?['cod_percentage']}') ?? 0.0;
+                              final online = double.tryParse('${_data?['online_percentage']}') ?? 0.0;
+                              final total = cod + online;
+                              if (total == 0) return 0.5;
+                              return online / total;
+                            })(),
+                            backgroundColor: Colors.amberAccent,
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                            minHeight: 8,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.amberAccent, shape: BoxShape.circle)),
+                            const SizedBox(width: 4),
+                            Text('COD', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
+                            const SizedBox(width: 16),
+                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle)),
+                            const SizedBox(width: 4),
+                            Text('Online', style: GoogleFonts.poppins(color: Colors.grey, fontSize: 10)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   if (_data?['top_products'] != null &&
                       (_data!['top_products'] as List).isNotEmpty) ...[
                     const SizedBox(height: 28),
@@ -1363,6 +1708,8 @@ class _OrdersTabState extends State<_OrdersTab>
   @override
   bool get wantKeepAlive => true;
   final OrderService _svc = OrderService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   List<Order> _all = [];
   bool _loading = true;
   String? _error;
@@ -1390,6 +1737,7 @@ class _OrdersTabState extends State<_OrdersTab>
   @override
   void dispose() {
     _timer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -1424,11 +1772,13 @@ class _OrdersTabState extends State<_OrdersTab>
   }
 
   List<Order> get _filtered {
+    List<Order> list = [];
     switch (_filter) {
       case 'pending':
-        return _all.where((o) => o.status == 'pending_confirmation').toList();
+        list = _all.where((o) => o.status == 'pending_confirmation').toList();
+        break;
       case 'active':
-        return _all
+        list = _all
             .where(
               (o) => [
                 'confirmed',
@@ -1437,12 +1787,91 @@ class _OrdersTabState extends State<_OrdersTab>
               ].contains(o.status),
             )
             .toList();
+        break;
       case 'delivered':
-        return _all.where((o) => o.status == 'delivered').toList();
+        list = _all.where((o) => o.status == 'delivered').toList();
+        break;
       case 'rejected':
-        return _all.where((o) => o.status == 'rejected').toList();
+        list = _all.where((o) => o.status == 'rejected').toList();
+        break;
       default:
-        return _all;
+        list = _all;
+        break;
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((o) {
+        final orderNumMatch = o.orderNumber.toLowerCase().contains(q);
+        final customerNameMatch = o.customerName.toLowerCase().contains(q);
+        final customerPhoneMatch = o.customerPhone.toLowerCase().contains(q);
+        return orderNumMatch || customerNameMatch || customerPhoneMatch;
+      }).toList();
+    }
+    return list;
+  }
+
+  Future<void> _quickStartCooking(Order order) async {
+    try {
+      await _svc.updateStatus(order.id, 'preparing');
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _quickMarkReady(Order order) async {
+    try {
+      final staffSvc = DeliveryStaffService();
+      final staff = await staffSvc.getDeliveryStaff();
+      if (!mounted) return;
+
+      if (staff.isEmpty) {
+        await _svc.updateStatus(order.id, 'out_for_delivery');
+        _load(silent: true);
+        return;
+      }
+
+      final defaultStaff = staff.firstWhere(
+        (s) => s.isDefaultDelivery,
+        orElse: () => staff.first,
+      );
+
+      final result = await showDialog<ReadyResult>(
+        context: context,
+        builder: (_) =>
+            AssignAndReadyDialog(staff: staff, initial: defaultStaff),
+      );
+      if (result == null) return;
+
+      if (result.deliveryUserId != null) {
+        await _svc.assignDelivery(order.id, result.deliveryUserId!);
+      }
+      await _svc.updateStatus(order.id, 'out_for_delivery');
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _quickMarkDelivered(Order order) async {
+    try {
+      await _svc.updateStatus(order.id, 'delivered');
+      _load(silent: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -1560,44 +1989,100 @@ class _OrdersTabState extends State<_OrdersTab>
           ),
         ),
       ),
-      body: _loading
-          ? const Center(child: HdkPreloader())
-          : _error != null
-          ? ErrorRetryWidget(error: _error!, onRetry: _load)
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No orders',
-                        style: GoogleFonts.poppins(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: filtered.length,
-                      itemBuilder: (_, i) {
-                        final order = filtered[i];
-                        return _OrderCard(
-                          order: order,
-                          showQuickActions:
-                              order.status == 'pending_confirmation',
-                          onConfirm: () => _quickConfirm(order),
-                          onReject: () => _quickReject(order),
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AdminOrderDetailScreen(orderId: order.id),
-                              ),
-                            );
-                            _load();
-                          },
-                        );
-                      },
-                    ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Search order number, name or phone...',
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: _card,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _stroke),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _stroke),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _red),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val;
+                });
+              },
             ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: HdkPreloader())
+                : _error != null
+                ? ErrorRetryWidget(error: _error!, onRetry: _load)
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No orders',
+                              style: GoogleFonts.poppins(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(12),
+                            itemCount: filtered.length,
+                            itemBuilder: (_, i) {
+                              final order = filtered[i];
+                              return _OrderCard(
+                                order: order,
+                                showQuickActions: const [
+                                  'pending_confirmation',
+                                  'confirmed',
+                                  'preparing',
+                                  'out_for_delivery',
+                                ].contains(order.status),
+                                onConfirm: () => _quickConfirm(order),
+                                onReject: () => _quickReject(order),
+                                onStartCooking: () => _quickStartCooking(order),
+                                onMarkReady: () => _quickMarkReady(order),
+                                onMarkDelivered: () => _quickMarkDelivered(order),
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          AdminOrderDetailScreen(orderId: order.id),
+                                    ),
+                                  );
+                                  _load();
+                                },
+                              );
+                            },
+                          ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2617,6 +3102,9 @@ class _OrderCard extends StatelessWidget {
   final bool showQuickActions;
   final VoidCallback? onConfirm;
   final VoidCallback? onReject;
+  final VoidCallback? onStartCooking;
+  final VoidCallback? onMarkReady;
+  final VoidCallback? onMarkDelivered;
 
   const _OrderCard({
     required this.order,
@@ -2624,6 +3112,9 @@ class _OrderCard extends StatelessWidget {
     this.showQuickActions = false,
     this.onConfirm,
     this.onReject,
+    this.onStartCooking,
+    this.onMarkReady,
+    this.onMarkDelivered,
   });
 
   Color _statusColor(String s) {
@@ -2770,41 +3261,84 @@ class _OrderCard extends StatelessWidget {
               ),
               if (showQuickActions) ...[
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: onReject,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.redAccent,
-                          side: const BorderSide(color: Colors.redAccent),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          minimumSize: Size.zero,
-                        ),
-                        child: const Text(
-                          'Reject',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onConfirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          minimumSize: Size.zero,
-                        ),
-                        child: const Text(
-                          'Confirm',
-                          style: TextStyle(fontSize: 13),
+                if (order.status == 'pending_confirmation')
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: onReject,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: const BorderSide(color: Colors.redAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: Size.zero,
+                          ),
+                          child: const Text(
+                            'Reject',
+                            style: TextStyle(fontSize: 13),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onConfirm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: Size.zero,
+                          ),
+                          child: const Text(
+                            'Confirm',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else if (order.status == 'confirmed' && onStartCooking != null)
+                  ElevatedButton(
+                    onPressed: onStartCooking,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: const Size(double.infinity, 36),
                     ),
-                  ],
-                ),
+                    child: const Text(
+                      'Start Cooking 🍳',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                else if (order.status == 'preparing' && onMarkReady != null)
+                  ElevatedButton(
+                    onPressed: onMarkReady,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: const Size(double.infinity, 36),
+                    ),
+                    child: const Text(
+                      'Mark Ready (Assign Driver) 🛵',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                else if (order.status == 'out_for_delivery' && onMarkDelivered != null)
+                  ElevatedButton(
+                    onPressed: onMarkDelivered,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: const Size(double.infinity, 36),
+                    ),
+                    child: const Text(
+                      'Mark Delivered ✅',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
               ],
             ],
           ),

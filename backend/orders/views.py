@@ -43,7 +43,7 @@ from .serializers import (
 from django.utils import timezone
 from datetime import timedelta
 
-from django.db.models import Sum, Count, F, Avg, Q
+from django.db.models import Sum, Count, F, Avg, Q, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncDate, ExtractHour
 
 
@@ -660,6 +660,92 @@ class AdminDashboardView(APIView):
             status__in=["confirmed", "preparing"]
         ).count()
 
+        # Operational Insights Calculations
+        prep_orders = period_qs.filter(
+            confirmed_at__isnull=False, out_for_delivery_at__isnull=False
+        )
+        if prep_orders.exists():
+            avg_prep_duration = prep_orders.annotate(
+                prep_duration=ExpressionWrapper(
+                    F("out_for_delivery_at") - F("confirmed_at"),
+                    output_field=DurationField(),
+                )
+            ).aggregate(avg_prep=Avg("prep_duration"))["avg_prep"]
+            avg_prep_time_minutes = (
+                round(avg_prep_duration.total_seconds() / 60, 1)
+                if avg_prep_duration
+                else 0.0
+            )
+        else:
+            avg_prep_time_minutes = 0.0
+
+        delivery_orders = period_qs.filter(
+            out_for_delivery_at__isnull=False, delivered_at__isnull=False
+        )
+        if delivery_orders.exists():
+            avg_del_duration = delivery_orders.annotate(
+                del_duration=ExpressionWrapper(
+                    F("delivered_at") - F("out_for_delivery_at"),
+                    output_field=DurationField(),
+                )
+            ).aggregate(avg_del=Avg("del_duration"))["avg_del"]
+            avg_delivery_time_minutes = (
+                round(avg_del_duration.total_seconds() / 60, 1)
+                if avg_del_duration
+                else 0.0
+            )
+        else:
+            avg_delivery_time_minutes = 0.0
+
+        # Peak Hour
+        max_count = -1
+        peak_hour_val = None
+        for h_data in hourly_list:
+            if h_data["count"] > max_count:
+                max_count = h_data["count"]
+                peak_hour_val = h_data["hour"]
+
+        if peak_hour_val is not None and max_count > 0:
+            hr = peak_hour_val
+            suffix = "PM" if hr >= 12 else "AM"
+            hr_display = 12 if hr == 0 else (hr if hr <= 12 else hr - 12)
+            peak_hour = f"{hr_display:02d}:00 {suffix}"
+        else:
+            peak_hour = "N/A"
+
+        # Repeat Customers Count
+        repeat_customers_count = (
+            period_qs.values("user")
+            .annotate(order_count=Count("id"))
+            .filter(order_count__gt=1)
+            .count()
+        )
+
+        # COD / Online Split
+        if total_orders > 0:
+            cod_count = period_qs.filter(payment_method="cod").count()
+            cod_percentage = round((cod_count / total_orders) * 100, 1)
+            online_percentage = round(100.0 - cod_percentage, 1)
+        else:
+            cod_percentage = 0.0
+            online_percentage = 0.0
+
+        # Today's and Month's revenue
+        today_revenue = (
+            Order.objects.filter(
+                payment_status="paid", created_at__date=today
+            ).aggregate(total=Sum("total_amount"))["total"]
+            or 0
+        )
+        month_revenue = (
+            Order.objects.filter(
+                payment_status="paid",
+                created_at__year=today.year,
+                created_at__month=today.month,
+            ).aggregate(total=Sum("total_amount"))["total"]
+            or 0
+        )
+
         return Response(
             {
                 "period": period,
@@ -677,6 +763,14 @@ class AdminDashboardView(APIView):
                 "average_rating": avg_rating,
                 "top_products": top_products,
                 "hourly_distribution": hourly_list,
+                "avg_prep_time_minutes": avg_prep_time_minutes,
+                "avg_delivery_time_minutes": avg_delivery_time_minutes,
+                "peak_hour": peak_hour,
+                "repeat_customers_count": repeat_customers_count,
+                "cod_percentage": cod_percentage,
+                "online_percentage": online_percentage,
+                "today_revenue": float(today_revenue),
+                "month_revenue": float(month_revenue),
             }
         )
 

@@ -64,6 +64,11 @@ class Order(models.Model):
     estimated_delivery_time = models.DateTimeField(null=True, blank=True)
 
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    preparing_at = models.DateTimeField(null=True, blank=True)
+    out_for_delivery_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     rejection_reason = models.TextField(blank=True)
 

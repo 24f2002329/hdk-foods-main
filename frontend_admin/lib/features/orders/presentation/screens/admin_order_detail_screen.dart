@@ -389,10 +389,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       orElse: () => staff.first,
     );
 
-    final result = await showDialog<_ReadyResult>(
+    final result = await showDialog<ReadyResult>(
       context: context,
       builder: (_) =>
-          _AssignAndReadyDialog(staff: staff, initial: defaultStaff),
+          AssignAndReadyDialog(staff: staff, initial: defaultStaff),
     );
     if (result == null) return;
 
@@ -1428,7 +1428,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
             ),
             const SizedBox(height: 16),
           ],
-
+          _buildTimeline(o),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -1549,6 +1549,213 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+
+  Widget _buildTimeline(Order o) {
+    final List<_TimelineStep> steps = [];
+    if (o.status == 'rejected') {
+      steps.add(_TimelineStep(
+        title: 'Order Placed',
+        subtitle: 'Order received by the system',
+        timestamp: o.createdAt,
+        isCompleted: true,
+      ));
+      steps.add(_TimelineStep(
+        title: 'Order Rejected',
+        subtitle: o.rejectionReason.isNotEmpty ? o.rejectionReason : 'Rejected by store staff',
+        timestamp: o.rejectedAt ?? o.createdAt,
+        isCompleted: true,
+        isFailed: true,
+      ));
+    } else if (o.status == 'cancelled') {
+      steps.add(_TimelineStep(
+        title: 'Order Placed',
+        subtitle: 'Order received by the system',
+        timestamp: o.createdAt,
+        isCompleted: true,
+      ));
+      if (o.confirmedAt != null) {
+        steps.add(_TimelineStep(
+          title: 'Order Confirmed',
+          subtitle: 'Confirmed by kitchen',
+          timestamp: o.confirmedAt,
+          isCompleted: true,
+        ));
+      }
+      steps.add(_TimelineStep(
+        title: 'Order Cancelled',
+        subtitle: o.cancellationReason.isNotEmpty ? o.cancellationReason : 'Order cancelled',
+        timestamp: o.cancelledAt ?? o.createdAt,
+        isCompleted: true,
+        isFailed: true,
+      ));
+    } else {
+      final isConfirmed = o.confirmedAt != null ||
+          ['confirmed', 'preparing', 'out_for_delivery', 'delivered'].contains(o.status);
+      final isPreparing = o.preparingAt != null ||
+          ['preparing', 'out_for_delivery', 'delivered'].contains(o.status);
+      final isOutForDelivery = o.outForDeliveryAt != null ||
+          ['out_for_delivery', 'delivered'].contains(o.status);
+      final isDelivered = o.deliveredAt != null || o.status == 'delivered';
+
+      steps.add(_TimelineStep(
+        title: 'Order Placed',
+        subtitle: 'Order received by the system',
+        timestamp: o.createdAt,
+        isCompleted: true,
+      ));
+      steps.add(_TimelineStep(
+        title: 'Order Confirmed',
+        subtitle: isConfirmed ? 'Confirmed by kitchen' : 'Waiting for kitchen confirmation',
+        timestamp: o.confirmedAt,
+        isCompleted: isConfirmed,
+      ));
+      steps.add(_TimelineStep(
+        title: 'Preparing',
+        subtitle: isPreparing ? 'Kitchen is preparing food' : 'Waiting to start cooking',
+        timestamp: o.preparingAt,
+        isCompleted: isPreparing,
+      ));
+      steps.add(_TimelineStep(
+        title: 'Out for Delivery',
+        subtitle: isOutForDelivery ? 'Driver on the way' : 'Waiting to dispatch driver',
+        timestamp: o.outForDeliveryAt,
+        isCompleted: isOutForDelivery,
+      ));
+      steps.add(_TimelineStep(
+        title: 'Delivered',
+        subtitle: isDelivered ? 'Delivered successfully' : 'Waiting for delivery confirmation',
+        timestamp: o.deliveredAt,
+        isCompleted: isDelivered,
+      ));
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Order Timeline',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...List.generate(steps.length, (index) {
+            final step = steps[index];
+            final isLast = index == steps.length - 1;
+            bool isActive = false;
+            if (o.status == 'pending_confirmation' && step.title == 'Order Confirmed') {
+              isActive = true;
+            } else if (o.status == 'confirmed' && step.title == 'Preparing') {
+              isActive = true;
+            } else if (o.status == 'preparing' && step.title == 'Out for Delivery') {
+              isActive = true;
+            } else if (o.status == 'out_for_delivery' && step.title == 'Delivered') {
+              isActive = true;
+            }
+            return _buildTimelineStepWidget(step, isLast, isActive);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineStepWidget(_TimelineStep step, bool isLast, bool isActive) {
+    final dotColor = step.isFailed
+        ? Colors.red
+        : step.isCompleted
+            ? Colors.green
+            : isActive
+                ? _red
+                : Colors.grey[700]!;
+
+    final timeStr = step.timestamp != null
+        ? DateFormat('hh:mm a').format(step.timestamp!.toLocal())
+        : '—';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: isActive ? Colors.transparent : dotColor,
+                shape: BoxShape.circle,
+                border: isActive ? Border.all(color: dotColor, width: 3) : null,
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: dotColor.withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          spreadRadius: 2,
+                        )
+                      ]
+                    : null,
+              ),
+              child: step.isCompleted && !step.isFailed && !isActive
+                  ? const Icon(Icons.check, size: 8, color: Colors.white)
+                  : null,
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 40,
+                color: step.isCompleted ? Colors.green : Colors.grey[850]!,
+              ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    step.title,
+                    style: GoogleFonts.poppins(
+                      color: step.isCompleted ? Colors.white : Colors.grey[600],
+                      fontWeight: step.isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    timeStr,
+                    style: GoogleFonts.poppins(
+                      color: step.timestamp != null ? Colors.grey : Colors.transparent,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                step.subtitle,
+                style: GoogleFonts.poppins(
+                  color: step.isCompleted ? Colors.grey[400] : Colors.grey[700],
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2085,21 +2292,21 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
 // ─── Assign + Ready Dialog ────────────────────────────────────────────────────
 
-class _ReadyResult {
+class ReadyResult {
   final int? deliveryUserId;
-  _ReadyResult({this.deliveryUserId});
+  ReadyResult({this.deliveryUserId});
 }
 
-class _AssignAndReadyDialog extends StatefulWidget {
+class AssignAndReadyDialog extends StatefulWidget {
   final List<DeliveryStaff> staff;
   final DeliveryStaff? initial;
-  const _AssignAndReadyDialog({required this.staff, this.initial});
+  const AssignAndReadyDialog({super.key, required this.staff, this.initial});
 
   @override
-  State<_AssignAndReadyDialog> createState() => _AssignAndReadyDialogState();
+  State<AssignAndReadyDialog> createState() => AssignAndReadyDialogState();
 }
 
-class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
+class AssignAndReadyDialogState extends State<AssignAndReadyDialog> {
   DeliveryStaff? _selected;
 
   @override
@@ -2150,18 +2357,34 @@ class _AssignAndReadyDialogState extends State<_AssignAndReadyDialog> {
       actions: [
         TextButton(
           onPressed: () =>
-              Navigator.pop(context, _ReadyResult(deliveryUserId: null)),
+              Navigator.pop(context, ReadyResult(deliveryUserId: null)),
           child: const Text('Skip', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _red),
           onPressed: () => Navigator.pop(
             context,
-            _ReadyResult(deliveryUserId: _selected?.id),
+            ReadyResult(deliveryUserId: _selected?.id),
           ),
           child: const Text('Confirm'),
         ),
       ],
     );
   }
+}
+
+class _TimelineStep {
+  final String title;
+  final String subtitle;
+  final DateTime? timestamp;
+  final bool isCompleted;
+  final bool isFailed;
+
+  _TimelineStep({
+    required this.title,
+    required this.subtitle,
+    required this.timestamp,
+    required this.isCompleted,
+    this.isFailed = false,
+  });
 }

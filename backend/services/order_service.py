@@ -191,6 +191,7 @@ def reject_order(order: Order, reason: str) -> Order:
 
     order.status = "rejected"
     order.rejection_reason = reason
+    order.rejected_at = timezone.now()
 
     if order.coins_redeemed > 0:
         customer = order.user
@@ -294,6 +295,17 @@ def update_order_status(order: Order, new_status: str, staff_user) -> Order:
             customer.save(update_fields=["loyalty_coins"])
             order.coins_earned = earned
 
+    if new_status == "preparing":
+        order.preparing_at = timezone.now()
+    elif new_status == "out_for_delivery":
+        order.out_for_delivery_at = timezone.now()
+    elif new_status == "delivered":
+        order.delivered_at = timezone.now()
+    elif new_status == "cancelled":
+        order.cancelled_at = timezone.now()
+    elif new_status == "rejected":
+        order.rejected_at = timezone.now()
+
     order.status = new_status
     order.save()
 
@@ -386,6 +398,7 @@ def handle_cancellation_request(order: Order, action: str, reason: str) -> Order
     if action == "approve":
         order.cancellation_approved = True
         order.status = "cancelled"
+        order.cancelled_at = timezone.now()
         if reason:
             order.cancellation_reason = reason
 
@@ -449,6 +462,7 @@ def admin_cancel_order(order: Order, reason: str) -> Order:
     order.status = "cancelled"
     order.cancellation_reason = reason
     order.cancellation_approved = True
+    order.cancelled_at = timezone.now()
 
     if order.coins_redeemed > 0:
         customer = order.user
