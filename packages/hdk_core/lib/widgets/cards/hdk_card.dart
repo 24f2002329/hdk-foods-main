@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_radius.dart';
-import '../../theme/app_shadows.dart';
+import '../../theme/hdk_theme.dart';
 
 class HdkCard extends StatelessWidget {
   final Widget child;

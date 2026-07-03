@@ -9,7 +9,7 @@ import '../../../../shared/widgets/login_prompt_widget.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
-import '../../data/repositories/order_repository.dart';
+import '../../domain/repositories/order_repository.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -24,7 +24,7 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   final _scrollController = ScrollController();
 
   bool _isLoggedIn = true;

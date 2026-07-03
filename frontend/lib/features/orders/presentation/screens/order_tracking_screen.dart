@@ -19,7 +19,7 @@ import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
 import '../../data/repositories/delivery_location_service.dart';
-import '../../data/repositories/order_repository.dart';
+import '../../domain/repositories/order_repository.dart';
 import '../widgets/modified_order_dialog.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -39,7 +39,7 @@ class OrderTrackingScreen extends StatefulWidget {
 
 class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     with SingleTickerProviderStateMixin {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   final DeliveryLocationService _deliveryLocationService =
       DeliveryLocationService();
   final CFPaymentGatewayService _cfService = CFPaymentGatewayService();

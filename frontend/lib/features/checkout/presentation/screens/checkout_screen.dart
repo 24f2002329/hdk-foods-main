@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 import '../../../address/data/models/customer_address.dart';
 import '../../../../core/navigation/app_routes.dart';
-import '../../../address/data/repositories/address_service.dart';
+import '../../../address/domain/repositories/address_repository.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
-import '../../../orders/data/repositories/order_repository.dart';
+import '../../../orders/domain/repositories/order_repository.dart';
 import '../../../../shared/widgets/congratulations_overlay.dart';
 import 'package:hdk_core/hdk_core.dart';
 
@@ -24,8 +24,8 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  final AddressService _addressService = AddressService();
-  final OrderRepository _orderRepository = OrderRepository();
+  final AddressRepository _addressRepository = AddressRepository.instance;
+  final OrderRepository _orderRepository = OrderRepository.instance;
   final _couponCtrl = TextEditingController();
 
   CustomerAddress? _selectedAddress;
@@ -55,7 +55,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _loadUserCoins() async {
     try {
-      final user = await UserService().getCurrentUser();
+      final user = await UserRepository.instance.getCurrentUser();
       if (mounted) {
         setState(() {
           _userCoins = user.loyaltyCoins;
@@ -86,7 +86,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _loadAddresses() async {
     try {
-      final addresses = await _addressService.getAddresses();
+      final addresses = await _addressRepository.getAddresses();
       if (mounted) {
         setState(() {
           _isLoadingAddresses = false;

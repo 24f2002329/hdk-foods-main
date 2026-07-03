@@ -4,9 +4,9 @@ import 'package:hdk_core/hdk_core.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../address/data/models/customer_address.dart';
-import '../../../address/data/repositories/address_service.dart';
-import '../../../accounts/data/repositories/user_service.dart';
-import '../../../orders/data/repositories/order_repository.dart';
+import '../../../address/domain/repositories/address_repository.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
+import '../../../orders/domain/repositories/order_repository.dart';
 import '../../data/repositories/config_service.dart';
 import '../../data/repositories/product_service.dart';
 import '../../data/repositories/notification_service.dart';
@@ -74,7 +74,7 @@ class HomeProvider extends ChangeNotifier {
     categoriesFuture = ProductService.getCategories(fromCache: true);
     configFuture = ConfigService().getConfig(fromCache: true);
     bannersFuture = ConfigService().getBanners(fromCache: true);
-    activeCouponsFuture = OrderRepository().getActiveCoupons();
+    activeCouponsFuture = OrderRepository.instance.getActiveCoupons();
     ordersFuture = _fetchOrdersSafely();
     
     loadUserData(fromCacheOnly: true).then((_) {
@@ -118,7 +118,7 @@ class HomeProvider extends ChangeNotifier {
     final loggedIn = await TokenStorage.isLoggedIn();
     if (!loggedIn) return <Order>[];
     try {
-      return await OrderRepository().getMyOrders();
+      return await OrderRepository.instance.getMyOrders();
     } catch (_) {
       return <Order>[];
     }
@@ -136,7 +136,7 @@ class HomeProvider extends ChangeNotifier {
     }
     
     try {
-      final cachedUser = await UserService().getCurrentUser(fromCache: true);
+      final cachedUser = await UserRepository.instance.getCurrentUser(fromCache: true);
       currentUser = cachedUser;
       if (fromCacheOnly) {
         notifyListeners();
@@ -145,10 +145,10 @@ class HomeProvider extends ChangeNotifier {
     } catch (_) {}
 
     try {
-      final user = await UserService().getCurrentUser(fromCache: false);
+      final user = await UserRepository.instance.getCurrentUser(fromCache: false);
       List<CustomerAddress> addresses = [];
       try {
-        addresses = await AddressService().getAddresses();
+        addresses = await AddressRepository.instance.getAddresses();
       } catch (_) {}
 
       CustomerAddress? activeAddr;

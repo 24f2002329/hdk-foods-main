@@ -1,13 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:hdk_core/hdk_core.dart';
 
-class AuthService {
-  /// Returns the verificationId on success, null on failure.
+abstract class AuthRepository {
+  static AuthRepository? _instance;
+  static AuthRepository get instance => _instance ??= HttpAuthRepository();
+  static set instance(AuthRepository value) => _instance = value;
+
+  Future<String?> sendOtp({required String phoneNumber});
+  Future<Map<String, dynamic>?> verifyOtp({
+    required String verificationId,
+    required String otp,
+  });
+}
+
+class HttpAuthRepository implements AuthRepository {
+  @override
   Future<String?> sendOtp({required String phoneNumber}) async {
     final completer = Completer<String?>();
 
@@ -35,6 +45,7 @@ class AuthService {
     }
   }
 
+  @override
   Future<Map<String, dynamic>?> verifyOtp({
     required String verificationId,
     required String otp,

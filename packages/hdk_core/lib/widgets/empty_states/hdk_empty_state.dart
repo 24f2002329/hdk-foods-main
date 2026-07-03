@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_typography.dart';
+import '../../theme/hdk_theme.dart';
 import '../buttons/hdk_button.dart';
 
 class HdkEmptyState extends StatelessWidget {

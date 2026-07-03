@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../orders/data/repositories/order_repository.dart';
+import '../../../orders/domain/repositories/order_repository.dart';
 import '../../../orders/presentation/widgets/modified_order_dialog.dart';
 import '../../../../core/navigation/app_routes.dart';
 
@@ -27,7 +27,7 @@ class WaitingRoomScreen extends StatefulWidget {
 }
 
 class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   Timer? _countdownTimer;
   Timer? _pollingTimer;
   int _secondsRemaining = 300; // 5 minutes

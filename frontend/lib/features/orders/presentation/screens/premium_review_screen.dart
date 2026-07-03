@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../data/repositories/order_repository.dart';
+import '../../domain/repositories/order_repository.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -18,7 +18,7 @@ class PremiumReviewScreen extends StatefulWidget {
 }
 
 class _PremiumReviewScreenState extends State<PremiumReviewScreen> {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   bool _loading = false;
 
   // Overall review state

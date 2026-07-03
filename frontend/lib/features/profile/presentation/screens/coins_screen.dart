@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hdk_core/hdk_core.dart';
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 import '../../../../core/navigation/app_routes.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -19,7 +19,7 @@ class CoinsScreen extends StatefulWidget {
 }
 
 class _CoinsScreenState extends State<CoinsScreen> {
-  final UserService _userService = UserService();
+  final UserRepository _userRepository = UserRepository.instance;
   int _loyaltyCoins = 0;
   List<CoinTransaction> _transactions = [];
   bool _loading = true;
@@ -39,7 +39,7 @@ class _CoinsScreenState extends State<CoinsScreen> {
     });
 
     try {
-      final res = await _userService.getCoinTransactions();
+      final res = await _userRepository.getCoinTransactions();
       if (mounted) {
         setState(() {
           _loyaltyCoins = res['loyalty_coins'] ?? 0;

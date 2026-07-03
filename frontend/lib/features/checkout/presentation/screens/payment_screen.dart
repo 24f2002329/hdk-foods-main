@@ -7,7 +7,7 @@ import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
-import '../../../orders/data/repositories/order_repository.dart';
+import '../../../orders/domain/repositories/order_repository.dart';
 import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -37,7 +37,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   final CFPaymentGatewayService _cfService = CFPaymentGatewayService();
 
   late String _selectedMethod = widget.lockedMethod ?? 'cod';

@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:hdk_core/hdk_core.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../../shared/widgets/login_prompt_widget.dart';
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 import '../../../home/data/repositories/config_service.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -21,7 +21,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final UserService _userService = UserService();
+  final UserRepository _userRepository = UserRepository.instance;
   User? _user;
   SiteConfig? _config;
   bool _loading = true;
@@ -53,7 +53,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _error = null;
     });
     try {
-      final user = await _userService.getCurrentUser();
+      final user = await _userRepository.getCurrentUser();
       SiteConfig? config;
       try {
         config = await ConfigService().getConfig();
@@ -146,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => ctrl.dispose());
     if (result == null || result.isEmpty || result == _user?.name) return;
     try {
-      final updated = await _userService.updateName(result);
+      final updated = await _userRepository.updateName(result);
       if (mounted) setState(() => _user = updated);
     } catch (e) {
       if (mounted) {

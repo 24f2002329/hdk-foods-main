@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_radius.dart';
-import '../../theme/app_typography.dart';
+import '../../theme/hdk_theme.dart';
 
 class HdkButton extends StatelessWidget {
   final String label;

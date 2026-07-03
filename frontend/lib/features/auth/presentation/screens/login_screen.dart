@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/repositories/auth_service.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../../../../core/navigation/app_routes.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -22,7 +22,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocus = FocusNode();
-  final _authService = AuthService();
+  final _authService = AuthRepository.instance;
   final _smartAuth = SmartAuth.instance;
   bool _loading = false;
 

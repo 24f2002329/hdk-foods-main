@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../../core/navigation/app_routes.dart';
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (token != null) {
       // Returning user — check if they have a name yet.
       try {
-        final user = await UserService().getCurrentUser();
+        final user = await UserRepository.instance.getCurrentUser();
         if (!mounted) return;
         if (user.name.trim().isEmpty) {
           AppRoutes.pushReplacementNameCollection(context);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_radius.dart';
+import '../../theme/hdk_theme.dart';
 
 class HdkSkeleton extends StatefulWidget {
   final double? width;

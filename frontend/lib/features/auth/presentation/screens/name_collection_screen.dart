@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/navigation/app_routes.dart';
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -33,7 +33,7 @@ class _NameCollectionScreenState extends State<NameCollectionScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      await UserService().updateName(_ctrl.text.trim());
+      await UserRepository.instance.updateName(_ctrl.text.trim());
       if (mounted) AppRoutes.pushReplacementHome(context);
     } catch (_) {
       if (mounted) {

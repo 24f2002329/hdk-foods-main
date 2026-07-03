@@ -1,10 +1,20 @@
 import 'dart:convert';
 import 'package:hdk_core/hdk_core.dart';
 
-class UserService {
+abstract class UserRepository {
+  static UserRepository? _instance;
+  static UserRepository get instance => _instance ??= HttpUserRepository();
+  static set instance(UserRepository value) => _instance = value;
+
+  Future<User> getCurrentUser({bool fromCache = false});
+  Future<User> updateName(String name);
+  Future<Map<String, dynamic>> getCoinTransactions();
+}
+
+class HttpUserRepository implements UserRepository {
   final ApiClient _apiClient = ApiClient();
 
-  /// Fetch the current authenticated user's profile.
+  @override
   Future<User> getCurrentUser({bool fromCache = false}) async {
     if (fromCache) {
       final cached = await LocalCache.getJson('cached_user_profile');
@@ -31,7 +41,7 @@ class UserService {
     throw Exception('Failed to load user profile');
   }
 
-  /// Update the current user's name.
+  @override
   Future<User> updateName(String name) async {
     final response = await _apiClient.patch('me/', {'name': name});
 
@@ -44,7 +54,7 @@ class UserService {
     throw Exception('Failed to update name');
   }
 
-  /// Fetch the coin transactions for the current user.
+  @override
   Future<Map<String, dynamic>> getCoinTransactions() async {
     final response = await _apiClient.get('me/coins/transactions/');
 

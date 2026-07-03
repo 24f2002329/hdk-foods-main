@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_spacing.dart';
+import '../theme/hdk_theme.dart';
 
 class AppPadding {
   static const EdgeInsets xxs = EdgeInsets.all(AppSpacing.xxs);

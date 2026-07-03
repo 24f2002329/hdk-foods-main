@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../data/repositories/order_repository.dart';
+import '../../domain/repositories/order_repository.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
@@ -26,7 +26,7 @@ class OrderChatScreen extends StatefulWidget {
 }
 
 class _OrderChatScreenState extends State<OrderChatScreen> {
-  final OrderRepository _orderRepository = OrderRepository();
+  final OrderRepository _orderRepository = OrderRepository.instance;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _messages = [];

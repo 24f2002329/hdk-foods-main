@@ -1,11 +1,22 @@
 import 'dart:convert';
-
 import 'package:hdk_core/hdk_core.dart';
-import '../models/customer_address.dart';
+import '../../data/models/customer_address.dart';
 
-class AddressService {
+abstract class AddressRepository {
+  static AddressRepository? _instance;
+  static AddressRepository get instance => _instance ??= HttpAddressRepository();
+  static set instance(AddressRepository value) => _instance = value;
+
+  Future<List<CustomerAddress>> getAddresses();
+  Future<CustomerAddress> createAddress(CustomerAddress address);
+  Future<CustomerAddress> updateAddress(CustomerAddress address);
+  Future<void> deleteAddress(CustomerAddress address);
+}
+
+class HttpAddressRepository implements AddressRepository {
   final ApiClient _apiClient = ApiClient();
 
+  @override
   Future<List<CustomerAddress>> getAddresses() async {
     final response = await _apiClient.get('addresses/');
 
@@ -17,6 +28,7 @@ class AddressService {
     throw Exception('Failed to load addresses');
   }
 
+  @override
   Future<CustomerAddress> createAddress(CustomerAddress address) async {
     final response = await _apiClient.post('addresses/', address.toJson());
 
@@ -27,6 +39,7 @@ class AddressService {
     throw Exception('Failed to save address');
   }
 
+  @override
   Future<CustomerAddress> updateAddress(CustomerAddress address) async {
     final id = address.id;
 
@@ -43,6 +56,7 @@ class AddressService {
     throw Exception('Failed to update address');
   }
 
+  @override
   Future<void> deleteAddress(CustomerAddress address) async {
     final id = address.id;
 

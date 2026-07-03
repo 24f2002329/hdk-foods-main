@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:smart_auth/smart_auth.dart';
 
 import 'package:hdk_core/hdk_core.dart';
-import '../../../accounts/data/repositories/user_service.dart';
+import '../../../accounts/domain/repositories/user_repository.dart';
 import '../../../../core/navigation/app_routes.dart';
-import '../../data/repositories/auth_service.dart';
+import '../../domain/repositories/auth_repository.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -30,7 +30,7 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final _otpController = TextEditingController();
-  final _authService = AuthService();
+  final _authService = AuthRepository.instance;
   final _smartAuth = SmartAuth.instance;
 
   late String _verificationId;
@@ -168,7 +168,7 @@ class _OtpScreenState extends State<OtpScreen> {
     if (!mounted) return;
 
     try {
-      final user = await UserService().getCurrentUser();
+      final user = await UserRepository.instance.getCurrentUser();
       if (!mounted) return;
       if (user.name.trim().isEmpty) {
         AppRoutes.pushReplacementNameCollection(context);

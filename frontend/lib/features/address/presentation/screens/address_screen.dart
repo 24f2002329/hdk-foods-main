@@ -3,7 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hdk_core/hdk_core.dart';
 
 import '../../data/models/customer_address.dart';
-import '../../data/repositories/address_service.dart';
+import '../../domain/repositories/address_repository.dart';
 import 'location_picker_screen.dart';
 import '../../../../core/navigation/app_routes.dart';
 import 'package:shimmer/shimmer.dart';
@@ -28,18 +28,18 @@ class AddressScreen extends StatefulWidget {
 }
 
 class _AddressScreenState extends State<AddressScreen> {
-  final AddressService _addressService = AddressService();
+  final AddressRepository _addressRepository = AddressRepository.instance;
   late Future<List<CustomerAddress>> _addressesFuture;
 
   @override
   void initState() {
     super.initState();
-    _addressesFuture = _addressService.getAddresses();
+    _addressesFuture = _addressRepository.getAddresses();
   }
 
   void _reload() {
     setState(() {
-      _addressesFuture = _addressService.getAddresses();
+      _addressesFuture = _addressRepository.getAddresses();
     });
   }
 
@@ -53,9 +53,9 @@ class _AddressScreenState extends State<AddressScreen> {
           address: address,
           onSave: (newAddress) async {
             if (newAddress.id == null) {
-              await _addressService.createAddress(newAddress);
+              await _addressRepository.createAddress(newAddress);
             } else {
-              await _addressService.updateAddress(newAddress);
+              await _addressRepository.updateAddress(newAddress);
             }
           },
         );
@@ -69,7 +69,7 @@ class _AddressScreenState extends State<AddressScreen> {
 
   Future<void> _makeDefault(CustomerAddress address) async {
     try {
-      await _addressService.updateAddress(address.copyWith(isDefault: true));
+      await _addressRepository.updateAddress(address.copyWith(isDefault: true));
       _reload();
       _showMessage('Default address updated');
     } catch (error) {
@@ -79,7 +79,7 @@ class _AddressScreenState extends State<AddressScreen> {
 
   Future<void> _deleteAddress(CustomerAddress address) async {
     try {
-      await _addressService.deleteAddress(address);
+      await _addressRepository.deleteAddress(address);
       _reload();
       _showMessage('Address removed');
     } catch (error) {
