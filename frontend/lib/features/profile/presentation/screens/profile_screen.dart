@@ -331,7 +331,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () {
-                      AppRoutes.pushCoins(context, rootNavigator: true).then((_) {
+                      AppRoutes.pushCoins(context, rootNavigator: true).then((
+                        _,
+                      ) {
                         _loadUser();
                       });
                     },
@@ -427,7 +429,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _ProfileTile(
                   icon: Icons.receipt_long_rounded,
                   label: 'My Orders',
-                  onTap: () => AppRoutes.pushOrders(context, rootNavigator: true),
+                  onTap: () =>
+                      AppRoutes.pushOrders(context, rootNavigator: true),
                 ),
                 _ProfileTile(
                   icon: Icons.location_on_rounded,
