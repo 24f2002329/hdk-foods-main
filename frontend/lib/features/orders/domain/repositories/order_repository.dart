@@ -58,10 +58,7 @@ abstract class OrderRepository {
 
   Future<List<Map<String, dynamic>>> getOrderMessages(int orderId);
 
-  Future<Map<String, dynamic>> sendOrderMessage(
-    int orderId,
-    String message,
-  );
+  Future<Map<String, dynamic>> sendOrderMessage(int orderId, String message);
 
   Future<Order> reportNotReceived(int orderId);
 }

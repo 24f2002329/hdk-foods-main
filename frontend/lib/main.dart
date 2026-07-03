@@ -103,10 +103,7 @@ class _MyAppState extends State<MyApp> {
         if (orderId != null) {
           _navigatorKey.currentState?.pushNamed(
             AppRoutes.orderChat,
-            arguments: {
-              'orderId': orderId,
-              'orderNumber': orderNumber,
-            },
+            arguments: {'orderId': orderId, 'orderNumber': orderNumber},
           );
         }
       }

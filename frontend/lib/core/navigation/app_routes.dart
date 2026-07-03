@@ -59,8 +59,14 @@ class AppRoutes {
     return Navigator.pushReplacementNamed<T, TO>(context, onboarding);
   }
 
-  static Future<T?> pushLogin<T>(BuildContext context, {bool rootNavigator = false}) {
-    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(login);
+  static Future<T?> pushLogin<T>(
+    BuildContext context, {
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(
+      context,
+      rootNavigator: rootNavigator,
+    ).pushNamed<T>(login);
   }
 
   static Future<T?> pushReplacementLogin<T, TO>(BuildContext context) {
@@ -75,10 +81,7 @@ class AppRoutes {
     return Navigator.pushNamed<T>(
       context,
       otp,
-      arguments: {
-        'verificationId': verificationId,
-        'phoneNumber': phoneNumber,
-      },
+      arguments: {'verificationId': verificationId, 'phoneNumber': phoneNumber},
     );
   }
 
@@ -107,19 +110,29 @@ class AppRoutes {
     );
   }
 
-  static Future<T?> pushCart<T>(BuildContext context, {bool rootNavigator = false}) {
-    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(cart);
+  static Future<T?> pushCart<T>(
+    BuildContext context, {
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(
+      context,
+      rootNavigator: rootNavigator,
+    ).pushNamed<T>(cart);
   }
 
   static Future<T?> pushCheckout<T>(BuildContext context) {
     return Navigator.pushNamed<T>(context, checkout);
   }
 
-  static Future<T?> pushAddresses<T>(BuildContext context, {bool selectionMode = false, bool rootNavigator = false}) {
-    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(
-      addresses,
-      arguments: {'selectionMode': selectionMode},
-    );
+  static Future<T?> pushAddresses<T>(
+    BuildContext context, {
+    bool selectionMode = false,
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(
+      context,
+      rootNavigator: rootNavigator,
+    ).pushNamed<T>(addresses, arguments: {'selectionMode': selectionMode});
   }
 
   static Future<T?> pushLocationPicker<T>(
@@ -141,16 +154,32 @@ class AppRoutes {
     return Navigator.pushNamed<T>(context, coins);
   }
 
-  static Future<T?> pushOrders<T>(BuildContext context, {bool rootNavigator = false}) {
-    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(orders);
+  static Future<T?> pushOrders<T>(
+    BuildContext context, {
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(
+      context,
+      rootNavigator: rootNavigator,
+    ).pushNamed<T>(orders);
   }
 
-  static Future<T?> pushOrderTracking<T>(BuildContext context, {required int orderId}) {
+  static Future<T?> pushOrderTracking<T>(
+    BuildContext context, {
+    required int orderId,
+  }) {
     return Navigator.pushNamed<T>(context, orderTracking, arguments: orderId);
   }
 
-  static Future<T?> pushReplacementOrderTracking<T, TO>(BuildContext context, {required int orderId}) {
-    return Navigator.pushReplacementNamed<T, TO>(context, orderTracking, arguments: orderId);
+  static Future<T?> pushReplacementOrderTracking<T, TO>(
+    BuildContext context, {
+    required int orderId,
+  }) {
+    return Navigator.pushReplacementNamed<T, TO>(
+      context,
+      orderTracking,
+      arguments: orderId,
+    );
   }
 
   static Future<T?> pushOrderChat<T>(
@@ -161,10 +190,7 @@ class AppRoutes {
     return Navigator.pushNamed<T>(
       context,
       orderChat,
-      arguments: {
-        'orderId': orderId,
-        'orderNumber': orderNumber,
-      },
+      arguments: {'orderId': orderId, 'orderNumber': orderNumber},
     );
   }
 
@@ -288,10 +314,7 @@ class AppRoutes {
     return Navigator.pushNamed<T>(
       context,
       categoryProducts,
-      arguments: {
-        'category': category,
-        'products': products,
-      },
+      arguments: {'category': category, 'products': products},
     );
   }
 
@@ -302,9 +325,7 @@ class AppRoutes {
     return Navigator.pushNamed<T>(
       context,
       premiumReview,
-      arguments: {
-        'order': order,
-      },
+      arguments: {'order': order},
     );
   }
 
@@ -408,10 +429,8 @@ class AppRoutes {
         final orderId = args['orderId'] as int;
         final orderNumber = args['orderNumber'] as String;
         return MaterialPageRoute(
-          builder: (_) => OrderChatScreen(
-            orderId: orderId,
-            orderNumber: orderNumber,
-          ),
+          builder: (_) =>
+              OrderChatScreen(orderId: orderId, orderNumber: orderNumber),
           settings: settings,
         );
       case waitingRoom:
@@ -495,19 +514,15 @@ class AppRoutes {
         final category = args['category'] as Category;
         final products = args['products'] as List<Product>;
         return MaterialPageRoute(
-          builder: (_) => CategoryProductsScreen(
-            category: category,
-            products: products,
-          ),
+          builder: (_) =>
+              CategoryProductsScreen(category: category, products: products),
           settings: settings,
         );
       case premiumReview:
         final args = settings.arguments as Map<String, dynamic>;
         final order = args['order'] as Order;
         return MaterialPageRoute(
-          builder: (_) => PremiumReviewScreen(
-            order: order,
-          ),
+          builder: (_) => PremiumReviewScreen(order: order),
           settings: settings,
         );
       default:

@@ -44,9 +44,8 @@ class CategoryCard extends StatelessWidget {
                   : CachedNetworkImage(
                       imageUrl: category.image,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => const ShimmerImagePlaceholder(
-                        shape: BoxShape.circle,
-                      ),
+                      placeholder: (context, url) =>
+                          const ShimmerImagePlaceholder(shape: BoxShape.circle),
                       errorWidget: (context, url, error) => const ColoredBox(
                         color: Color(0xFF1E1E1E),
                         child: Icon(

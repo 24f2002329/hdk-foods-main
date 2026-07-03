@@ -103,9 +103,8 @@ class _ProductCardState extends State<ProductCard>
                     : CachedNetworkImage(
                         imageUrl: product.image,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const ShimmerImagePlaceholder(
-                          borderRadius: 0,
-                        ),
+                        placeholder: (context, url) =>
+                            const ShimmerImagePlaceholder(borderRadius: 0),
                         errorWidget: (context, url, error) =>
                             const _ProductImageFallback(),
                       ),

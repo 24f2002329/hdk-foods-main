@@ -141,7 +141,8 @@ class _AddressScreenState extends State<AddressScreen> {
             return HdkEmptyState(
               icon: Icons.add_home_work_rounded,
               title: 'Save your first address',
-              description: 'Add Home, Work, or Other to save time during checkout.',
+              description:
+                  'Add Home, Work, or Other to save time during checkout.',
               actionLabel: 'Add Address',
               onAction: () => _openAddressForm(),
             );

@@ -46,9 +46,8 @@ class CategoryGridCard extends StatelessWidget {
                     : CachedNetworkImage(
                         imageUrl: category.image,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const ShimmerImagePlaceholder(
-                          borderRadius: 0,
-                        ),
+                        placeholder: (context, url) =>
+                            const ShimmerImagePlaceholder(borderRadius: 0),
                         errorWidget: (context, url, error) =>
                             const _CategoryImageFallback(),
                       ),

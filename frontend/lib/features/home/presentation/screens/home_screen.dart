@@ -39,7 +39,8 @@ class HomeScreen extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final isFirstRouteInCurrentTab = !await homeProvider.navigatorKeys[activeTab]
+        final isFirstRouteInCurrentTab = !await homeProvider
+            .navigatorKeys[activeTab]
             .currentState!
             .maybePop();
         if (isFirstRouteInCurrentTab) {
@@ -134,12 +135,16 @@ class HomeTab extends StatelessWidget {
                     homeProvider.reload();
                     await Future.wait([
                       homeProvider.productsFuture ?? Future.value(<Product>[]),
-                      homeProvider.allProductsFuture ?? Future.value(<Product>[]),
-                      homeProvider.categoriesFuture ?? Future.value(<Category>[]),
-                      homeProvider.configFuture ?? Future.value(const SiteConfig()),
+                      homeProvider.allProductsFuture ??
+                          Future.value(<Product>[]),
+                      homeProvider.categoriesFuture ??
+                          Future.value(<Category>[]),
+                      homeProvider.configFuture ??
+                          Future.value(const SiteConfig()),
                       homeProvider.bannersFuture ?? Future.value(<AppBanner>[]),
                       homeProvider.ordersFuture ?? Future.value(<Order>[]),
-                      homeProvider.activeCouponsFuture ?? Future.value(<Map<String, dynamic>>[]),
+                      homeProvider.activeCouponsFuture ??
+                          Future.value(<Map<String, dynamic>>[]),
                     ]);
                   },
                   child: CustomScrollView(
@@ -153,15 +158,20 @@ class HomeTab extends StatelessWidget {
                             currentUser: homeProvider.currentUser,
                             selectedAddress: homeProvider.selectedAddress,
                             isLoggedIn: homeProvider.isLoggedIn,
-                            unreadNotificationCount: homeProvider.unreadNotificationCount,
-                            onSelectAddress: () => _selectAddress(context, homeProvider),
+                            unreadNotificationCount:
+                                homeProvider.unreadNotificationCount,
+                            onSelectAddress: () =>
+                                _selectAddress(context, homeProvider),
                             onLoginPressed: () {
-                              AppRoutes.pushLogin(context, rootNavigator: true)
-                                  .then((_) {
-                                    homeProvider.reload();
-                                  });
+                              AppRoutes.pushLogin(
+                                context,
+                                rootNavigator: true,
+                              ).then((_) {
+                                homeProvider.reload();
+                              });
                             },
-                            onNotificationPressed: () => _openNotifications(context, homeProvider),
+                            onNotificationPressed: () =>
+                                _openNotifications(context, homeProvider),
                           ),
                         ),
                       ),
@@ -172,7 +182,11 @@ class HomeTab extends StatelessWidget {
                         delegate: _StickySearchDelegate(
                           child: _StickyGlassmorphicSearchBar(
                             onTap: () {
-                              AppRoutes.pushMenu(context, autofocusSearch: true, rootNavigator: true);
+                              AppRoutes.pushMenu(
+                                context,
+                                autofocusSearch: true,
+                                rootNavigator: true,
+                              );
                             },
                           ),
                         ),
@@ -196,7 +210,10 @@ class HomeTab extends StatelessWidget {
                             future: homeProvider.bannersFuture,
                             builder: (context, snap) {
                               if (snap.hasData) {
-                                homeProvider.precacheBanners(context, snap.data!);
+                                homeProvider.precacheBanners(
+                                  context,
+                                  snap.data!,
+                                );
                               }
                               return _BannerCarousel(banners: snap.data ?? []);
                             },
@@ -209,7 +226,9 @@ class HomeTab extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 20, 0, 8),
                           child: _CategoriesSection(
-                            categoriesFuture: homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+                            categoriesFuture:
+                                homeProvider.categoriesFuture ??
+                                Future.value(<Category>[]),
                           ),
                         ),
                       ),
@@ -219,7 +238,9 @@ class HomeTab extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
                           child: _SpecialsSection(
-                            productsFuture: homeProvider.productsFuture ?? Future.value(<Product>[]),
+                            productsFuture:
+                                homeProvider.productsFuture ??
+                                Future.value(<Product>[]),
                           ),
                         ),
                       ),
@@ -229,8 +250,12 @@ class HomeTab extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
                           child: _ComboOffersSection(
-                            allProductsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[]),
-                            categoriesFuture: homeProvider.categoriesFuture ?? Future.value(<Category>[]),
+                            allProductsFuture:
+                                homeProvider.allProductsFuture ??
+                                Future.value(<Product>[]),
+                            categoriesFuture:
+                                homeProvider.categoriesFuture ??
+                                Future.value(<Category>[]),
                           ),
                         ),
                       ),
@@ -240,7 +265,9 @@ class HomeTab extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
                           child: _CouponsSection(
-                            activeCouponsFuture: homeProvider.activeCouponsFuture ?? Future.value(<Map<String, dynamic>>[]),
+                            activeCouponsFuture:
+                                homeProvider.activeCouponsFuture ??
+                                Future.value(<Map<String, dynamic>>[]),
                           ),
                         ),
                       ),
@@ -250,7 +277,9 @@ class HomeTab extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: _TrendingAndNewSection(
-                            productsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[]),
+                            productsFuture:
+                                homeProvider.allProductsFuture ??
+                                Future.value(<Product>[]),
                           ),
                         ),
                       ),
@@ -269,14 +298,20 @@ class HomeTab extends StatelessWidget {
                           ),
                         ),
                       ),
-                      _BestSellersGrid(productsFuture: homeProvider.allProductsFuture ?? Future.value(<Product>[])),
+                      _BestSellersGrid(
+                        productsFuture:
+                            homeProvider.allProductsFuture ??
+                            Future.value(<Product>[]),
+                      ),
 
                       // Phase 10 — Recently Ordered (Dynamic: fetched from order history)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                           child: _RecentlyOrderedSection(
-                            ordersFuture: homeProvider.ordersFuture ?? Future.value(<Order>[]),
+                            ordersFuture:
+                                homeProvider.ordersFuture ??
+                                Future.value(<Order>[]),
                             onReload: homeProvider.reload,
                           ),
                         ),
@@ -305,12 +340,18 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Future<void> _openNotifications(BuildContext context, HomeProvider homeProvider) async {
+  Future<void> _openNotifications(
+    BuildContext context,
+    HomeProvider homeProvider,
+  ) async {
     await AppRoutes.pushNotifications(context);
     homeProvider.loadUserData();
   }
 
-  Future<void> _selectAddress(BuildContext context, HomeProvider homeProvider) async {
+  Future<void> _selectAddress(
+    BuildContext context,
+    HomeProvider homeProvider,
+  ) async {
     if (!homeProvider.isLoggedIn) {
       _promptLogin(context, homeProvider);
       return;
@@ -349,10 +390,9 @@ class HomeTab extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              AppRoutes.pushLogin(context, rootNavigator: true)
-                  .then((_) {
-                    homeProvider.reload();
-                  });
+              AppRoutes.pushLogin(context, rootNavigator: true).then((_) {
+                homeProvider.reload();
+              });
             },
             child: const Text(
               'Login',
@@ -1245,8 +1285,12 @@ class _CategoriesSection extends StatelessWidget {
                                 child: CachedNetworkImage(
                                   imageUrl: imageUrl,
                                   fit: BoxFit.cover,
-                                  fadeInDuration: const Duration(milliseconds: 300),
-                                  fadeOutDuration: const Duration(milliseconds: 300),
+                                  fadeInDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  fadeOutDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke),
                                   errorWidget: (context, url, error) =>
@@ -1355,8 +1399,12 @@ class _SpecialsSection extends StatelessWidget {
                                   height: 120,
                                   width: 175,
                                   fit: BoxFit.cover,
-                                  fadeInDuration: const Duration(milliseconds: 300),
-                                  fadeOutDuration: const Duration(milliseconds: 300),
+                                  fadeInDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  fadeOutDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke, height: 120),
                                   errorWidget: (context, url, s) =>
@@ -1658,8 +1706,12 @@ class _BestSellersGrid extends StatelessWidget {
                                 width: 120,
                                 height: 132,
                                 fit: BoxFit.cover,
-                                fadeInDuration: const Duration(milliseconds: 300),
-                                fadeOutDuration: const Duration(milliseconds: 300),
+                                fadeInDuration: const Duration(
+                                  milliseconds: 300,
+                                ),
+                                fadeOutDuration: const Duration(
+                                  milliseconds: 300,
+                                ),
                                 placeholder: (context, url) =>
                                     Container(color: _stroke),
                                 errorWidget: (context, url, s) =>
@@ -2000,7 +2052,9 @@ class _ComboOffersSectionState extends State<_ComboOffersSection> {
                               width: 280,
                               fit: BoxFit.cover,
                               fadeInDuration: const Duration(milliseconds: 300),
-                              fadeOutDuration: const Duration(milliseconds: 300),
+                              fadeOutDuration: const Duration(
+                                milliseconds: 300,
+                              ),
                               placeholder: (context, url) =>
                                   Container(color: _stroke),
                               errorWidget: (context, url, s) =>
@@ -2438,8 +2492,12 @@ class _TrendingAndNewSection extends StatelessWidget {
                                     height: 95,
                                     width: 150,
                                     fit: BoxFit.cover,
-                                    fadeInDuration: const Duration(milliseconds: 300),
-                                    fadeOutDuration: const Duration(milliseconds: 300),
+                                    fadeInDuration: const Duration(
+                                      milliseconds: 300,
+                                    ),
+                                    fadeOutDuration: const Duration(
+                                      milliseconds: 300,
+                                    ),
                                     placeholder: (context, url) =>
                                         Container(color: _stroke, height: 95),
                                     errorWidget: (context, url, s) =>
@@ -2607,8 +2665,12 @@ class _TrendingAndNewSection extends StatelessWidget {
                                   height: 95,
                                   width: 150,
                                   fit: BoxFit.cover,
-                                  fadeInDuration: const Duration(milliseconds: 300),
-                                  fadeOutDuration: const Duration(milliseconds: 300),
+                                  fadeInDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  fadeOutDuration: const Duration(
+                                    milliseconds: 300,
+                                  ),
                                   placeholder: (context, url) =>
                                       Container(color: _stroke, height: 95),
                                   errorWidget: (context, url, s) =>

@@ -67,7 +67,7 @@ class HomeProvider extends ChangeNotifier {
 
   void reload() {
     _precachedUrls.clear();
-    
+
     // 1. Populate immediately from cache
     productsFuture = ProductService.getFeaturedProducts(fromCache: true);
     allProductsFuture = ProductService.getProducts(fromCache: true);
@@ -76,11 +76,11 @@ class HomeProvider extends ChangeNotifier {
     bannersFuture = ConfigService().getBanners(fromCache: true);
     activeCouponsFuture = OrderRepository.instance.getActiveCoupons();
     ordersFuture = _fetchOrdersSafely();
-    
+
     loadUserData(fromCacheOnly: true).then((_) {
       notifyListeners();
     });
-    
+
     notifyListeners();
 
     // 2. Fetch fresh data in the background
@@ -89,7 +89,9 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> _fetchFreshData() async {
     try {
-      final freshFeatured = ProductService.getFeaturedProducts(fromCache: false);
+      final freshFeatured = ProductService.getFeaturedProducts(
+        fromCache: false,
+      );
       final freshAll = ProductService.getProducts(fromCache: false);
       final freshCategories = ProductService.getCategories(fromCache: false);
       final freshConfig = ConfigService().getConfig(fromCache: false);
@@ -108,7 +110,7 @@ class HomeProvider extends ChangeNotifier {
       categoriesFuture = freshCategories;
       configFuture = freshConfig;
       bannersFuture = freshBanners;
-      
+
       await loadUserData(fromCacheOnly: false);
       notifyListeners();
     } catch (_) {}
@@ -134,9 +136,11 @@ class HomeProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    
+
     try {
-      final cachedUser = await UserRepository.instance.getCurrentUser(fromCache: true);
+      final cachedUser = await UserRepository.instance.getCurrentUser(
+        fromCache: true,
+      );
       currentUser = cachedUser;
       if (fromCacheOnly) {
         notifyListeners();
@@ -145,7 +149,9 @@ class HomeProvider extends ChangeNotifier {
     } catch (_) {}
 
     try {
-      final user = await UserRepository.instance.getCurrentUser(fromCache: false);
+      final user = await UserRepository.instance.getCurrentUser(
+        fromCache: false,
+      );
       List<CustomerAddress> addresses = [];
       try {
         addresses = await AddressRepository.instance.getAddresses();

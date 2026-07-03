@@ -85,7 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    AppRoutes.pushOtp(context, verificationId: verificationId, phoneNumber: phone);
+    AppRoutes.pushOtp(
+      context,
+      verificationId: verificationId,
+      phoneNumber: phone,
+    );
   }
 
   @override

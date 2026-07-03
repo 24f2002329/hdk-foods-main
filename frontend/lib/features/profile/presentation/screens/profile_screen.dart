@@ -325,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () {
-                       AppRoutes.pushCoins(context).then((_) {
+                      AppRoutes.pushCoins(context).then((_) {
                         _loadUser();
                       });
                     },
@@ -345,7 +345,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: const Color(0xFFFF8A00).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFFFF8A00,
+                          ).withValues(alpha: 0.25),
                         ),
                       ),
                       child: Row(

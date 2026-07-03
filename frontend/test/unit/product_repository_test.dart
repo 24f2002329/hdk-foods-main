@@ -15,12 +15,13 @@ class MockProductRepository implements ProductRepository {
         isFeatured: false,
         preparationTime: 5,
         modifierGroups: const [],
-      )
+      ),
     ];
   }
 
   @override
-  Future<List<Product>> getFeaturedProducts({bool fromCache = false}) async => [];
+  Future<List<Product>> getFeaturedProducts({bool fromCache = false}) async =>
+      [];
 
   @override
   Future<List<Product>> getAddOns({bool fromCache = false}) async => [];
@@ -41,7 +42,7 @@ void main() {
     // 3. Verify mock repository is utilized
     expect(ProductRepository.instance, isA<MockProductRepository>());
     final products = await ProductRepository.instance.getProducts();
-    
+
     expect(products.length, 1);
     expect(products.first.name, 'Mock Product');
     expect(products.first.price, 99);

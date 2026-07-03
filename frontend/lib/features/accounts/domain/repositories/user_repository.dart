@@ -61,9 +61,10 @@ class HttpUserRepository implements UserRepository {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final list = data['transactions'] as List?;
-      final transactions = list
-          ?.map((x) => CoinTransaction.fromJson(x as Map<String, dynamic>))
-          .toList() ??
+      final transactions =
+          list
+              ?.map((x) => CoinTransaction.fromJson(x as Map<String, dynamic>))
+              .toList() ??
           [];
       return {
         'loyalty_coins': data['loyalty_coins'] ?? 0,

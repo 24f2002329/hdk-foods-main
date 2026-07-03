@@ -4,7 +4,8 @@ import '../../data/models/customer_address.dart';
 
 abstract class AddressRepository {
   static AddressRepository? _instance;
-  static AddressRepository get instance => _instance ??= HttpAddressRepository();
+  static AddressRepository get instance =>
+      _instance ??= HttpAddressRepository();
   static set instance(AddressRepository value) => _instance = value;
 
   Future<List<CustomerAddress>> getAddresses();

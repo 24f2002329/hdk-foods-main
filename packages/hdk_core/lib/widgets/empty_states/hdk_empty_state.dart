@@ -55,7 +55,11 @@ class HdkEmptyState extends StatelessWidget {
               ),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: 24),
-                HdkButton(label: actionLabel!, onPressed: onAction!, width: 180),
+                HdkButton(
+                  label: actionLabel!,
+                  onPressed: onAction!,
+                  width: 180,
+                ),
               ],
             ],
           ),

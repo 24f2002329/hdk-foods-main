@@ -68,7 +68,8 @@ class _CartScreenState extends State<CartScreen> {
               if (cart.items.isEmpty) {
                 return HdkEmptyState(
                   title: 'Your cart is empty',
-                  description: 'Add delicious meals from our kitchen to satisfy your cravings.',
+                  description:
+                      'Add delicious meals from our kitchen to satisfy your cravings.',
                   icon: Icons.shopping_bag_outlined,
                   actionLabel: 'Browse Menu',
                   onAction: () => Navigator.pop(context),

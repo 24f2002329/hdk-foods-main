@@ -10,7 +10,12 @@ import 'package:frontend/features/orders/domain/repositories/order_repository.da
 class MockUserRepository implements UserRepository {
   @override
   Future<User> getCurrentUser({bool fromCache = false}) async {
-    return User(id: 1, name: 'Mock User', phoneNumber: '1234567890', role: 'customer');
+    return User(
+      id: 1,
+      name: 'Mock User',
+      phoneNumber: '1234567890',
+      role: 'customer',
+    );
   }
 
   @override
@@ -20,9 +25,9 @@ class MockUserRepository implements UserRepository {
 
   @override
   Future<Map<String, dynamic>> getCoinTransactions() async => {
-        'loyalty_coins': 150,
-        'transactions': <CoinTransaction>[],
-      };
+    'loyalty_coins': 150,
+    'transactions': <CoinTransaction>[],
+  };
 }
 
 class MockAuthRepository implements AuthRepository {
@@ -99,8 +104,7 @@ class MockOrderRepository implements OrderRepository {
   Future<Map<String, dynamic>?> validateCoupon({
     required String code,
     required double orderTotal,
-  }) async =>
-      null;
+  }) async => null;
 
   @override
   Future<List<Map<String, dynamic>>> getActiveCoupons() async => [];
@@ -115,8 +119,7 @@ class MockOrderRepository implements OrderRepository {
   Future<Map<String, dynamic>> selectPayment({
     required int orderId,
     required String method,
-  }) async =>
-      {};
+  }) async => {};
 
   @override
   Future<Order> acknowledgeChanges({
@@ -160,8 +163,7 @@ class MockOrderRepository implements OrderRepository {
   Future<Map<String, dynamic>> sendOrderMessage(
     int orderId,
     String message,
-  ) async =>
-      {};
+  ) async => {};
 
   @override
   Future<Order> reportNotReceived(int orderId) async {
@@ -192,7 +194,9 @@ void main() {
       AuthRepository.instance = mockRepo;
 
       expect(AuthRepository.instance, isA<MockAuthRepository>());
-      final verId = await AuthRepository.instance.sendOtp(phoneNumber: '+919999999999');
+      final verId = await AuthRepository.instance.sendOtp(
+        phoneNumber: '+919999999999',
+      );
       expect(verId, 'mock-verification-id');
     });
 

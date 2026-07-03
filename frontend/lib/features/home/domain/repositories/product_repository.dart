@@ -3,7 +3,8 @@ import 'package:hdk_core/hdk_core.dart';
 
 abstract class ProductRepository {
   static ProductRepository? _instance;
-  static ProductRepository get instance => _instance ??= HttpProductRepository();
+  static ProductRepository get instance =>
+      _instance ??= HttpProductRepository();
   static set instance(ProductRepository value) => _instance = value;
 
   Future<List<Product>> getProducts({bool fromCache = false});

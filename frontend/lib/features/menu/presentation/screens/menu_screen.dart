@@ -593,7 +593,8 @@ class _MenuScreenState extends State<MenuScreen> {
               if (data == null || data.categories.isEmpty) {
                 return HdkEmptyState(
                   title: 'No categories available',
-                  description: 'We couldn\'t load the menu categories. Please check your connection and try again.',
+                  description:
+                      'We couldn\'t load the menu categories. Please check your connection and try again.',
                   icon: Icons.restaurant_menu_rounded,
                   actionLabel: 'Refresh',
                   onAction: _refresh,
@@ -1003,7 +1004,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       hasScrollBody: false,
                       child: HdkEmptyState(
                         title: 'No results found',
-                        description: 'We couldn\'t find any dishes matching "$_query". Try checking the spelling or searching for something else!',
+                        description:
+                            'We couldn\'t find any dishes matching "$_query". Try checking the spelling or searching for something else!',
                         icon: Icons.search_off_rounded,
                         actionLabel: 'Clear Search',
                         onAction: () {
@@ -1205,7 +1207,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         hasScrollBody: false,
                         child: HdkEmptyState(
                           title: 'No favorites yet',
-                          description: 'Tap the heart icon on any food item to save it here!',
+                          description:
+                              'Tap the heart icon on any food item to save it here!',
                           icon: Icons.favorite_border_rounded,
                         ),
                       ),

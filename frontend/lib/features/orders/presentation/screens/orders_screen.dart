@@ -474,14 +474,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
           : _orders.isEmpty && _loading
           ? const _OrdersScreenSkeleton()
           : _orders.isEmpty && _error != null
-          ? ErrorRetryWidget(
-              error: _error!,
-              onRetry: _refresh,
-            )
+          ? ErrorRetryWidget(error: _error!, onRetry: _refresh)
           : _orders.isEmpty
           ? HdkEmptyState(
               title: 'No orders yet',
-              description: 'You haven\'t placed any orders yet. Discover our delicious meals and start ordering!',
+              description:
+                  'You haven\'t placed any orders yet. Discover our delicious meals and start ordering!',
               icon: Icons.receipt_long_rounded,
               actionLabel: 'Order Now',
               onAction: () => Navigator.pop(context),
@@ -512,10 +510,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   }
                   final order = _orders[index];
                   return GestureDetector(
-                    onTap: () => AppRoutes.pushOrderTracking(
-                      context,
-                      orderId: order.id,
-                    ),
+                    onTap: () =>
+                        AppRoutes.pushOrderTracking(context, orderId: order.id),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
