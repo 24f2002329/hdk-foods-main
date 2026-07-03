@@ -67,15 +67,51 @@ class HomeProvider extends ChangeNotifier {
 
   void reload() {
     _precachedUrls.clear();
-    productsFuture = ProductService.getFeaturedProducts();
-    allProductsFuture = ProductService.getProducts();
-    categoriesFuture = ProductService.getCategories();
-    configFuture = ConfigService().getConfig();
-    bannersFuture = ConfigService().getBanners();
+    
+    // 1. Populate immediately from cache
+    productsFuture = ProductService.getFeaturedProducts(fromCache: true);
+    allProductsFuture = ProductService.getProducts(fromCache: true);
+    categoriesFuture = ProductService.getCategories(fromCache: true);
+    configFuture = ConfigService().getConfig(fromCache: true);
+    bannersFuture = ConfigService().getBanners(fromCache: true);
     activeCouponsFuture = OrderRepository().getActiveCoupons();
     ordersFuture = _fetchOrdersSafely();
-    loadUserData();
+    
+    loadUserData(fromCacheOnly: true).then((_) {
+      notifyListeners();
+    });
+    
     notifyListeners();
+
+    // 2. Fetch fresh data in the background
+    _fetchFreshData();
+  }
+
+  Future<void> _fetchFreshData() async {
+    try {
+      final freshFeatured = ProductService.getFeaturedProducts(fromCache: false);
+      final freshAll = ProductService.getProducts(fromCache: false);
+      final freshCategories = ProductService.getCategories(fromCache: false);
+      final freshConfig = ConfigService().getConfig(fromCache: false);
+      final freshBanners = ConfigService().getBanners(fromCache: false);
+
+      await Future.wait([
+        freshFeatured,
+        freshAll,
+        freshCategories,
+        freshConfig,
+        freshBanners,
+      ]);
+
+      productsFuture = freshFeatured;
+      allProductsFuture = freshAll;
+      categoriesFuture = freshCategories;
+      configFuture = freshConfig;
+      bannersFuture = freshBanners;
+      
+      await loadUserData(fromCacheOnly: false);
+      notifyListeners();
+    } catch (_) {}
   }
 
   Future<List<Order>> _fetchOrdersSafely() async {
@@ -88,7 +124,7 @@ class HomeProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadUserData() async {
+  Future<void> loadUserData({bool fromCacheOnly = false}) async {
     final loggedIn = await TokenStorage.isLoggedIn();
     isLoggedIn = loggedIn;
     if (!loggedIn) {
@@ -98,8 +134,18 @@ class HomeProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    
     try {
-      final user = await UserService().getCurrentUser();
+      final cachedUser = await UserService().getCurrentUser(fromCache: true);
+      currentUser = cachedUser;
+      if (fromCacheOnly) {
+        notifyListeners();
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      final user = await UserService().getCurrentUser(fromCache: false);
       List<CustomerAddress> addresses = [];
       try {
         addresses = await AddressService().getAddresses();

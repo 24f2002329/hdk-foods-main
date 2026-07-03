@@ -14,11 +14,11 @@ class ApiClient {
 
   Future<Map<String, String>> _authHeaders() async {
     final token = await TokenStorage.getAccessToken();
-    if (token == null) throw _AuthException();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
   Future<http.Response> get(String path) => _withRefresh(

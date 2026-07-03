@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 import '../../data/repositories/notification_service.dart';
 import 'package:shimmer/shimmer.dart';
@@ -214,62 +215,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: _loading
           ? const _NotificationScreenSkeleton()
           : _error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.wifi_off, color: _textSecondary, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Error loading notifications',
-                    style: GoogleFonts.poppins(
-                      color: _textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: _textSecondary, fontSize: 11),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() => _loading = true);
-                      _fetch();
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: _brandRed),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+          ? ErrorRetryWidget(
+              error: _error!,
+              onRetry: () {
+                setState(() => _loading = true);
+                _fetch();
+              },
             )
           : _list.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_none_rounded,
-                    color: Colors.grey[700],
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'All caught up!',
-                    style: GoogleFonts.poppins(
-                      color: _textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'No notifications history to display.',
-                    style: TextStyle(color: _textSecondary, fontSize: 13),
-                  ),
-                ],
-              ),
+          ? HdkEmptyState(
+              title: 'All caught up!',
+              description: 'No notifications history to display.',
+              icon: Icons.notifications_none_rounded,
             )
           : RefreshIndicator(
               color: _brandRed,

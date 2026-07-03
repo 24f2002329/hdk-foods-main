@@ -5,11 +5,27 @@ class UserService {
   final ApiClient _apiClient = ApiClient();
 
   /// Fetch the current authenticated user's profile.
-  Future<User> getCurrentUser() async {
-    final response = await _apiClient.get('me/');
+  Future<User> getCurrentUser({bool fromCache = false}) async {
+    if (fromCache) {
+      final cached = await LocalCache.getJson('cached_user_profile');
+      if (cached != null) {
+        return User.fromJson(cached);
+      }
+      throw Exception('No cached user profile');
+    }
 
-    if (response.statusCode == 200) {
-      return User.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    try {
+      final response = await _apiClient.get('me/');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        await LocalCache.setJson('cached_user_profile', data);
+        return User.fromJson(data);
+      }
+    } catch (_) {
+      final cached = await LocalCache.getJson('cached_user_profile');
+      if (cached != null) {
+        return User.fromJson(cached);
+      }
     }
 
     throw Exception('Failed to load user profile');
@@ -20,7 +36,9 @@ class UserService {
     final response = await _apiClient.patch('me/', {'name': name});
 
     if (response.statusCode == 200) {
-      return User.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      await LocalCache.setJson('cached_user_profile', data);
+      return User.fromJson(data);
     }
 
     throw Exception('Failed to update name');

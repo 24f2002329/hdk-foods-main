@@ -122,29 +122,57 @@ class AppBanner {
 class ConfigService {
   static final String _base = ApiConfig.baseUrl;
 
-  Future<SiteConfig> getConfig() async {
+  Future<SiteConfig> getConfig({bool fromCache = false}) async {
+    if (fromCache) {
+      final cached = await LocalCache.getJson('cached_site_config');
+      if (cached != null) {
+        return SiteConfig.fromJson(cached);
+      }
+      return const SiteConfig();
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$_base/config/'))
           .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
-        return SiteConfig.fromJson(jsonDecode(response.body));
+        final data = jsonDecode(response.body);
+        await LocalCache.setJson('cached_site_config', data);
+        return SiteConfig.fromJson(data);
       }
-    } catch (_) {}
+    } catch (_) {
+      final cached = await LocalCache.getJson('cached_site_config');
+      if (cached != null) {
+        return SiteConfig.fromJson(cached);
+      }
+    }
     return const SiteConfig();
   }
 
-  Future<List<AppBanner>> getBanners() async {
+  Future<List<AppBanner>> getBanners({bool fromCache = false}) async {
+    if (fromCache) {
+      final cached = await LocalCache.getJson('cached_app_banners');
+      if (cached != null && cached is List) {
+        return cached.map((e) => AppBanner.fromJson(e)).toList();
+      }
+      return [];
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$_base/config/banners/'))
           .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
-        return (jsonDecode(response.body) as List)
-            .map((e) => AppBanner.fromJson(e))
-            .toList();
+        final List<dynamic> list = jsonDecode(response.body);
+        await LocalCache.setJson('cached_app_banners', list);
+        return list.map((e) => AppBanner.fromJson(e)).toList();
       }
-    } catch (_) {}
+    } catch (_) {
+      final cached = await LocalCache.getJson('cached_app_banners');
+      if (cached != null && cached is List) {
+        return cached.map((e) => AppBanner.fromJson(e)).toList();
+      }
+    }
     return [];
   }
 }

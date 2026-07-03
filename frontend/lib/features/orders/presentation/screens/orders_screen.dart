@@ -474,32 +474,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
           : _orders.isEmpty && _loading
           ? const _OrdersScreenSkeleton()
           : _orders.isEmpty && _error != null
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.redAccent),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _refresh,
-                    child: const Text(
-                      'Retry',
-                      style: TextStyle(color: _brandRed),
-                    ),
-                  ),
-                ],
-              ),
+          ? ErrorRetryWidget(
+              error: _error!,
+              onRetry: _refresh,
             )
           : _orders.isEmpty
-          ? const Center(
-              child: Text(
-                'No orders yet',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
+          ? HdkEmptyState(
+              title: 'No orders yet',
+              description: 'You haven\'t placed any orders yet. Discover our delicious meals and start ordering!',
+              icon: Icons.receipt_long_rounded,
+              actionLabel: 'Order Now',
+              onAction: () => Navigator.pop(context),
             )
           : RefreshIndicator(
               onRefresh: _refresh,

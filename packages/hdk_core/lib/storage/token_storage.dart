@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'local_cache.dart';
 
 class TokenStorage {
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -26,6 +27,7 @@ class TokenStorage {
     await _storage.delete(key: 'access');
     await _storage.delete(key: 'refresh');
     await _storage.delete(key: 'role');
+    await LocalCache.remove('cached_user_profile');
   }
 
   static Future<void> setOnboardingComplete() async {

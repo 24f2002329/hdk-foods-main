@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 import '../../data/models/customer_address.dart';
 import '../../data/repositories/address_service.dart';
@@ -128,22 +129,19 @@ class _AddressScreenState extends State<AddressScreen> {
           }
 
           if (snapshot.hasError) {
-            return _AddressEmptyState(
-              icon: Icons.wifi_off_rounded,
-              title: 'Could not load addresses',
-              subtitle: snapshot.error.toString(),
-              actionLabel: 'Try again',
-              onAction: _reload,
+            return ErrorRetryWidget(
+              error: snapshot.error.toString(),
+              onRetry: _reload,
             );
           }
 
           final addresses = snapshot.data ?? [];
 
           if (addresses.isEmpty) {
-            return _AddressEmptyState(
+            return HdkEmptyState(
               icon: Icons.add_home_work_rounded,
               title: 'Save your first address',
-              subtitle: 'Add Home, Work, or Other before checkout.',
+              description: 'Add Home, Work, or Other to save time during checkout.',
               actionLabel: 'Add Address',
               onAction: () => _openAddressForm(),
             );
@@ -790,67 +788,6 @@ class _AddressField extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: _brandOrange),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddressEmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String actionLabel;
-  final VoidCallback onAction;
-
-  const _AddressEmptyState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.actionLabel,
-    required this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 82,
-              height: 82,
-              decoration: BoxDecoration(
-                color: _panelAlt,
-                borderRadius: BorderRadius.circular(26),
-              ),
-              child: Icon(icon, color: _brandOrange, size: 40),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _deepText,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _mutedText,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 18),
-            ElevatedButton(onPressed: onAction, child: Text(actionLabel)),
-          ],
         ),
       ),
     );

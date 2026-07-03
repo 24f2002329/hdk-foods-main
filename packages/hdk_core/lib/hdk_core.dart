@@ -12,6 +12,7 @@ export 'models/order.dart';
 export 'models/user.dart';
 export 'models/coin_transaction.dart';
 export 'storage/token_storage.dart';
+export 'storage/local_cache.dart';
 export 'theme/hdk_theme.dart';
 export 'widgets/buttons/hdk_button.dart';
 export 'widgets/cards/hdk_card.dart';

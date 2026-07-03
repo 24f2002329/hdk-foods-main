@@ -66,14 +66,12 @@ class _CartScreenState extends State<CartScreen> {
           return Consumer<CartProvider>(
             builder: (context, cart, _) {
               if (cart.items.isEmpty) {
-                return const Center(
-                  child: Text(
-                    "Your cart is empty",
-                    style: TextStyle(
-                      color: _mutedText,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                return HdkEmptyState(
+                  title: 'Your cart is empty',
+                  description: 'Add delicious meals from our kitchen to satisfy your cravings.',
+                  icon: Icons.shopping_bag_outlined,
+                  actionLabel: 'Browse Menu',
+                  onAction: () => Navigator.pop(context),
                 );
               }
 

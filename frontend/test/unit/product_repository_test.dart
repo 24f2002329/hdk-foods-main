@@ -4,7 +4,7 @@ import 'package:frontend/features/home/domain/repositories/product_repository.da
 
 class MockProductRepository implements ProductRepository {
   @override
-  Future<List<Product>> getProducts() async {
+  Future<List<Product>> getProducts({bool fromCache = false}) async {
     return [
       Product(
         id: 101,
@@ -20,13 +20,13 @@ class MockProductRepository implements ProductRepository {
   }
 
   @override
-  Future<List<Product>> getFeaturedProducts() async => [];
+  Future<List<Product>> getFeaturedProducts({bool fromCache = false}) async => [];
 
   @override
-  Future<List<Product>> getAddOns() async => [];
+  Future<List<Product>> getAddOns({bool fromCache = false}) async => [];
 
   @override
-  Future<List<Category>> getCategories() async => [];
+  Future<List<Category>> getCategories({bool fromCache = false}) async => [];
 }
 
 void main() {

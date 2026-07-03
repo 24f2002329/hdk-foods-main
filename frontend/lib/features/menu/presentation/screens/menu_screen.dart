@@ -591,7 +591,13 @@ class _MenuScreenState extends State<MenuScreen> {
 
               final data = snapshot.data;
               if (data == null || data.categories.isEmpty) {
-                return const _EmptyState(message: 'No categories available');
+                return HdkEmptyState(
+                  title: 'No categories available',
+                  description: 'We couldn\'t load the menu categories. Please check your connection and try again.',
+                  icon: Icons.restaurant_menu_rounded,
+                  actionLabel: 'Refresh',
+                  onAction: _refresh,
+                );
               }
 
               final siteConfig = data.config;
@@ -995,42 +1001,17 @@ class _MenuScreenState extends State<MenuScreen> {
                   slivers.add(
                     SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 80,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off_rounded,
-                                size: 64,
-                                color: Colors.grey[700],
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'No results found',
-                                style: TextStyle(
-                                  color: _textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'We couldn\'t find any dishes matching "$_query". Try checking the spelling or searching for something else!',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: _textSecondary,
-                                  fontSize: 13,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      child: HdkEmptyState(
+                        title: 'No results found',
+                        description: 'We couldn\'t find any dishes matching "$_query". Try checking the spelling or searching for something else!',
+                        icon: Icons.search_off_rounded,
+                        actionLabel: 'Clear Search',
+                        onAction: () {
+                          setState(() {
+                            _query = '';
+                            _searchController.clear();
+                          });
+                        },
                       ),
                     ),
                   );
@@ -1220,40 +1201,12 @@ class _MenuScreenState extends State<MenuScreen> {
 
                   if (favoriteProducts.isEmpty) {
                     slivers.add(
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 48,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.favorite_border_rounded,
-                                color: _textSecondary,
-                                size: 48,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'No favorites yet',
-                                style: TextStyle(
-                                  color: _textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Tap the heart icon on any food item to save it here!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: HdkEmptyState(
+                          title: 'No favorites yet',
+                          description: 'Tap the heart icon on any food item to save it here!',
+                          icon: Icons.favorite_border_rounded,
                         ),
                       ),
                     );
@@ -2717,42 +2670,6 @@ class _MenuData {
     required this.productsByCategory,
     required this.config,
   });
-}
-
-// ── EMPTY STATE WIDGET ───────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final String message;
-
-  const _EmptyState({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.restaurant_rounded,
-              color: _textSecondary,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: const TextStyle(
-                color: _textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _StatusItem {
