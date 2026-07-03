@@ -67,7 +67,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (!mounted) return;
       final paid = order.paymentStatus == 'paid';
-      
+
       if (paid) {
         HdkAnalytics.logCheckoutCompleted(
           orderId: widget.orderId.toString(),

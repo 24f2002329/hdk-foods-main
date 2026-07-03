@@ -38,7 +38,7 @@ class HdkAnalytics {
             price: price,
             quantity: quantity,
             itemCategory: category,
-          )
+          ),
         ],
         value: price * quantity,
         currency: 'INR',
@@ -95,7 +95,9 @@ class HdkAnalytics {
         currency: 'INR',
       );
       if (kDebugMode) {
-        print('[HdkAnalytics] Purchase/Checkout Completed event logged: orderId=$orderId, value=$totalAmount');
+        print(
+          '[HdkAnalytics] Purchase/Checkout Completed event logged: orderId=$orderId, value=$totalAmount',
+        );
       }
     } catch (e) {
       if (kDebugMode) {
@@ -120,7 +122,9 @@ class HdkAnalytics {
         },
       );
       if (kDebugMode) {
-        print('[HdkAnalytics] Payment Failed event logged: orderId=$orderId, error=$errorMessage');
+        print(
+          '[HdkAnalytics] Payment Failed event logged: orderId=$orderId, error=$errorMessage',
+        );
       }
     } catch (e) {
       if (kDebugMode) {
@@ -137,13 +141,12 @@ class HdkAnalytics {
     try {
       await _analytics.logEvent(
         name: 'order_cancelled',
-        parameters: {
-          'order_id': orderId,
-          'reason': reason,
-        },
+        parameters: {'order_id': orderId, 'reason': reason},
       );
       if (kDebugMode) {
-        print('[HdkAnalytics] Order Cancelled event logged: orderId=$orderId, reason=$reason');
+        print(
+          '[HdkAnalytics] Order Cancelled event logged: orderId=$orderId, reason=$reason',
+        );
       }
     } catch (e) {
       if (kDebugMode) {
@@ -161,11 +164,7 @@ class HdkAnalytics {
     try {
       await _analytics.logViewItem(
         items: [
-          AnalyticsEventItem(
-            itemId: itemId,
-            itemName: itemName,
-            price: price,
-          )
+          AnalyticsEventItem(itemId: itemId, itemName: itemName, price: price),
         ],
         value: price,
         currency: 'INR',
@@ -179,7 +178,7 @@ class HdkAnalytics {
       }
     }
   }
-  
+
   /// Set current user ID for analytics tracking
   static Future<void> setUserId(String userId) async {
     try {

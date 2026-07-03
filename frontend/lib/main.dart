@@ -47,7 +47,7 @@ Future<void> _uploadFcmToken(String fcmToken) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: FirebaseConfig.options);
-  
+
   // Set up Crashlytics
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
@@ -56,10 +56,10 @@ Future<void> main() async {
   };
 
   await _initFCM();
-  
+
   // Log App Open
   await HdkAnalytics.logAppOpen();
-  
+
   runApp(const MyApp());
 }
 

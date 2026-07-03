@@ -57,12 +57,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final cart = Provider.of<CartProvider>(context, listen: false);
       HdkAnalytics.logCheckoutStarted(
         totalAmount: cart.totalAmount,
-        items: cart.items.map((item) => {
-          'id': item.product.id,
-          'name': item.product.name,
-          'price': item.product.price,
-          'quantity': item.quantity,
-        }).toList(),
+        items: cart.items
+            .map(
+              (item) => {
+                'id': item.product.id,
+                'name': item.product.name,
+                'price': item.product.price,
+                'quantity': item.quantity,
+              },
+            )
+            .toList(),
       );
     });
   }
