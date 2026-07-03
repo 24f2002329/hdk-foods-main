@@ -115,10 +115,10 @@ jobs:
 
       - name: Flutter Analyze
         run: |
-          flutter analyze packages/hdk_core --no-fatal-infos
-          flutter analyze frontend --no-fatal-infos
-          flutter analyze frontend_delivery --no-fatal-infos
-          flutter analyze frontend_admin --no-fatal-infos
+          flutter analyze packages/hdk_core --fatal-infos --fatal-warnings
+          flutter analyze frontend --fatal-infos --fatal-warnings
+          flutter analyze frontend_delivery --fatal-infos --fatal-warnings
+          flutter analyze frontend_admin --fatal-infos --fatal-warnings
 
       - name: Flutter Test
         run: |

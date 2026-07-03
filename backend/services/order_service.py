@@ -185,12 +185,13 @@ def confirm_order(order: Order, prep_time: int, staff_user) -> Order:
 def reject_order(order: Order, reason: str) -> Order:
     """
     Rejects an order, updates its status and reason, sends a rejection notification,
-    and broadcasts the status update.
+    and broadcasts the status update. Also initiates Cashfree refund if needed.
     """
     from orders.views import _broadcast_order
 
     order.status = "rejected"
     order.rejection_reason = reason
+    order.cancellation_reason = reason
     order.rejected_at = timezone.now()
 
     if order.coins_redeemed > 0:
@@ -199,6 +200,19 @@ def reject_order(order: Order, reason: str) -> Order:
             getattr(customer, "loyalty_coins", 0) + order.coins_redeemed
         )
         customer.save(update_fields=["loyalty_coins"])
+
+    # Initiate Cashfree Refund if paid online
+    if order.payment_method == "online" and order.payment_status == "paid":
+        from services.payments import initiate_cashfree_refund
+
+        success = initiate_cashfree_refund(order, reason)
+        if success:
+            order.refund_status = "initiated"
+            order.payment_status = "refunded"
+        else:
+            order.refund_status = "failed"
+    else:
+        order.refund_status = "not_applicable"
 
     order.save()
 
@@ -502,5 +516,294 @@ def admin_cancel_order(order: Order, reason: str) -> Order:
         )
     except Exception as e:
         logger.warning(f"Could not send push notification: {e}")
+
+    return order
+
+
+def normalize_phone_number(phone):
+    phone = phone.strip()
+    if not phone:
+        return ""
+    phone = "".join(c for c in phone if c.isdigit() or c == "+")
+    if len(phone) == 10 and phone.isdigit():
+        return f"+91{phone}"
+    if len(phone) == 12 and phone.startswith("91"):
+        return f"+{phone}"
+    if phone.startswith("+"):
+        return phone
+    return phone
+
+
+def admin_create_order(
+    phone_number: str,
+    customer_name: str,
+    delivery_type: str,
+    address_text: str,
+    address_id: int,
+    house: str,
+    street: str,
+    landmark: str,
+    city: str,
+    pincode: str,
+    items: list,
+    payment_method: str = "cod",
+    coupon_code: str = "",
+    delivery_notes: str = "",
+) -> Order:
+    """
+    Admin manually places an order for a customer by their phone number.
+    """
+    from django.db.models import Q
+    from accounts.models import User, Address
+
+    if not phone_number:
+        raise ValidationError("Phone number is required.")
+
+    if not items:
+        raise ValidationError("At least one item is required.")
+
+    # 1. Get or create the User
+    normalized_phone = normalize_phone_number(phone_number)
+    raw_10_digit = phone_number[-10:] if len(phone_number) >= 10 else phone_number
+
+    user = User.objects.filter(
+        Q(phone_number=phone_number)
+        | Q(phone_number=normalized_phone)
+        | Q(phone_number__endswith=raw_10_digit)
+    ).first()
+
+    if user:
+        # Normalize user's phone if it wasn't
+        if user.phone_number != normalized_phone:
+            user.phone_number = normalized_phone
+            user.save(update_fields=["phone_number"])
+        # Update name if provided
+        if customer_name:
+            user.name = customer_name
+            user.save(update_fields=["name"])
+    else:
+        user = User.objects.create_user(
+            phone_number=normalized_phone,
+            name=customer_name or "Guest Customer",
+            role="customer",
+        )
+
+    # 2. Get or create Address
+    address = None
+    if address_id:
+        try:
+            address = Address.objects.get(user=user, id=address_id)
+        except Address.DoesNotExist:
+            address = None
+
+    if not address:
+        if delivery_type == "pickup":
+            house_text = "Store Pickup"
+            street_text = ""
+            landmark_text = ""
+            city_text = "Sojat Road"
+            pincode_text = "306103"
+        else:
+            house_text = house or address_text or "Delivery"
+            street_text = street
+            landmark_text = landmark
+            city_text = city or "Sojat Road"
+            pincode_text = pincode or "306103"
+
+        # Find if user already has an address with these exact details
+        address = Address.objects.filter(
+            user=user,
+            house=house_text,
+            street=street_text,
+            landmark=landmark_text,
+            city=city_text,
+            pincode=pincode_text,
+        ).first()
+
+        if not address:
+            address = Address.objects.create(
+                user=user,
+                label="Home" if delivery_type == "delivery" else "Other",
+                house=house_text,
+                street=street_text,
+                landmark=landmark_text,
+                city=city_text,
+                pincode=pincode_text,
+                latitude=Decimal("25.861129"),
+                longitude=Decimal("73.749306"),
+                is_default=True,
+            )
+
+    # 3. Calculate total and check coupon
+    total_amount = Decimal("0.00")
+    coupon = None
+    if coupon_code:
+        try:
+            coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
+        except Coupon.DoesNotExist:
+            raise ValidationError("Invalid or expired coupon code.")
+
+    order = Order.objects.create(
+        user=user,
+        address=address,
+        payment_method=payment_method,
+        payment_status="paid" if payment_method == "prepaid" else "pending",
+        delivery_notes=delivery_notes,
+        total_amount=Decimal("0.00"),
+        status="confirmed",  # Admin-placed order is auto-confirmed
+    )
+
+    for item in items:
+        product_id = item.get("product_id")
+        quantity = int(item.get("quantity", 1))
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            order.delete()
+            raise ValidationError(f"Product with ID {product_id} not found.")
+
+        item_price = product.price
+        customization_price = Decimal("0.00")
+        selections = item.get("selections", [])
+        for sel in selections:
+            extra = Decimal(str(sel.get("price", 0.0)))
+            customization_price += extra
+
+        final_price = item_price + customization_price
+        total_amount += final_price * quantity
+
+        OrderItem.objects.create(
+            order=order, product=product, quantity=quantity, price=final_price
+        )
+
+    order.total_amount = total_amount
+
+    # Apply coupon
+    if coupon:
+        now = timezone.now()
+        if coupon.valid_from and now < coupon.valid_from:
+            order.delete()
+            raise ValidationError("Coupon is not yet valid.")
+        if coupon.valid_until and now > coupon.valid_until:
+            order.delete()
+            raise ValidationError("Coupon has expired.")
+        if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
+            order.delete()
+            raise ValidationError("Coupon usage limit reached.")
+        if total_amount < coupon.min_order_amount:
+            order.delete()
+            raise ValidationError(
+                f"Minimum order amount for this coupon is ₹{coupon.min_order_amount}."
+            )
+
+        discount = coupon.compute_discount(total_amount)
+        order.discount_amount = discount
+        order.discount_reason = f"Coupon: {coupon.code}"
+        order.original_total = total_amount
+        order.total_amount = total_amount - discount
+        Coupon.objects.filter(pk=coupon.pk).update(usage_count=coupon.usage_count + 1)
+
+    order.save()
+
+    # Send push notification to user (if FCM token is available)
+    from authentication.firebase import send_push
+
+    try:
+        send_push(
+            user,
+            "Order Placed 🛍️",
+            f"An order has been placed for you: Order #{order.order_number}",
+            {"order_id": str(order.id), "type": "order"},
+        )
+    except Exception as e:
+        logger.warning(f"Could not send push notification: {e}")
+
+    # Broadcast to other channels
+    from orders.views import _broadcast_order
+
+    _broadcast_order(order, "new_order")
+
+    return order
+
+
+def edit_order_items(order: Order, items_data: list, staff_user) -> Order:
+    """
+    Chef or admin edits order items before confirmation.
+    Recalculates coupon discount and totals.
+    """
+    if order.status != "pending_confirmation":
+        raise ValidationError("Items can only be edited before confirmation.")
+
+    if not items_data:
+        raise ValidationError("At least one item is required.")
+
+    # Snapshot original total before any modification if not already set.
+    if order.original_total is None:
+        order.original_total = order.total_amount
+
+    # Delete existing items and recalculate.
+    order.items.all().delete()
+    total_amount = Decimal("0.00")
+
+    for item in items_data:
+        try:
+            product = Product.objects.get(id=item["product_id"])
+        except Product.DoesNotExist:
+            raise ValidationError(f"Product {item['product_id']} not found.")
+
+        quantity = int(item.get("quantity", 1))
+        if quantity < 1:
+            continue
+
+        price = product.price
+        total_amount += price * quantity
+
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            quantity=quantity,
+            price=price,
+        )
+
+    # Check if the existing discount was from a coupon and recalculate/cap it
+    discount_amount = order.discount_amount
+    if order.discount_reason and order.discount_reason.startswith("Coupon: "):
+        coupon_code = order.discount_reason.replace("Coupon: ", "").strip()
+        try:
+            coupon = Coupon.objects.get(code__iexact=coupon_code)
+            if total_amount < coupon.min_order_amount:
+                discount_amount = Decimal("0.00")
+                order.discount_reason = ""
+            else:
+                discount_amount = coupon.compute_discount(total_amount)
+        except Coupon.DoesNotExist:
+            discount_amount = min(discount_amount, total_amount)
+    else:
+        discount_amount = min(discount_amount, total_amount)
+
+    order.discount_amount = discount_amount
+    order.original_total = total_amount
+    order.total_amount = total_amount - discount_amount
+    order.is_modified_by_staff = True
+    order.save(
+        update_fields=[
+            "total_amount",
+            "original_total",
+            "discount_amount",
+            "discount_reason",
+            "is_modified_by_staff",
+            "updated_at",
+        ]
+    )
+
+    logger.info(
+        f"Order items edited by staff: order_id={order.id}, "
+        f"new_total={total_amount}, user_id={staff_user.id}"
+    )
+
+    from orders.views import _broadcast_order
+
+    _broadcast_order(order)
 
     return order

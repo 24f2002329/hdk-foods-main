@@ -100,11 +100,12 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
         _loading = false;
       });
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -540,17 +541,19 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     });
     try {
       final d = await _svc.getCustomerDetail(widget.customerId);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _detail = d;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 

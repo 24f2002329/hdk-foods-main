@@ -70,8 +70,25 @@ def run_database_backup():
             db_real_name = settings.DATABASES["default"].get("NAME", "")
 
             # Run pg_dump
-            pg_dump_cmd = f"pg_dump -U {db_user} -h {db_host} -p {db_port} {db_real_name} > {backup_filepath}"
-            os.system(pg_dump_cmd)
+            import subprocess
+
+            cmd = ["pg_dump"]
+            if db_user:
+                cmd.extend(["-U", str(db_user)])
+            if db_host:
+                cmd.extend(["-h", str(db_host)])
+            if db_port:
+                cmd.extend(["-p", str(db_port)])
+            if db_real_name:
+                cmd.append(str(db_real_name))
+
+            db_password = settings.DATABASES["default"].get("PASSWORD")
+            env = os.environ.copy()
+            if db_password:
+                env["PGPASSWORD"] = str(db_password)
+
+            with open(backup_filepath, "wb") as f:
+                subprocess.run(cmd, stdout=f, check=True, env=env)
 
             # Compress
             with open(backup_filepath, "rb") as f_in:

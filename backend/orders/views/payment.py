@@ -48,31 +48,7 @@ def _get_or_create_payment(order: Order, method: str, amount) -> Payment:
     return payment
 
 
-def initiate_cashfree_refund(order, reason):
-    import uuid
-
-    if not order.cashfree_order_id:
-        return False
-    refund_id = f"ref_{order.order_number}_{uuid.uuid4().hex[:6]}"
-    try:
-        url = f"{settings.CASHFREE_BASE_URL}/orders/{order.cashfree_order_id}/refunds"
-        headers = {
-            "x-client-id": settings.CASHFREE_APP_ID,
-            "x-client-secret": settings.CASHFREE_SECRET_KEY,
-            "x-api-version": settings.CASHFREE_API_VERSION,
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "refund_amount": float(order.total_amount),
-            "refund_id": refund_id,
-            "refund_note": reason or "Cancellation refund",
-        }
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
-        if res.status_code in [200, 201]:
-            return True
-    except Exception as e:
-        logger.warning(f"Refund initiation failed: {e}")
-    return False
+from services.payments import initiate_cashfree_refund
 
 
 class SelectPaymentView(APIView):
