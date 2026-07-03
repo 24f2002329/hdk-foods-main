@@ -59,14 +59,11 @@ class LocationTrackingService {
       } catch (_) {}
 
       Duration delay;
-      if (speed > 4.167) {
-        delay = const Duration(seconds: 10);
-      } else if (speed > 0.1) {
-        delay = const Duration(seconds: 20);
+      if (speed > 0.1) {
+        delay = const Duration(seconds: 5);
       } else {
-        delay = const Duration(seconds: 60);
+        delay = const Duration(seconds: 30);
       }
-
       await Future.delayed(delay);
     }
   }

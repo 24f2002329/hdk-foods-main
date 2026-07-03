@@ -271,8 +271,10 @@ def update_order_status(order: Order, new_status: str, staff_user) -> Order:
     sends push notification, and broadcasts status update.
     """
     if hasattr(staff_user, "role") and staff_user.role == "delivery":
-        if new_status != "delivered":
-            raise PermissionError("Delivery staff can only mark orders as delivered.")
+        if new_status not in ("out_for_delivery", "delivered"):
+            raise PermissionError(
+                "Delivery staff can only update status to Out For Delivery or Delivered."
+            )
         if order.assigned_delivery_id != staff_user.id:
             raise PermissionError("You are not assigned to this order.")
     elif not (hasattr(staff_user, "role") and staff_user.role == "admin"):

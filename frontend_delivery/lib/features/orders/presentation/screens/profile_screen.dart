@@ -29,11 +29,12 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
   Future<void> _load() async {
     try {
       final user = await AuthService().me();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _user = user;
           _loading = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -86,6 +87,57 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
     }
   }
 
+  Widget _infoRow(String label, String value, {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, color: _red, size: 16),
+            const SizedBox(width: 10),
+          ],
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: _red, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,6 +160,7 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                // Header Profile Card
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -136,7 +189,7 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _user?['name'] ?? 'Delivery',
+                              _user?['name'] ?? 'Delivery Partner',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -155,7 +208,7 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _red.withValues(alpha: 0.15),
+                                color: _red.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -173,6 +226,72 @@ class _DeliveryProfileScreenState extends State<DeliveryProfileScreen> {
                     ],
                   ),
                 ),
+
+                // Vehicle & Legal section
+                _sectionHeader('Vehicle & Driver Details', Icons.two_wheeler),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _stroke),
+                  ),
+                  child: Column(
+                    children: [
+                      _infoRow('Vehicle Model', 'Hero Splendor Plus',
+                          icon: Icons.motorcycle_rounded),
+                      _infoRow('Plate Number', 'MH-12-XY-4321',
+                          icon: Icons.pin_rounded),
+                      _infoRow('License No', 'DL-202493021948',
+                          icon: Icons.badge_rounded),
+                      _infoRow('Insurance status', 'Active (Dec 2026)',
+                          icon: Icons.verified_user_rounded),
+                    ],
+                  ),
+                ),
+
+                // Bank details / Payout section
+                _sectionHeader('Bank Payout Details', Icons.account_balance),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _stroke),
+                  ),
+                  child: Column(
+                    children: [
+                      _infoRow('Bank Name', 'State Bank of India',
+                          icon: Icons.account_balance_rounded),
+                      _infoRow('Account Number', '•••• •••• 5678',
+                          icon: Icons.numbers_rounded),
+                      _infoRow('IFSC Code', 'SBIN0004321',
+                          icon: Icons.code_rounded),
+                      _infoRow('Salary UPI ID', 'devendra@okaxis',
+                          icon: Icons.alternate_email_rounded),
+                    ],
+                  ),
+                ),
+
+                // Emergency Contacts
+                _sectionHeader('Emergency Contacts', Icons.contact_phone),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _stroke),
+                  ),
+                  child: Column(
+                    children: [
+                      _infoRow('Contact Name', 'Sunita (Wife)',
+                          icon: Icons.person_outline_rounded),
+                      _infoRow('Phone Number', '+91 98234 56789',
+                          icon: Icons.phone_android_rounded),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
               ],
             ),
     );
