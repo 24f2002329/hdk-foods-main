@@ -150,8 +150,13 @@ class AppRoutes {
     );
   }
 
-  static Future<T?> pushCoins<T>(BuildContext context) {
-    return Navigator.pushNamed<T>(context, coins);
+  static Future<T?> pushCoins<T>(
+    BuildContext context, {
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(
+      coins,
+    );
   }
 
   static Future<T?> pushOrders<T>(
@@ -302,8 +307,13 @@ class AppRoutes {
     );
   }
 
-  static Future<T?> pushNotifications<T>(BuildContext context) {
-    return Navigator.pushNamed<T>(context, notifications);
+  static Future<T?> pushNotifications<T>(
+    BuildContext context, {
+    bool rootNavigator = false,
+  }) {
+    return Navigator.of(context, rootNavigator: rootNavigator).pushNamed<T>(
+      notifications,
+    );
   }
 
   static Future<T?> pushCategoryProducts<T>(

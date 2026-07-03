@@ -344,7 +344,7 @@ class HomeTab extends StatelessWidget {
     BuildContext context,
     HomeProvider homeProvider,
   ) async {
-    await AppRoutes.pushNotifications(context);
+    await AppRoutes.pushNotifications(context, rootNavigator: true);
     homeProvider.loadUserData();
   }
 
