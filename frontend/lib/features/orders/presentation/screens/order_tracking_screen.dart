@@ -18,6 +18,7 @@ import 'package:hdk_core/hdk_core.dart';
 import '../../../../core/navigation/app_routes.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../home/data/repositories/product_service.dart';
+import '../../../home/data/repositories/config_service.dart';
 import '../../data/repositories/delivery_location_service.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../widgets/modified_order_dialog.dart';
@@ -2273,6 +2274,15 @@ class _NeedHelpSheet extends StatelessWidget {
     if (await canLaunchUrl(uri)) launchUrl(uri);
   }
 
+  Future<String> _getPhone() async {
+    try {
+      final config = await ConfigService().getConfig(fromCache: true);
+      return config.kitchenPhone;
+    } catch (_) {
+      return '+918875775282';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2328,7 +2338,10 @@ class _NeedHelpSheet extends StatelessWidget {
             color: Colors.greenAccent,
             label: 'Call us',
             subtitle: 'Speak with support directly',
-            onTap: () => _launch('tel:+919876543210'),
+            onTap: () async {
+              final phone = await _getPhone();
+              _launch('tel:$phone');
+            },
           ),
           const SizedBox(height: 12),
           _HelpOption(
@@ -2336,9 +2349,13 @@ class _NeedHelpSheet extends StatelessWidget {
             color: const Color(0xFF25D366),
             label: 'WhatsApp',
             subtitle: 'Chat on WhatsApp',
-            onTap: () => _launch(
-              'https://wa.me/919876543210?text=Hi%2C%20I%20need%20help%20with%20order%20%23${order.orderNumber}',
-            ),
+            onTap: () async {
+              final phone = await _getPhone();
+              final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+              _launch(
+                'https://wa.me/$cleanPhone?text=Hi%2C%20I%20need%20help%20with%20order%20%23${order.orderNumber}',
+              );
+            },
           ),
           const SizedBox(height: 12),
           _HelpOption(

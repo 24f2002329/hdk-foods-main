@@ -190,8 +190,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.call_rounded,
                 color: Colors.greenAccent,
                 label: 'Call Us',
-                subtitle: '+91 98765 43210',
-                onTap: () => launchUrl(Uri.parse('tel:+919876543210')),
+                subtitle: _config?.kitchenPhone ?? '+91 99999 88888',
+                onTap: () => launchUrl(
+                  Uri.parse('tel:${_config?.kitchenPhone ?? '+918875775282'}'),
+                ),
               ),
               const SizedBox(height: 12),
               _HelpTile(
@@ -199,7 +201,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: const Color(0xFF25D366),
                 label: 'WhatsApp',
                 subtitle: 'Chat with support',
-                onTap: () => launchUrl(Uri.parse('https://wa.me/919876543210')),
+                onTap: () {
+                  final phone = (_config?.kitchenPhone ?? '+918875775282')
+                      .replaceAll(RegExp(r'[^\d+]'), '');
+                  launchUrl(Uri.parse('https://wa.me/$phone'));
+                },
               ),
               const SizedBox(height: 12),
               _HelpTile(

@@ -63,6 +63,11 @@ class SiteConfig(models.Model):
         default="73.6646000",
         help_text="Kitchen GPS longitude",
     )
+    kitchen_phone = models.CharField(
+        max_length=20,
+        default="+918875775282",
+        help_text="Contact number for the kitchen",
+    )
 
     class Meta:
         verbose_name = "Site Configuration"

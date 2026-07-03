@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:hdk_core/hdk_core.dart';
 import '../../../orders/domain/repositories/order_repository.dart';
 import '../../../orders/presentation/widgets/modified_order_dialog.dart';
+import '../../../home/data/repositories/config_service.dart';
 import '../../../../core/navigation/app_routes.dart';
 
 const _surface = Color(0xFF050505);
@@ -193,10 +194,12 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   }
 
   Future<void> _callRestaurant() async {
-    final Uri phoneUri = Uri(
-      scheme: 'tel',
-      path: '+919999999999',
-    ); // Replace with actual restaurant number
+    String phone = '+918875775282';
+    try {
+      final config = await ConfigService().getConfig(fromCache: true);
+      phone = config.kitchenPhone;
+    } catch (_) {}
+    final Uri phoneUri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
     } else {

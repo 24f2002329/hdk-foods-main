@@ -22,6 +22,7 @@ class SiteConfigSerializer(serializers.ModelSerializer):
             "kitchen_name",
             "kitchen_latitude",
             "kitchen_longitude",
+            "kitchen_phone",
         ]
 
     def to_representation(self, instance):

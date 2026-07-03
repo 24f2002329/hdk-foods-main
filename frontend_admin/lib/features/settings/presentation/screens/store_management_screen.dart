@@ -37,6 +37,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
   final _kitchenName = TextEditingController();
   final _kitchenLat = TextEditingController();
   final _kitchenLng = TextEditingController();
+  final _kitchenPhone = TextEditingController();
   GoogleMapController? _mapController;
   static const double _defaultLat = 25.9233;
   static const double _defaultLng = 73.6646;
@@ -54,6 +55,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
     _kitchenName.dispose();
     _kitchenLat.dispose();
     _kitchenLng.dispose();
+    _kitchenPhone.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -97,6 +99,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
               .toString();
           _kitchenLng.text = (data['kitchen_longitude'] ?? _defaultLng)
               .toString();
+          _kitchenPhone.text = data['kitchen_phone'] ?? '+918875775282';
 
           _loading = false;
         });
@@ -127,6 +130,7 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
         'kitchen_name': _kitchenName.text.trim(),
         'kitchen_latitude': _kitchenLat.text.trim(),
         'kitchen_longitude': _kitchenLng.text.trim(),
+        'kitchen_phone': _kitchenPhone.text.trim(),
       });
       if (mounted) {
         ScaffoldMessenger.of(
@@ -318,6 +322,14 @@ class _StoreManagementScreenState extends State<StoreManagementScreen> {
                   _kitchenName,
                   hint: 'e.g. HDK Foods Kitchen',
                   maxLines: 1,
+                ),
+                const SizedBox(height: 10),
+                _inputField(
+                  'Kitchen Phone Number',
+                  _kitchenPhone,
+                  hint: 'e.g. +918875775282',
+                  maxLines: 1,
+                  keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 10),
                 Row(

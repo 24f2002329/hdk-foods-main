@@ -14,6 +14,7 @@ class SiteConfig {
   final String kitchenName;
   final double kitchenLat;
   final double kitchenLng;
+  final String kitchenPhone;
 
   const SiteConfig({
     this.announcement = '',
@@ -26,6 +27,7 @@ class SiteConfig {
     this.kitchenName = 'HDK Foods Kitchen',
     this.kitchenLat = 25.861067,
     this.kitchenLng = 73.749343,
+    this.kitchenPhone = '+918875775282',
   });
 
   factory SiteConfig.fromJson(Map<String, dynamic> json) => SiteConfig(
@@ -43,6 +45,7 @@ class SiteConfig {
     kitchenLng:
         double.tryParse(json['kitchen_longitude']?.toString() ?? '') ??
         73.749343,
+    kitchenPhone: json['kitchen_phone'] ?? '+918875775282',
   );
 
   bool get isCurrentlyOpen {

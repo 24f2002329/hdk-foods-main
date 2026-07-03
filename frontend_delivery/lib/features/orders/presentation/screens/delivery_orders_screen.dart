@@ -15,6 +15,7 @@ import '../../../navigation/presentation/screens/payment_collection_screen.dart'
 import '../../../auth/data/repositories/auth_service.dart';
 import 'order_detail_screen.dart';
 import '../../data/repositories/notification_service.dart';
+import '../../data/repositories/config_service.dart';
 import 'notification_screen.dart';
 
 const _red = Color(0xFFFF1E1E);
@@ -592,7 +593,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                     'Call Kitchen Helpdesk',
                     style: TextStyle(color: Colors.white),
                   ),
-                  onPressed: () => launchUrl(Uri.parse('tel:+919999988888')),
+                  onPressed: () async {
+                    final phone = await DeliveryConfigService.getKitchenPhone();
+                    launchUrl(Uri.parse('tel:$phone'));
+                  },
                 ),
               ),
               const SizedBox(height: 8),
@@ -1016,8 +1020,10 @@ class _DeliveryOrdersScreenState extends State<DeliveryOrdersScreen> {
                           color: Colors.orangeAccent,
                           size: 20,
                         ),
-                        onPressed: () {
-                          launchUrl(Uri.parse('tel:+919999988888'));
+                        onPressed: () async {
+                          final phone =
+                              await DeliveryConfigService.getKitchenPhone();
+                          launchUrl(Uri.parse('tel:$phone'));
                         },
                       ),
                       // Internal Navigation
