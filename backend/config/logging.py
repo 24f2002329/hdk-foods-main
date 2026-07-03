@@ -126,6 +126,12 @@ class StructuredJSONFormatter(logging.Formatter):
         return str(val)
 
 
+import uuid
+import time
+
+logger = logging.getLogger(__name__)
+
+
 class LogContextMiddleware(MiddlewareMixin):
     """Middleware to manage structured logging context.
     Clears the context before and after requests, and automatically binds the authenticated
@@ -134,6 +140,10 @@ class LogContextMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         clear_log_context()
+        request._start_time = time.time()
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.request_id = request_id
+        bind_log_context(request_id=request_id)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         # Automatically bind authenticated customer or delivery partner ID to log context
@@ -143,9 +153,36 @@ class LogContextMiddleware(MiddlewareMixin):
                 bind_log_context(delivery_partner=request.user.id)
             elif role == "customer":
                 bind_log_context(customer=request.user.id)
+            else:
+                bind_log_context(user_id=request.user.id, role=role)
+
+        # Bind order_id if present in view kwargs
+        if "pk" in view_kwargs:
+            if "orders" in request.path:
+                bind_log_context(order_id=view_kwargs["pk"])
+        elif "order_id" in view_kwargs:
+            bind_log_context(order_id=view_kwargs["order_id"])
+
         return None
 
     def process_response(self, request, response):
+        start_time = getattr(request, "_start_time", None)
+        if start_time:
+            duration = time.time() - start_time
+            req_logger = logging.getLogger("config.request")
+            req_logger.info(
+                "Request: %s %s | Response: %s | Duration: %.4fs",
+                request.method,
+                request.get_full_path(),
+                response.status_code,
+                duration,
+                extra={"response_time": duration, "status_code": response.status_code},
+            )
+
+        request_id = getattr(request, "request_id", None)
+        if request_id:
+            response["X-Request-ID"] = request_id
+
         clear_log_context()
         return response
 

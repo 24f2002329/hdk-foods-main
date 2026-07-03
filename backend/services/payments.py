@@ -10,8 +10,69 @@ from payments.models import (
     PaymentMethod,
     PaymentStatus,
 )
+from services.decorators import retry_on_failure
 
 logger = logging.getLogger(__name__)
+
+
+@retry_on_failure(
+    max_retries=3, initial_backoff=1.0, exceptions=(requests.RequestException,)
+)
+def _cf_create_order(cf_order_id, amount, user_id, phone_number, name):
+    return requests.post(
+        f"{settings.CASHFREE_BASE_URL}/orders",
+        headers={
+            "x-client-id": settings.CASHFREE_APP_ID,
+            "x-client-secret": settings.CASHFREE_SECRET_KEY,
+            "x-api-version": settings.CASHFREE_API_VERSION,
+            "Content-Type": "application/json",
+        },
+        json={
+            "order_id": cf_order_id,
+            "order_amount": float(amount),
+            "order_currency": "INR",
+            "customer_details": {
+                "customer_id": str(user_id),
+                "customer_phone": phone_number,
+                "customer_name": name,
+            },
+        },
+        timeout=15,
+    )
+
+
+@retry_on_failure(
+    max_retries=3, initial_backoff=1.0, exceptions=(requests.RequestException,)
+)
+def _cf_get_order(cf_order_id):
+    return requests.get(
+        f"{settings.CASHFREE_BASE_URL}/orders/{cf_order_id}",
+        headers={
+            "x-client-id": settings.CASHFREE_APP_ID,
+            "x-client-secret": settings.CASHFREE_SECRET_KEY,
+            "x-api-version": settings.CASHFREE_API_VERSION,
+        },
+        timeout=15,
+    )
+
+
+@retry_on_failure(
+    max_retries=3, initial_backoff=1.0, exceptions=(requests.RequestException,)
+)
+def _cf_post_refund(cf_order_id, refund_id, amount, reason):
+    url = f"{settings.CASHFREE_BASE_URL}/orders/{cf_order_id}/refunds"
+    headers = {
+        "x-client-id": settings.CASHFREE_APP_ID,
+        "x-client-secret": settings.CASHFREE_SECRET_KEY,
+        "x-api-version": settings.CASHFREE_API_VERSION,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "refund_amount": float(amount),
+        "refund_id": refund_id,
+        "refund_note": reason or "Cancellation refund",
+    }
+    return requests.post(url, json=payload, headers=headers, timeout=10)
 
 
 def select_payment_method(order: Order, payment_method: str, user) -> dict:
@@ -42,28 +103,15 @@ def select_payment_method(order: Order, payment_method: str, user) -> dict:
     )
 
     try:
-        cf_response = requests.post(
-            f"{settings.CASHFREE_BASE_URL}/orders",
-            headers={
-                "x-client-id": settings.CASHFREE_APP_ID,
-                "x-client-secret": settings.CASHFREE_SECRET_KEY,
-                "x-api-version": settings.CASHFREE_API_VERSION,
-                "Content-Type": "application/json",
-            },
-            json={
-                "order_id": cf_order_id,
-                "order_amount": float(order.total_amount),
-                "order_currency": "INR",
-                "customer_details": {
-                    "customer_id": str(user.id),
-                    "customer_phone": user.phone_number,
-                    "customer_name": user.name or "Customer",
-                },
-            },
-            timeout=15,
+        cf_response = _cf_create_order(
+            cf_order_id=cf_order_id,
+            amount=order.total_amount,
+            user_id=user.id,
+            phone_number=user.phone_number,
+            name=user.name or "Customer",
         )
     except requests.RequestException as e:
-        raise ConnectionError(f"Could not reach payment gateway: {e}")
+        raise ConnectionError(f"Could not reach payment gateway after retries: {e}")
 
     if cf_response.status_code not in (200, 201):
         raise ValueError(f"Payment gateway error: {cf_response.text}")
@@ -118,17 +166,9 @@ def verify_payment(order: Order) -> dict:
         return {"payment_status": order.payment_status}
 
     try:
-        cf_response = requests.get(
-            f"{settings.CASHFREE_BASE_URL}/orders/{order.cashfree_order_id}",
-            headers={
-                "x-client-id": settings.CASHFREE_APP_ID,
-                "x-client-secret": settings.CASHFREE_SECRET_KEY,
-                "x-api-version": settings.CASHFREE_API_VERSION,
-            },
-            timeout=15,
-        )
+        cf_response = _cf_get_order(order.cashfree_order_id)
     except requests.RequestException as e:
-        raise ConnectionError(f"Could not reach payment gateway: {e}")
+        raise ConnectionError(f"Could not reach payment gateway after retries: {e}")
 
     if cf_response.status_code != 200:
         raise ValueError(f"Payment gateway error: {cf_response.text}")
@@ -301,19 +341,12 @@ def initiate_cashfree_refund(order: Order, reason: str) -> bool:
         return False
     refund_id = f"ref_{order.order_number}_{uuid.uuid4().hex[:6]}"
     try:
-        url = f"{settings.CASHFREE_BASE_URL}/orders/{order.cashfree_order_id}/refunds"
-        headers = {
-            "x-client-id": settings.CASHFREE_APP_ID,
-            "x-client-secret": settings.CASHFREE_SECRET_KEY,
-            "x-api-version": settings.CASHFREE_API_VERSION,
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "refund_amount": float(order.total_amount),
-            "refund_id": refund_id,
-            "refund_note": reason or "Cancellation refund",
-        }
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
+        res = _cf_post_refund(
+            cf_order_id=order.cashfree_order_id,
+            refund_id=refund_id,
+            amount=order.total_amount,
+            reason=reason,
+        )
         if res.status_code in [200, 201]:
             return True
     except Exception as e:

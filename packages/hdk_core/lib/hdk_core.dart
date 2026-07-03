@@ -26,6 +26,10 @@ export 'widgets/skeletons/hdk_skeleton.dart';
 export 'widgets/empty_states/hdk_empty_state.dart';
 export 'widgets/error_views/error_retry.dart';
 
+// Services
+export 'services/analytics_service.dart';
+export 'services/crashlytics_service.dart';
+
 // Constants
 export 'constants/api_routes.dart';
 export 'constants/storage_keys.dart';

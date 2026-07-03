@@ -22,14 +22,16 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 from django.http import JsonResponse
+from config.health import health_check as detailed_health_check
 
 
-def health_check(request):
+def simple_health_check(request):
     return JsonResponse({"status": "healthy"})
 
 
 urlpatterns = [
-    path("", health_check, name="health_check"),
+    path("", simple_health_check, name="health_check"),
+    path("health/", detailed_health_check, name="detailed_health_check"),
     path("admin/", admin.site.urls),
     path("api/v1/", include("products.urls")),
     path("api/v1/orders/", include("orders.urls")),

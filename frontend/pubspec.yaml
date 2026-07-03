@@ -34,6 +34,8 @@ dependencies:
     path: ../packages/hdk_core
 
   firebase_core: ^4.0.0
+  firebase_analytics: any
+  firebase_crashlytics: any
   firebase_auth: ^6.0.0
   flutter_secure_storage: ^10.3.1
   http: ^1.6.0

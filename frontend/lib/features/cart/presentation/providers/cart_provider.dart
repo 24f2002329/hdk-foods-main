@@ -91,6 +91,16 @@ class CartProvider extends ChangeNotifier {
     } else {
       _items[key] = existing.copyWith(quantity: existing.quantity + quantity);
     }
+    
+    // Log Analytics Event
+    HdkAnalytics.logAddToCart(
+      itemId: product.id.toString(),
+      itemName: product.name,
+      price: product.price,
+      quantity: quantity,
+      category: product.categoryName,
+    );
+    
     if (haptic) HapticFeedback.lightImpact();
     notifyListeners();
     _saveCart();

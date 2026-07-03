@@ -25,6 +25,8 @@ dependencies:
   flutter_polyline_points: ^2.0.1
   permission_handler: ^11.3.1
   firebase_core: ^4.0.0
+  firebase_analytics: any
+  firebase_crashlytics: any
   firebase_messaging: ^16.3.0
   flutter_local_notifications: ^18.0.0
   web_socket_channel: ^3.0.1

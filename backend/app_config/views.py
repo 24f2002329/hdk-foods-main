@@ -130,6 +130,13 @@ class BannerImageUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Enforce 5MB file size limit
+        if image_file.size > 5 * 1024 * 1024:
+            return Response(
+                {"detail": "Image file size exceeds the 5MB limit."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Validate content type
         content_type = image_file.content_type or ""
         ext = os.path.splitext(image_file.name)[1].lower()

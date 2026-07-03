@@ -5,8 +5,20 @@ import os
 import urllib.parse
 
 from firebase_admin import credentials, messaging, storage
+from services.decorators import retry_on_failure
 
 logger = logging.getLogger(__name__)
+
+
+@retry_on_failure(max_retries=3, initial_backoff=1.0, exceptions=(Exception,))
+def _fcm_send(message):
+    return messaging.send(message)
+
+
+@retry_on_failure(max_retries=3, initial_backoff=1.0, exceptions=(Exception,))
+def _fcm_send_multicast(message):
+    return messaging.send_each_for_multicast(message)
+
 
 if not firebase_admin._apps:
     firebase_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
@@ -159,7 +171,7 @@ def send_push(user, title: str, body: str, data: dict = None, priority: str = "n
             data={k: str(v) for k, v in (data or {}).items()},
             token=token,
         )
-        message_id = messaging.send(message)
+        message_id = _fcm_send(message)
         _update_notification_log(
             log,
             status="sent",
@@ -257,7 +269,7 @@ def send_push_to_all(
                 data={k: str(v) for k, v in (data or {}).items()},
                 tokens=batch_tokens,
             )
-            response = messaging.send_each_for_multicast(message)
+            response = _fcm_send_multicast(message)
             sent += response.success_count
             for log, result in zip(batch_logs, response.responses):
                 if result.success:

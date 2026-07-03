@@ -1,47 +1,59 @@
 from django.urls import path
 
-from .views import (
-    AcknowledgeChangesView,
+from .views.customer import (
     ActiveCouponListView,
-    AdminCreateOrderView,
-    AdminDashboardView,
-    AdminReviewsListView,
-    AdminProductReviewsListView,
-    ApplyDiscountView,
-    AssignDeliveryView,
-    CashfreeWebhookView,
-    ConfirmOrderView,
-    CouponDetailView,
-    CouponListCreateView,
-    CouponToggleView,
     CreateOrderView,
-    DailyAnalyticsView,
-    DeliveryOrdersView,
-    DriverInitiatePaymentView,
-    DriverVerifyPaymentView,
-    EditOrderItemsView,
-    GetDeliveryLocationView,
     MyOrdersView,
     OrderDetailView,
-    OrderListView,
-    OrderReviewView,
-    PendingOrdersView,
     QueuePositionView,
-    RejectOrderView,
-    SelectPaymentView,
-    UpdateDeliveryLocationView,
-    UpdateOrderStatusView,
-    ValidateCouponView,
-    VerifyPaymentView,
     RequestCancellationView,
+    ReportNotReceivedView,
+    AcknowledgeChangesView,
+    ValidateCouponView,
+)
+from .views.admin import (
+    AdminCreateOrderView,
+    OrderListView,
+    ConfirmOrderView,
+    RejectOrderView,
+    UpdateOrderStatusView,
+    AssignDeliveryView,
+    EditOrderItemsView,
+    ApplyDiscountView,
     AdminHandleCancellationView,
     AdminCancelOrderView,
-    OrderMessageListCreateView,
-    ReportNotReceivedView,
     AdminOverrideStatusView,
-    AdminPaymentMethodView,
-    PredictPrepTimeView,
     PrepConfigView,
+    CouponListCreateView,
+    CouponDetailView,
+    CouponToggleView,
+    PendingOrdersView,
+)
+from .views.delivery import (
+    DeliveryOrdersView,
+    UpdateDeliveryLocationView,
+    GetDeliveryLocationView,
+)
+from .views.payment import (
+    SelectPaymentView,
+    VerifyPaymentView,
+    DriverInitiatePaymentView,
+    DriverVerifyPaymentView,
+    AdminPaymentMethodView,
+    CashfreeWebhookView,
+)
+from .views.websocket import (
+    OrderMessageListCreateView,
+)
+from .views.analytics import (
+    AdminDashboardView,
+    DailyAnalyticsView,
+    PredictPrepTimeView,
+)
+from .views.review import (
+    OrderReviewView,
+    AdminReviewsListView,
+    AdminProductReviewsListView,
 )
 
 from accounts.views import AdminCustomerInfoView

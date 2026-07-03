@@ -54,7 +54,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "config.logging.LogContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "config.middleware.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -64,7 +66,7 @@ MIDDLEWARE = [
     "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "config.logging.LogContextMiddleware",
+    "config.middleware.FriendlyExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -92,10 +94,18 @@ ASGI_APPLICATION = "config.asgi.application"
 _default_db_url = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 _database_url = os.getenv("DATABASE_URL")
 
-try:
-    _parsed_database = dj_database_url.parse(_database_url or _default_db_url)
-except dj_database_url.ParseError:
-    _parsed_database = dj_database_url.parse(_default_db_url)
+import sys
+
+if "test" in sys.argv:
+    _parsed_database = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+else:
+    try:
+        _parsed_database = dj_database_url.parse(_database_url or _default_db_url)
+    except dj_database_url.ParseError:
+        _parsed_database = dj_database_url.parse(_default_db_url)
 
 # Supabase / PgBouncer transaction pooling: disable server-side cursors.
 if _parsed_database.get("ENGINE") == "django.db.backends.postgresql":
@@ -192,6 +202,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_CLASSES": ("authentication.throttling.RoleBasedRateThrottle",),
 }
 
 SIMPLE_JWT = {

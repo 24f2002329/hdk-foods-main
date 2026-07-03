@@ -9,6 +9,7 @@ import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 
 import '../../../orders/domain/repositories/order_repository.dart';
 import '../../../../core/navigation/app_routes.dart';
+import 'package:hdk_core/hdk_core.dart';
 
 const _brandRed = Color(0xFFFF1E1E);
 const _surface = Color(0xFF050505);
@@ -66,6 +67,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (!mounted) return;
       final paid = order.paymentStatus == 'paid';
+      
+      if (paid) {
+        HdkAnalytics.logCheckoutCompleted(
+          orderId: widget.orderId.toString(),
+          totalAmount: widget.totalAmount,
+        );
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -78,6 +87,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Either way head to tracking, which keeps reconciling the status.
       _goToTracking();
     } catch (e) {
+      HdkAnalytics.logPaymentFailed(
+        orderId: widget.orderId.toString(),
+        errorMessage: 'Verification failed: $e',
+        method: 'online',
+      );
       _showError('Payment captured but verification failed. $e');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -85,6 +99,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _onPaymentError(CFErrorResponse errorResponse, String orderId) {
+    HdkAnalytics.logPaymentFailed(
+      orderId: widget.orderId.toString(),
+      errorMessage: errorResponse.getMessage() ?? 'cancelled',
+      method: 'online',
+    );
     _showError('Payment failed: ${errorResponse.getMessage() ?? 'cancelled'}');
     if (mounted) setState(() => _isProcessing = false);
   }
@@ -107,6 +126,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (_selectedMethod == 'cod') {
         if (!mounted) return;
+        HdkAnalytics.logCheckoutCompleted(
+          orderId: widget.orderId.toString(),
+          totalAmount: widget.totalAmount,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Order placed with Cash on Delivery.')),
         );

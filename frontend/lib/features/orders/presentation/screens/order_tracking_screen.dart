@@ -419,6 +419,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         orderId: widget.orderId,
         reason: reason,
       );
+      
+      // Log Analytics Event
+      HdkAnalytics.logOrderCancelled(
+        orderId: widget.orderId.toString(),
+        reason: reason,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

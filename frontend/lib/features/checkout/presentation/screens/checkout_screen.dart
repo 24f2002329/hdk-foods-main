@@ -51,6 +51,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     _loadAddresses();
     _loadUserCoins();
+
+    // Log Checkout Started
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cart = Provider.of<CartProvider>(context, listen: false);
+      HdkAnalytics.logCheckoutStarted(
+        totalAmount: cart.totalAmount,
+        items: cart.items.map((item) => {
+          'id': item.product.id,
+          'name': item.product.name,
+          'price': item.product.price,
+          'quantity': item.quantity,
+        }).toList(),
+      );
+    });
   }
 
   Future<void> _loadUserCoins() async {
@@ -210,6 +224,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         redeemCoins: _redeemCoins,
       );
 
+      if (_selectedPaymentMethod == 'cod') {
+        HdkAnalytics.logCheckoutCompleted(
+          orderId: order.id.toString(),
+          totalAmount: order.totalAmount,
+        );
+      }
+
       cart.clearCart();
 
       if (mounted) {
@@ -221,6 +242,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
     } catch (e) {
+      HdkAnalytics.logPaymentFailed(
+        orderId: '',
+        errorMessage: 'Order creation failed: $e',
+      );
       if (mounted) {
         final errorMsg = e.toString().toLowerCase();
         if (errorMsg.contains('closed') || errorMsg.contains('kitchen')) {
