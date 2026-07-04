@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:hdk_core/hdk_core.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -49,7 +48,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
   bool _checkingHealth = false;
   int? _apiLatencyMs;
   String _backendHealthStatus = 'Unknown';
-  String _wsStatus = 'Unknown';
 
   @override
   void initState() {
@@ -71,10 +69,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     setState(() {
       _checkingHealth = true;
       _backendHealthStatus = 'Checking...';
-      _wsStatus = 'Checking...';
     });
 
-    // 1. Check API Latency & Backend Health
+    // Check API Latency & Backend Health
     final stopwatch = Stopwatch()..start();
     try {
       await _svc.getConfig();
@@ -91,33 +88,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
         setState(() {
           _apiLatencyMs = null;
           _backendHealthStatus = 'Unreachable';
-        });
-      }
-    }
-
-    // 2. Check WebSocket Status
-    try {
-      final token = await TokenStorage.getAccessToken();
-      if (token == null) {
-        if (mounted) setState(() => _wsStatus = 'Unauthorized');
-      } else {
-        final uri = Uri.parse(
-          '${ApiConfig.wsBaseUrl}/ws/admin/orders/?token=$token',
-        );
-        final channel = WebSocketChannel.connect(uri);
-        // Wait for connection with a 3-second timeout
-        await channel.ready.timeout(const Duration(seconds: 3));
-        if (mounted) {
-          setState(() {
-            _wsStatus = 'Operational';
-          });
-        }
-        await channel.sink.close();
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _wsStatus = 'Offline';
         });
       }
     } finally {
@@ -642,7 +612,6 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
     Color getStatusColor(String status) {
       switch (status) {
         case 'Healthy':
-        case 'Operational':
           return Colors.greenAccent;
         case 'Checking...':
           return Colors.amberAccent;
@@ -652,6 +621,9 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           return Colors.redAccent;
       }
     }
+
+    final String host =
+        Uri.tryParse(ApiConfig.baseUrl)?.host ?? 'api.hdkfoods.in';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -671,7 +643,7 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
                   const Icon(Icons.analytics_outlined, color: _red, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'System Health Monitor',
+                    'System Configuration',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 14,
@@ -700,17 +672,18 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
           ),
           const SizedBox(height: 14),
           _healthRow(
-            label: 'Backend API Status',
+            label: 'API Server Status',
             status: _backendHealthStatus,
             statusColor: getStatusColor(_backendHealthStatus),
             trailing: _apiLatencyMs != null ? '${_apiLatencyMs}ms' : null,
           ),
           const Divider(color: _stroke, height: 16),
-          _healthRow(
-            label: 'WebSocket Gateway',
-            status: _wsStatus,
-            statusColor: getStatusColor(_wsStatus),
+          _healthRowWithoutIndicator(
+            label: 'Environment',
+            value: AppConfig.environment.name.toUpperCase(),
           ),
+          const Divider(color: _stroke, height: 16),
+          _healthRowWithoutIndicator(label: 'API Host', value: host),
         ],
       ),
     );
@@ -753,6 +726,26 @@ class _SiteConfigScreenState extends State<SiteConfigScreen>
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _healthRowWithoutIndicator({
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
